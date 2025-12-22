@@ -1,18 +1,18 @@
 use crate::{
     ui::{layout},
     ui::widgets::*,
-    state::state::State
+    state::state::AppState
 };
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
-use crate::state::state::{BlockState, ContentState};
+use crate::state::state::{Focus, ToolState};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
 pub struct App {
     /// Is the application running?
     running: bool,
-    state: State
+    state: AppState
 }
 
 impl App {
@@ -20,7 +20,7 @@ impl App {
     pub fn new() -> Self {
         Self {
             running: true,
-            state: State::default()
+            state: AppState::default()
         }
     }
 
@@ -73,27 +73,27 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn on_key_event(&mut self, key: KeyEvent) {
-        match (&self.state.block, key.code){
-            (BlockState::Menu, KeyCode::Down) => {
-                self.state.menu.state.select_next();
+        match (&self.state.focus, key.code){
+            (Focus::Menu, KeyCode::Down) => {
+                self.state.list.state.select_next();
             },
-            (BlockState::Menu, KeyCode::Up) => {
-                self.state.menu.state.select_previous();
+            (Focus::Menu, KeyCode::Up) => {
+                self.state.list.state.select_previous();
             }
-            (BlockState::Menu, KeyCode::Enter) => {
-                self.state.content = match self.state.menu.state.selected(){
-                    Some(1) => ContentState::TokenGenerator,
-                    Some(2) => ContentState::DiffChecker,
-                    _ => ContentState::Home,
+            (Focus::Menu, KeyCode::Enter) => {
+                self.state.tool = match self.state.list.state.selected(){
+                    Some(1) => ToolState::TokenGenerator,
+                    Some(2) => ToolState::DiffChecker,
+                    _ => ToolState::Home,
                 };
             }
-            (BlockState::Menu, KeyCode::Char('x')) => {
-                self.state.block = BlockState::Content
+            (Focus::Menu, KeyCode::Char('x')) => {
+                self.state.focus = Focus::Content
             }
-            (BlockState::Content, KeyCode::Char('x')) => {
-                self.state.block = BlockState::Menu
+            (Focus::Content, KeyCode::Char('x')) => {
+                self.state.focus = Focus::Menu
             }
-            (BlockState::Menu, _ ) | ( BlockState::Content, _ ) => {}
+            (Focus::Menu, _ ) | ( Focus::Content, _ ) => {}
         }
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))

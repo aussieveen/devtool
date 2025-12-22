@@ -1,6 +1,6 @@
 // ui/styles.rs
 use ratatui::style::{Style, Color};
-use crate::state::state::BlockState;
+use crate::state::focus::Focus;
 
 pub fn block_style(active: bool) -> Style {
     if active {
@@ -10,10 +10,10 @@ pub fn block_style(active: bool) -> Style {
     }
 }
 
-pub fn is_menu_active(block: BlockState) -> bool {
-    matches!(block, BlockState::Menu)
+pub fn is_menu_active(focus: Focus) -> bool {
+    matches!(focus, Focus::Menu)
 }
 
-pub fn is_content_active(block: BlockState) -> bool {
-    matches!(block, BlockState::Content)
+pub fn is_content_active(focus: Focus) -> bool {
+    matches!(focus, Focus::Content)
 }

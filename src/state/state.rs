@@ -1,73 +1,28 @@
 use ratatui::widgets::ListState;
+pub(crate) use crate::state::focus::Focus;
+use crate::state::tool_list::ToolList;
+pub(crate) use crate::state::tool_state::ToolState;
 
 #[derive(Debug)]
-pub struct ToolState {
-    pub items: Vec<&'static str>,
-    pub state: ListState
+pub struct AppState {
+    pub list: ToolList,
+    pub tool: ToolState,
+    pub focus: Focus
 }
 
-
-#[derive(Debug, Copy)]
-#[derive(Clone)]
-pub enum BlockState{
-    Menu,
-    Content
-}
-
-#[derive(Debug)]
-pub struct State{
-    pub menu: ToolState,
-    pub content: ContentState,
-    pub block: BlockState
-}
-
-#[derive(Debug)]
-pub enum ContentState {
-    Home,
-    DiffChecker,
-    TokenGenerator,
-}
-
-impl ContentState {
-    pub fn title(&self) -> &'static str {
-        match self {
-            ContentState::Home => "Home",
-            ContentState::DiffChecker => "PR Diff Checker",
-            ContentState::TokenGenerator => "M2M Auth0 Token Generator",
-        }
-    }
-
-    pub fn content(&self) -> &'static str {
-        match self {
-            ContentState::Home => "This is the home page",
-            ContentState::DiffChecker => "This is the PR Diff Checker",
-            ContentState::TokenGenerator => "This is the token generator",
-        }
-    }
-
-    pub fn menu_entry(&self) -> &'static str {
-        match self {
-            ContentState::Home => "Home",
-            ContentState::DiffChecker => "Diff Checker",
-            ContentState::TokenGenerator => "Token Generator",
-        }
-    }
-}
-
-
-impl State {
-    pub(crate) fn default() -> State {
+impl AppState {
+    pub(crate) fn default() -> AppState {
         Self {
-            menu: ToolState {
+            list: ToolList {
                 items: vec![
-                    ContentState::Home.menu_entry(),
-                    ContentState::DiffChecker.menu_entry(),
-                    ContentState::TokenGenerator.menu_entry()
+                    ToolState::Home.menu_entry(),
+                    ToolState::DiffChecker.menu_entry(),
+                    ToolState::TokenGenerator.menu_entry()
                 ],
                 state: ListState::default().with_selected(Some(0)),
             },
-            content: ContentState::Home,
-            block: BlockState::Menu
+            tool: ToolState::Home,
+            focus: Focus::Menu
         }
     }
 }

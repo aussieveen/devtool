@@ -1,6 +1,6 @@
 use crate::{
     ui::styles,
-    state::state::State
+    state::state::AppState
 };
 use ratatui::style::Stylize;
 // ui/tools
@@ -12,14 +12,14 @@ use ratatui::{
 pub fn render(
     frame: &mut Frame,
     area: ratatui::layout::Rect,
-    state: &mut State,
+    state: &mut AppState,
 ) {
     let style = styles::block_style(
-        styles::is_menu_active(state.block),
+        styles::is_menu_active(state.focus),
     );
 
     let menu = List::new(
-        state.menu.items.iter().map(|i| ListItem::new(*i))
+        state.list.items.iter().map(|i| ListItem::new(*i))
     )
         .block(
             Block::default()
@@ -34,6 +34,6 @@ pub fn render(
     frame.render_stateful_widget(
         menu,
         area,
-        &mut state.menu.state,
+        &mut state.list.state,
     );
 }
