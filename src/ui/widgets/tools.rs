@@ -1,11 +1,13 @@
-// ui/tools
-use ratatui::{
-    Frame,
-    widgets::{List, ListItem, Block, Borders},
+use crate::{
+    ui::styles,
+    state::state::State
 };
 use ratatui::style::Stylize;
-use crate::ui::styles;
-use crate::state::State;
+// ui/tools
+use ratatui::{
+    widgets::{Block, Borders, List, ListItem},
+    Frame,
+};
 
 pub fn render(
     frame: &mut Frame,

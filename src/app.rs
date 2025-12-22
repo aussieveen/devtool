@@ -1,10 +1,11 @@
 use crate::{
     ui::{layout},
-    state::{BlockState, ContentState, State},
-    ui::widgets::*
+    ui::widgets::*,
+    state::state::State
 };
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
+use crate::state::state::{BlockState, ContentState};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]

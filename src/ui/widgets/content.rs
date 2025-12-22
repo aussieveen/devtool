@@ -3,15 +3,15 @@ use ratatui::{
     Frame,
     widgets::{Paragraph, Block, Borders},
 };
+use crate::state::state::State;
 use crate::ui::styles;
-use crate::state::State;
 
 pub fn render(
     frame: &mut Frame,
     area: ratatui::layout::Rect,
     state: &State,
 ) {
-    let style = styles::block_style(
+    let content_block_border_style = styles::block_style(
         styles::is_content_active(state.block),
     );
 
@@ -19,7 +19,7 @@ pub fn render(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(style)
+                .border_style(content_block_border_style)
                 .title(format!(" {} ", state.content.title())),
         );
 
