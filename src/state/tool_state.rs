@@ -1,3 +1,7 @@
+use ratatui::Frame;
+use ratatui::layout::Rect;
+use crate::ui::widgets::tools::*;
+
 #[derive(Debug)]
 pub enum ToolState {
     Home,
@@ -14,11 +18,11 @@ impl ToolState {
         }
     }
 
-    pub fn content(&self) -> &'static str {
+    pub fn render(&self, frame: &mut Frame, area: Rect) {
         match self {
-            ToolState::Home => "This is the home page",
-            ToolState::DiffChecker => "This is the PR Diff Checker",
-            ToolState::TokenGenerator => "This is the token generator",
+            ToolState::Home => home::render(frame, area),
+            ToolState::DiffChecker => diff_checker::render(frame,area),
+            ToolState::TokenGenerator => token_generator::render(frame, area)
         }
     }
 

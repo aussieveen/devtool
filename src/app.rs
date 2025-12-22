@@ -1,11 +1,11 @@
 use crate::{
     ui::{layout},
     ui::widgets::*,
-    state::state::AppState
+    state::app_state::AppState
 };
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
-use crate::state::state::{Focus, ToolState};
+use crate::state::app_state::{Focus, ToolState};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -43,13 +43,13 @@ impl App {
     fn render(&mut self, frame: &mut Frame) {
         let areas = layout::main(frame.area());
 
-        tools::render(
+        list::render(
             frame,
             areas.menu,
             &mut self.state,
         );
 
-        content::render(
+        tool::render(
             frame,
             areas.content,
             &self.state,

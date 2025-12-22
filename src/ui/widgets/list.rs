@@ -1,6 +1,6 @@
 use crate::{
     ui::styles,
-    state::state::AppState
+    state::app_state::AppState
 };
 use ratatui::style::Stylize;
 // ui/tools
