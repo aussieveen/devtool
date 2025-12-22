@@ -1,13 +1,7 @@
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::{
-    DefaultTerminal, Frame,
-    style::Stylize,
-    widgets::{Block, Paragraph},
-};
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Color, Style};
-use ratatui::widgets::{Borders, List, ListItem};
+use ratatui::{DefaultTerminal, Frame};
 use crate::state::{BlockState, ContentState, State};
+use crate::ui::{layout, menu, content};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -18,6 +12,8 @@ pub struct App {
 }
 
 impl App {
+    const TITLE_SUFFIX: &str = "(x to switch)";
+
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         Self {
@@ -43,49 +39,19 @@ impl App {
     /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
     /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
-        let layout = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(vec![
-                Constraint::Min(30),
-                Constraint::Percentage(90)
-            ])
-            .split(frame.area());
+        let areas = layout::main(frame.area());
 
-        let highlighted_style = Style::default().fg(Color::Green);
-        let default_style = Style::default();
-
-        let menu_style = match self.state.block {
-            BlockState::Menu => highlighted_style,
-            _ => default_style
-        };
-        let content_style = match self.state.block {
-            BlockState::Content => highlighted_style,
-            _ => default_style
-        };
-
-        let content = match self.state.content{
-            ContentState::TokenGenerator => "This is the token generator",
-            ContentState::DiffChecker => "This is the diff checker",
-            _ => "This is the home page",
-        };
-
-        let list = List::new(self.state.menu.items.iter().map(|i| ListItem::new(*i)))
-            .block(Block::bordered().border_style(menu_style).title("Menu"))
-            .highlight_style(Style::new().reversed())
-            .highlight_symbol(">> ")
-            .repeat_highlight_symbol(true);
-        frame.render_stateful_widget(
-            list,
-            layout[0],
-            &mut self.state.menu.state
+        menu::render(
+            frame,
+            areas.menu,
+            &mut self.state,
         );
 
-        let paragraph = Paragraph::new(content)
-            .block(Block::new().title("TITLE").borders(Borders::ALL).border_style(content_style));
-        frame.render_widget(
-            paragraph,
-            layout[1]
-        )
+        content::render(
+            frame,
+            areas.content,
+            &self.state,
+        );
     }
 
     /// Reads the crossterm events and updates the state of [`App`].
@@ -118,12 +84,11 @@ impl App {
                     Some(2) => ContentState::DiffChecker,
                     _ => ContentState::Home,
                 };
+            }
+            (BlockState::Menu, KeyCode::Char('x')) => {
                 self.state.block = BlockState::Content
             }
-            (BlockState::Menu, KeyCode::Right) => {
-                self.state.block = BlockState::Content
-            }
-            (BlockState::Content, KeyCode::Left) => {
+            (BlockState::Content, KeyCode::Char('x')) => {
                 self.state.block = BlockState::Menu
             }
             (BlockState::Menu, _ ) | ( BlockState::Content, _ ) => {}

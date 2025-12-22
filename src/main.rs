@@ -1,5 +1,6 @@
 mod app;
 mod state;
+mod ui;
 
 use crate::app::App;
 
