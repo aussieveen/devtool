@@ -1,7 +1,10 @@
+use crate::{
+    ui::{layout},
+    state::{BlockState, ContentState, State},
+    ui::widgets::*
+};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
-use crate::state::{BlockState, ContentState, State};
-use crate::ui::{layout, menu, content};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -12,8 +15,6 @@ pub struct App {
 }
 
 impl App {
-    const TITLE_SUFFIX: &str = "(x to switch)";
-
     /// Construct a new instance of [`App`].
     pub fn new() -> Self {
         Self {
@@ -41,7 +42,7 @@ impl App {
     fn render(&mut self, frame: &mut Frame) {
         let areas = layout::main(frame.area());
 
-        menu::render(
+        tools::render(
             frame,
             areas.menu,
             &mut self.state,

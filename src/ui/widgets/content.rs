@@ -20,7 +20,7 @@ pub fn render(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(style)
-                .title(state.content.title()),
+                .title(format!(" {} ", state.content.title())),
         );
 
     frame.render_widget(paragraph, area);

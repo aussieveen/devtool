@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 
 #[derive(Debug)]
-pub struct MenuState{
+pub struct ToolState {
     pub items: Vec<&'static str>,
     pub state: ListState
 }
@@ -16,7 +16,7 @@ pub enum BlockState{
 
 #[derive(Debug)]
 pub struct State{
-    pub menu: MenuState,
+    pub menu: ToolState,
     pub content: ContentState,
     pub block: BlockState
 }
@@ -58,7 +58,7 @@ impl ContentState {
 impl State {
     pub(crate) fn default() -> State {
         Self {
-            menu: MenuState {
+            menu: ToolState {
                 items: vec![
                     ContentState::Home.menu_entry(),
                     ContentState::DiffChecker.menu_entry(),

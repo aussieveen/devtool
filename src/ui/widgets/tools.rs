@@ -1,4 +1,4 @@
-// ui/menu.rs
+// ui/tools
 use ratatui::{
     Frame,
     widgets::{List, ListItem, Block, Borders},
@@ -23,7 +23,7 @@ pub fn render(
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(style)
-                .title(" Menu ")
+                .title(" Tools ")
         )
         .highlight_style(ratatui::style::Style::default().reversed())
         .highlight_symbol(">> ")
