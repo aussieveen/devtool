@@ -3,8 +3,11 @@ use crate::{
     ui::widgets::*,
     state::app_state::AppState
 };
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
+use crate::events::event::AppEvent::{ListMoveDown, ListMoveUp, ListSelect, Quit, SetFocus};
+use crate::events::event::Event;
+use crate::events::handler::EventHandler;
 use crate::state::app_state::{Focus, ToolState};
 
 /// The main application which holds the state and logic of the application.
@@ -12,7 +15,8 @@ use crate::state::app_state::{Focus, ToolState};
 pub struct App {
     /// Is the application running?
     running: bool,
-    state: AppState
+    state: AppState,
+    events: EventHandler
 }
 
 impl App {
@@ -20,16 +24,32 @@ impl App {
     pub fn new() -> Self {
         Self {
             running: true,
-            state: AppState::default()
+            state: AppState::default(),
+            events: EventHandler::new()
         }
     }
 
-    /// Run the application's main loop.
-    pub fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
-        self.running = true;
+    pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
-            self.handle_crossterm_events()?;
+            match self.events.next().await? {
+                Event::Tick => {},
+                Event::Crossterm(event) => match event{
+                    event::Event::Key(key_event)
+                    if key_event.kind == KeyEventKind::Press =>
+                        {
+                            self.handle_key_events(key_event)?
+                        }
+                    _ => {}
+                },
+                Event::App(app_event) => match app_event{
+                    Quit => self.quit(),
+                    SetFocus(focus) => self.set_focus(focus),
+                    ListSelect(tool_state) => self.select_tool(tool_state),
+                    ListMoveUp => self.list_up(),
+                    ListMoveDown => self.list_down()
+                },
+            }
         }
         Ok(())
     }
@@ -56,55 +76,58 @@ impl App {
         );
     }
 
-    /// Reads the crossterm events and updates the state of [`App`].
-    ///
-    /// If your application needs to perform work in between handling events, you can use the
-    /// [`event::poll`] function to check if there are any events available with a timeout.
-    fn handle_crossterm_events(&mut self) -> color_eyre::Result<()> {
-        match event::read()? {
-            // it's important to check KeyEventKind::Press to avoid handling key release events
-            Event::Key(key) if key.kind == KeyEventKind::Press => self.on_key_event(key),
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
-            _ => {}
-        }
-        Ok(())
-    }
-
     /// Handles the key events and updates the state of [`App`].
-    fn on_key_event(&mut self, key: KeyEvent) {
+    fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
         match (&self.state.focus, key.code){
-            (Focus::Menu, KeyCode::Down) => {
-                self.state.list.state.select_next();
+            (Focus::List, KeyCode::Down) => {
+                self.events.send(ListMoveDown);
             },
-            (Focus::Menu, KeyCode::Up) => {
-                self.state.list.state.select_previous();
+            (Focus::List, KeyCode::Up) => {
+                self.events.send(ListMoveUp);
             }
-            (Focus::Menu, KeyCode::Enter) => {
-                self.state.tool = match self.state.list.state.selected(){
+            (Focus::List, KeyCode::Enter) => {
+                self.events.send(ListSelect(match self.state.list.state.selected(){
                     Some(1) => ToolState::TokenGenerator,
                     Some(2) => ToolState::DiffChecker,
                     _ => ToolState::Home,
-                };
+                }))
             }
-            (Focus::Menu, KeyCode::Char('x')) => {
-                self.state.focus = Focus::Content
+            (Focus::List, KeyCode::Char('x')) => {
+                self.events.send(SetFocus(Focus::Tool))
             }
-            (Focus::Content, KeyCode::Char('x')) => {
-                self.state.focus = Focus::Menu
+            (Focus::Tool, KeyCode::Char('x')) => {
+                self.events.send(SetFocus(Focus::List))
             }
-            (Focus::Menu, _ ) | ( Focus::Content, _ ) => {}
+            (Focus::List, _ ) | ( Focus::Tool, _ ) => {}
         }
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.quit(),
+            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.events.send(Quit),
             // Add other key handlers here.
             _ => {}
         }
+
+        Ok(())
     }
 
     /// Set running to false to quit the application.
     fn quit(&mut self) {
         self.running = false;
+    }
+
+    fn set_focus(&mut self, focus: Focus) {
+        self.state.focus = focus
+    }
+
+    fn select_tool(&mut self, tool: ToolState) {
+        self.state.tool = tool
+    }
+
+    fn list_up(&mut self) {
+        self.state.list.state.select_previous();
+    }
+
+    fn list_down(&mut self) {
+        self.state.list.state.select_next();
     }
 }

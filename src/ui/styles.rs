@@ -11,9 +11,9 @@ pub fn block_style(active: bool) -> Style {
 }
 
 pub fn is_menu_active(focus: Focus) -> bool {
-    matches!(focus, Focus::Menu)
+    matches!(focus, Focus::List)
 }
 
 pub fn is_content_active(focus: Focus) -> bool {
-    matches!(focus, Focus::Content)
+    matches!(focus, Focus::Tool)
 }

@@ -22,7 +22,7 @@ impl AppState {
                 state: ListState::default().with_selected(Some(0)),
             },
             tool: ToolState::Home,
-            focus: Focus::Menu
+            focus: Focus::List
         }
     }
 }
