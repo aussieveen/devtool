@@ -1,6 +1,7 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use crate::state::app_state::AppState;
+use crate::state::diffchecker::DiffChecker;
 use crate::ui::widgets::tools::*;
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ impl Tool {
         }
     }
 
-    pub fn render(&self, frame: &mut Frame, area: Rect, app_state: &AppState) {
+    pub fn render(&self, frame: &mut Frame, area: Rect, app_state: &mut DiffChecker) {
         match self {
             Tool::Home => home::render(frame, area),
             Tool::DiffChecker => diffchecker::render(frame, area, app_state),

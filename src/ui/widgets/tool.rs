@@ -9,7 +9,7 @@ use crate::ui::styles;
 pub fn render(
     frame: &mut Frame,
     area: ratatui::layout::Rect,
-    state: &AppState,
+    state: &mut AppState,
 ) {
     let content_block_border_style = styles::block_style(
         styles::is_content_active(state.focus),
@@ -24,5 +24,5 @@ pub fn render(
 
     frame.render_widget(pane,area);
 
-    state.tool.render(frame, inner, state);
+    state.tool.render(frame, inner, &mut state.diff_checker);
 }

@@ -73,7 +73,7 @@ impl App {
         tool::render(
             frame,
             areas.content,
-            &self.state,
+            &mut self.state,
         );
     }
 
