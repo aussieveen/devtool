@@ -1,4 +1,5 @@
 use ratatui::crossterm::event::Event as CrosstermEvent;
+use ratatui::widgets::ListState;
 use crate::state::app_state::Tool;
 use crate::state::focus::Focus;
 
@@ -28,6 +29,9 @@ pub enum AppEvent {
     ListSelect(Tool),
 
     // Tool events
+    // DiffChecker
+    DiffCheckerListMoveDown,
+    DiffCheckerListMoveUp,
 
     // Generic Events
     SetFocus(Focus),

@@ -6,7 +6,7 @@ use crate::{
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use crate::config::Config;
-use crate::events::event::AppEvent::{ListMoveDown, ListMoveUp, ListSelect, Quit, SetFocus};
+use crate::events::event::AppEvent::{DiffCheckerListMoveDown, DiffCheckerListMoveUp, ListMoveDown, ListMoveUp, ListSelect, Quit, SetFocus};
 use crate::events::event::Event;
 use crate::events::handler::EventHandler;
 use crate::state::app_state::{Focus, Tool};
@@ -44,11 +44,13 @@ impl App {
                     _ => {}
                 },
                 Event::App(app_event) => match app_event{
-                    Quit => self.quit(),
-                    SetFocus(focus) => self.set_focus(focus),
-                    ListSelect(tool_state) => self.select_tool(tool_state),
-                    ListMoveUp => self.list_up(),
-                    ListMoveDown => self.list_down()
+                    Quit => self.running = false,
+                    SetFocus(focus) => self.state.focus = focus,
+                    ListSelect(tool_state) => self.state.tool = tool_state,
+                    ListMoveUp => self.state.list.state.select_previous(),
+                    ListMoveDown => self.state.list.state.select_next(),
+                    DiffCheckerListMoveDown => self.state.diff_checker.state.select_next(),
+                    DiffCheckerListMoveUp => self.state.diff_checker.state.select_previous(),
                 },
             }
         }
@@ -79,27 +81,33 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
-        match (&self.state.focus, key.code){
-            (Focus::List, KeyCode::Down) => {
+        match (&self.state.focus, &self.state.tool, key.code){
+            (Focus::List, _,  KeyCode::Down) => {
                 self.events.send(ListMoveDown);
             },
-            (Focus::List, KeyCode::Up) => {
+            (Focus::List, _, KeyCode::Up) => {
                 self.events.send(ListMoveUp);
             }
-            (Focus::List, KeyCode::Enter) => {
+            (Focus::List, _, KeyCode::Enter) => {
                 self.events.send(ListSelect(match self.state.list.state.selected(){
                     Some(1) => Tool::DiffChecker,
                     Some(2) => Tool::TokenGenerator,
                     _ => Tool::Home,
                 }))
             }
-            (Focus::List, KeyCode::Char('x')) => {
+            (Focus::List, _, KeyCode::Char('x')) => {
                 self.events.send(SetFocus(Focus::Tool))
             }
-            (Focus::Tool, KeyCode::Char('x')) => {
+            (Focus::Tool, _, KeyCode::Char('x')) => {
                 self.events.send(SetFocus(Focus::List))
             }
-            (Focus::List, _ ) | ( Focus::Tool, _ ) => {}
+            (Focus::Tool, Tool::DiffChecker, KeyCode::Down) => {
+                self.events.send(DiffCheckerListMoveDown);
+            }
+            (Focus::Tool, Tool::DiffChecker, KeyCode::Up) => {
+                self.events.send(DiffCheckerListMoveUp);
+            }
+            (Focus::List, _ , _) | ( Focus::Tool, _, _ ) => {}
         }
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
@@ -109,26 +117,5 @@ impl App {
         }
 
         Ok(())
-    }
-
-    /// Set running to false to quit the application.
-    fn quit(&mut self) {
-        self.running = false;
-    }
-
-    fn set_focus(&mut self, focus: Focus) {
-        self.state.focus = focus
-    }
-
-    fn select_tool(&mut self, tool: Tool) {
-        self.state.tool = tool
-    }
-
-    fn list_up(&mut self) {
-        self.state.list.state.select_previous();
-    }
-
-    fn list_down(&mut self) {
-        self.state.list.state.select_next();
     }
 }

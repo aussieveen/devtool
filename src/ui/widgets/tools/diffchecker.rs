@@ -8,7 +8,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(50),
+            Constraint::Min(10),
             Constraint::Percentage(50),
         ])
         .split(area);
