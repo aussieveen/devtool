@@ -1,5 +1,5 @@
 use ratatui::crossterm::event::Event as CrosstermEvent;
-use crate::state::app_state::ToolState;
+use crate::state::app_state::Tool;
 use crate::state::focus::Focus;
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ pub enum AppEvent {
     // List events
     ListMoveUp,
     ListMoveDown,
-    ListSelect(ToolState),
+    ListSelect(Tool),
 
     // Tool events
 

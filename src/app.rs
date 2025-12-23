@@ -5,10 +5,11 @@ use crate::{
 };
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
+use crate::config::Config;
 use crate::events::event::AppEvent::{ListMoveDown, ListMoveUp, ListSelect, Quit, SetFocus};
 use crate::events::event::Event;
 use crate::events::handler::EventHandler;
-use crate::state::app_state::{Focus, ToolState};
+use crate::state::app_state::{Focus, Tool};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -21,11 +22,11 @@ pub struct App {
 
 impl App {
     /// Construct a new instance of [`App`].
-    pub fn new() -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             running: true,
-            state: AppState::default(),
-            events: EventHandler::new()
+            state: AppState::default(config),
+            events: EventHandler::new(),
         }
     }
 
@@ -87,9 +88,9 @@ impl App {
             }
             (Focus::List, KeyCode::Enter) => {
                 self.events.send(ListSelect(match self.state.list.state.selected(){
-                    Some(1) => ToolState::TokenGenerator,
-                    Some(2) => ToolState::DiffChecker,
-                    _ => ToolState::Home,
+                    Some(1) => Tool::DiffChecker,
+                    Some(2) => Tool::TokenGenerator,
+                    _ => Tool::Home,
                 }))
             }
             (Focus::List, KeyCode::Char('x')) => {
@@ -119,7 +120,7 @@ impl App {
         self.state.focus = focus
     }
 
-    fn select_tool(&mut self, tool: ToolState) {
+    fn select_tool(&mut self, tool: Tool) {
         self.state.tool = tool
     }
 

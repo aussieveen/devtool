@@ -24,5 +24,5 @@ pub fn render(
 
     frame.render_widget(pane,area);
 
-    state.tool.render(frame,inner);
+    state.tool.render(frame, inner, state);
 }
