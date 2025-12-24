@@ -18,11 +18,11 @@ pub fn render(
     let pane = Block::default()
         .borders(Borders::ALL)
         .border_style(content_block_border_style)
-        .title(format!(" {} ", state.tool.title()));
+        .title(format!(" {} ", state.current_tool.title()));
 
     let inner = pane.inner(area);
 
     frame.render_widget(pane,area);
 
-    state.tool.render(frame, inner, &mut state.diff_checker);
+    state.current_tool.render(frame, inner, &mut state.diffchecker);
 }

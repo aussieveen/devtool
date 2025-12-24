@@ -8,8 +8,8 @@ pub(crate) use crate::state::tool_state::Tool;
 #[derive(Debug)]
 pub struct AppState {
     pub list: ToolList,
-    pub tool: Tool,
-    pub diff_checker: DiffChecker,
+    pub current_tool: Tool,
+    pub diffchecker: DiffChecker,
     pub focus: Focus
 }
 
@@ -24,8 +24,8 @@ impl AppState {
                 ],
                 state: ListState::default().with_selected(Some(0)),
             },
-            tool: Tool::Home,
-            diff_checker: DiffChecker::new(config.diffchecker),
+            current_tool: Tool::Home,
+            diffchecker: DiffChecker::new(config.diffchecker),
             focus: Focus::List
         }
     }

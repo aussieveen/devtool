@@ -32,6 +32,7 @@ pub enum AppEvent {
     // DiffChecker
     DiffCheckerListMoveDown,
     DiffCheckerListMoveUp,
+    GenerateDiff,
 
     // Generic Events
     SetFocus(Focus),

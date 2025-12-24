@@ -1,6 +1,5 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use crate::state::app_state::AppState;
 use crate::state::diffchecker::DiffChecker;
 use crate::ui::widgets::tools::*;
 

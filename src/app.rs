@@ -6,10 +6,12 @@ use crate::{
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use crate::config::Config;
-use crate::events::event::AppEvent::{DiffCheckerListMoveDown, DiffCheckerListMoveUp, ListMoveDown, ListMoveUp, ListSelect, Quit, SetFocus};
+use crate::events::event::AppEvent::*;
 use crate::events::event::Event;
 use crate::events::handler::EventHandler;
+use crate::events::sender::EventSender;
 use crate::state::app_state::{Focus, Tool};
+use crate::state::diffchecker::Commit;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -17,23 +19,27 @@ pub struct App {
     /// Is the application running?
     running: bool,
     state: AppState,
-    events: EventHandler
+    event_handler: EventHandler,
+    event_sender: EventSender
 }
 
 impl App {
     /// Construct a new instance of [`App`].
     pub fn new(config: Config) -> Self {
+        let event_handler = EventHandler::new();
+        let event_sender = event_handler.sender();
         Self {
             running: true,
             state: AppState::default(config),
-            events: EventHandler::new(),
+            event_handler,
+            event_sender
         }
     }
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
-            match self.events.next().await? {
+            match self.event_handler.next().await? {
                 Event::Tick => {},
                 Event::Crossterm(event) => match event{
                     event::Event::Key(key_event)
@@ -46,11 +52,20 @@ impl App {
                 Event::App(app_event) => match app_event{
                     Quit => self.running = false,
                     SetFocus(focus) => self.state.focus = focus,
-                    ListSelect(tool_state) => self.state.tool = tool_state,
+                    ListSelect(tool_state) => self.state.current_tool = tool_state,
                     ListMoveUp => self.state.list.state.select_previous(),
                     ListMoveDown => self.state.list.state.select_next(),
-                    DiffCheckerListMoveDown => self.state.diff_checker.state.select_next(),
-                    DiffCheckerListMoveUp => self.state.diff_checker.state.select_previous(),
+                    DiffCheckerListMoveDown => self.state.diffchecker.state.select_next(),
+                    DiffCheckerListMoveUp => self.state.diffchecker.state.select_previous(),
+                    GenerateDiff => {
+                        let service_idx = self.state.diffchecker.state.selected().unwrap();
+                        if self.state.diffchecker.services[service_idx].preprod == Commit::NotFetched {
+                            
+                        }
+                        if self.state.diffchecker.services[service_idx].prod == Commit::NotFetched {
+                            
+                        }
+                    }
                 },
             }
         }
@@ -81,37 +96,40 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
-        match (&self.state.focus, &self.state.tool, key.code){
+        match (&self.state.focus, &self.state.current_tool, key.code){
             (Focus::List, _,  KeyCode::Down) => {
-                self.events.send(ListMoveDown);
+                self.event_sender.send(ListMoveDown);
             },
             (Focus::List, _, KeyCode::Up) => {
-                self.events.send(ListMoveUp);
+                self.event_sender.send(ListMoveUp);
             }
             (Focus::List, _, KeyCode::Enter) => {
-                self.events.send(ListSelect(match self.state.list.state.selected(){
+                self.event_sender.send(ListSelect(match self.state.list.state.selected(){
                     Some(1) => Tool::DiffChecker,
                     Some(2) => Tool::TokenGenerator,
                     _ => Tool::Home,
                 }))
             }
             (Focus::List, _, KeyCode::Char('x')) => {
-                self.events.send(SetFocus(Focus::Tool))
+                self.event_sender.send(SetFocus(Focus::Tool))
             }
             (Focus::Tool, _, KeyCode::Char('x')) => {
-                self.events.send(SetFocus(Focus::List))
+                self.event_sender.send(SetFocus(Focus::List))
             }
             (Focus::Tool, Tool::DiffChecker, KeyCode::Down) => {
-                self.events.send(DiffCheckerListMoveDown);
+                self.event_sender.send(DiffCheckerListMoveDown);
             }
             (Focus::Tool, Tool::DiffChecker, KeyCode::Up) => {
-                self.events.send(DiffCheckerListMoveUp);
+                self.event_sender.send(DiffCheckerListMoveUp);
+            }
+            (Focus::Tool, Tool::DiffChecker, KeyCode::Enter) => {
+                self.event_sender.send(GenerateDiff)
             }
             (Focus::List, _ , _) | ( Focus::Tool, _, _ ) => {}
         }
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.events.send(Quit),
+            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.event_sender.send(Quit),
             // Add other key handlers here.
             _ => {}
         }

@@ -7,6 +7,14 @@ pub struct DiffChecker {
     pub state: ListState
 }
 
+#[derive(Debug, PartialEq)]
+pub enum Commit{
+    NotFetched,
+    Fetching,
+    Fetched(String),
+    Error(String)
+}
+
 impl DiffChecker {
     pub fn new(config: Vec<DiffCheckerConfig>) -> Self {
         Self {
@@ -19,16 +27,16 @@ impl DiffChecker {
 #[derive(Debug)]
 pub struct Service {
     pub config: DiffCheckerConfig,
-    pub preprod_commit: Option<String>,
-    pub prod_commit: Option<String>
+    pub preprod: Commit,
+    pub prod: Commit
 }
 
 impl Service {
     pub fn new(config: DiffCheckerConfig) -> Self {
         Self {
             config,
-            preprod_commit: None,
-            prod_commit: None,
+            preprod: Commit::NotFetched,
+            prod: Commit::NotFetched,
         }
     }
 }
