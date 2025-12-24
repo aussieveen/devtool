@@ -1,5 +1,6 @@
 use ratatui::widgets::ListState;
 use crate::config::{DiffChecker as DiffCheckerConfig};
+use crate::events::sender::EventSender;
 
 #[derive(Debug)]
 pub struct DiffChecker {
@@ -22,6 +23,16 @@ impl DiffChecker {
             state: ListState::default().with_selected(Some(0))
         }
     }
+
+    pub(crate) fn set_preprod_commit(&mut self, service_idx: usize) {
+        self.services[service_idx].preprod = Commit::Fetching;
+        self.services[service_idx].preprod = Commit::Fetched("mypreprodstring".to_string());
+    }
+
+    pub(crate) fn set_prod_commit(&mut self, service_idx: usize) {
+        self.services[service_idx].prod = Commit::Fetching;
+        self.services[service_idx].prod = Commit::Fetched("myprodstring".to_string())
+    }
 }
 
 #[derive(Debug)]
@@ -38,5 +49,13 @@ impl Service {
             preprod: Commit::NotFetched,
             prod: Commit::NotFetched,
         }
+    }
+
+    pub fn preprod_fetched(&self) -> bool{
+        matches!(self.preprod, Commit::Fetched(_))
+    }
+
+    pub fn prod_fetched(&self) -> bool{
+        matches!(self.preprod, Commit::Fetched(_))
     }
 }

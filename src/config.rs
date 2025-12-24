@@ -8,7 +8,7 @@ pub struct Config{
 #[derive(Debug, Deserialize)]
 pub struct DiffChecker {
     pub(crate) name: String,
-    preprod: String,
-    prod: String,
-    repo: String,
+    pub(crate) preprod: String,
+    pub(crate) prod: String,
+    pub(crate) repo: String,
 }

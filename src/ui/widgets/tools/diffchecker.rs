@@ -1,8 +1,8 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Stylize;
-use ratatui::widgets::{Block, List, ListItem, Paragraph};
-use crate::state::diffchecker::DiffChecker;
+use ratatui::widgets::{Block, List, ListItem, Paragraph, Wrap};
+use crate::state::diffchecker::{Commit, DiffChecker};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     let chunks = Layout::default()
@@ -12,7 +12,6 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
             Constraint::Percentage(50),
         ])
         .split(area);
-    let test: String = state.services.iter().map(|s| s.config.name.clone()).collect();
 
     let services = List::new(
         state.services.iter().map(|s| ListItem::new(s.config.name.clone()))
@@ -27,5 +26,20 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
         &mut state.state,
     );
 
-    frame.render_widget(Paragraph::new(test), chunks[1]);
+    let service_idx = state.state.selected().unwrap();
+    let service = &state.services[service_idx];
+    let text = if service.preprod_fetched() && service.prod_fetched(){
+        format!("{}/compare/{}...{}",service.config.repo,fetched_value(&service.preprod).unwrap(), fetched_value(&service.prod).unwrap() )
+    } else {
+        "no have it".parse().unwrap()
+    };
+
+    frame.render_widget(Paragraph::new(text).wrap((Wrap { trim: true })), chunks[1]);
+}
+
+fn fetched_value(commit: &Commit) -> Option<&str> {
+    match commit {
+        Commit::Fetched(s) => Some(s.as_str()),
+        _ => None,
+    }
 }

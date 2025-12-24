@@ -59,11 +59,12 @@ impl App {
                     DiffCheckerListMoveUp => self.state.diffchecker.state.select_previous(),
                     GenerateDiff => {
                         let service_idx = self.state.diffchecker.state.selected().unwrap();
-                        if self.state.diffchecker.services[service_idx].preprod == Commit::NotFetched {
-                            
+
+                        if !matches!(self.state.diffchecker.services[service_idx].preprod,Commit::Fetching) {
+                            self.state.diffchecker.set_preprod_commit(service_idx)
                         }
-                        if self.state.diffchecker.services[service_idx].prod == Commit::NotFetched {
-                            
+                        if !matches!(self.state.diffchecker.services[service_idx].prod,Commit::Fetching) {
+                            self.state.diffchecker.set_prod_commit(service_idx)
                         }
                     }
                 },
