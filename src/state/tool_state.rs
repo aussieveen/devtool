@@ -19,10 +19,10 @@ impl Tool {
         }
     }
 
-    pub fn render(&self, frame: &mut Frame, area: Rect, app_state: &mut DiffChecker) {
+    pub fn render(&self, frame: &mut Frame, area: Rect, diffchecker_state: &mut DiffChecker) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::DiffChecker => diffchecker::render(frame, area, app_state),
+            Tool::DiffChecker => diffchecker::render(frame, area, diffchecker_state),
             Tool::TokenGenerator => token_generator::render(frame, area)
         }
     }

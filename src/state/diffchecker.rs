@@ -1,6 +1,5 @@
 use ratatui::widgets::ListState;
 use crate::config::{DiffChecker as DiffCheckerConfig};
-use crate::events::sender::EventSender;
 
 #[derive(Debug)]
 pub struct DiffChecker {
@@ -31,7 +30,23 @@ impl DiffChecker {
 
     pub(crate) fn set_prod_commit(&mut self, service_idx: usize) {
         self.services[service_idx].prod = Commit::Fetching;
-        self.services[service_idx].prod = Commit::Fetched("myprodstring".to_string())
+        self.services[service_idx].prod = Commit::Fetched("myprodstring".to_string());
+    }
+
+    pub(crate) fn get_link(&mut self, service_idx: usize) -> String {
+        format!(
+            "{}/compare/{}...{}",
+            self.services[service_idx].config.repo,
+            fetched_value(&self.services[service_idx].preprod).unwrap(),
+            fetched_value(&self.services[service_idx].prod).unwrap()
+        ).to_string()
+    }
+}
+
+fn fetched_value(commit: &Commit) -> Option<&str> {
+    match commit {
+        Commit::Fetched(s) => Some(s.as_str()),
+        _ => None,
     }
 }
 
@@ -47,7 +62,7 @@ impl Service {
         Self {
             config,
             preprod: Commit::NotFetched,
-            prod: Commit::NotFetched,
+            prod: Commit::NotFetched
         }
     }
 
@@ -57,5 +72,9 @@ impl Service {
 
     pub fn prod_fetched(&self) -> bool{
         matches!(self.preprod, Commit::Fetched(_))
+    }
+
+    pub fn link_available(&self) -> bool{
+        self.prod_fetched() && self.prod_fetched()
     }
 }

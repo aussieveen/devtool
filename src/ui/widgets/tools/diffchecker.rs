@@ -29,17 +29,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     let service_idx = state.state.selected().unwrap();
     let service = &state.services[service_idx];
     let text = if service.preprod_fetched() && service.prod_fetched(){
-        format!("{}/compare/{}...{}",service.config.repo,fetched_value(&service.preprod).unwrap(), fetched_value(&service.prod).unwrap() )
+        "Link available: [o] to Open in browser"
     } else {
-        "no have it".parse().unwrap()
+        ""
     };
 
-    frame.render_widget(Paragraph::new(text).wrap((Wrap { trim: true })), chunks[1]);
-}
-
-fn fetched_value(commit: &Commit) -> Option<&str> {
-    match commit {
-        Commit::Fetched(s) => Some(s.as_str()),
-        _ => None,
-    }
+    frame.render_widget(Paragraph::new(text).wrap(Wrap { trim: true }), chunks[1]);
 }

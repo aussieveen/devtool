@@ -12,6 +12,7 @@ use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::state::app_state::{Focus, Tool};
 use crate::state::diffchecker::Commit;
+use webbrowser;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -20,7 +21,7 @@ pub struct App {
     running: bool,
     state: AppState,
     event_handler: EventHandler,
-    event_sender: EventSender
+    event_sender: EventSender,
 }
 
 impl App {
@@ -32,7 +33,7 @@ impl App {
             running: true,
             state: AppState::default(config),
             event_handler,
-            event_sender
+            event_sender,
         }
     }
 
@@ -125,6 +126,10 @@ impl App {
             }
             (Focus::Tool, Tool::DiffChecker, KeyCode::Enter) => {
                 self.event_sender.send(GenerateDiff)
+            }
+            (Focus::Tool, Tool::DiffChecker, KeyCode::Char('o')) => {
+                let link = self.state.diffchecker.get_link(self.state.diffchecker.state.selected().unwrap());
+                webbrowser::open(link.as_str()).expect("Something has gone sideways");
             }
             (Focus::List, _ , _) | ( Focus::Tool, _, _ ) => {}
         }
