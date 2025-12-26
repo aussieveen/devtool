@@ -22,7 +22,7 @@ impl AppState {
                     Tool::DiffChecker.menu_entry(),
                     Tool::TokenGenerator.menu_entry()
                 ],
-                state: ListState::default().with_selected(Some(0)),
+                list_state: ListState::default().with_selected(Some(0)),
             },
             current_tool: Tool::Home,
             diffchecker: DiffChecker::new(config.diffchecker),

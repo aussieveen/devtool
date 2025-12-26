@@ -1,14 +1,14 @@
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct Config{
-    pub(crate) diffchecker: Vec<DiffChecker>
+pub(crate) struct Config{
+    pub diffchecker: Vec<DiffChecker>
 }
 
 #[derive(Debug, Deserialize)]
-pub struct DiffChecker {
-    pub(crate) name: String,
-    pub(crate) preprod: String,
-    pub(crate) prod: String,
-    pub(crate) repo: String,
+pub(crate) struct DiffChecker {
+    pub name: String,
+    pub preprod: String,
+    pub prod: String,
+    pub repo: String,
 }

@@ -1,15 +1,15 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Stylize;
-use ratatui::widgets::{Block, List, ListItem, Paragraph, Wrap};
-use crate::state::diffchecker::{Commit, DiffChecker};
+use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
+use crate::state::diffchecker::{DiffChecker, LinkStatus};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(10),
-            Constraint::Percentage(50),
+            Constraint::Min(2),
+            Constraint::Percentage(99),
         ])
         .split(area);
 
@@ -23,15 +23,16 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     frame.render_stateful_widget(
         services,
         chunks[0],
-        &mut state.state,
+        &mut state.list_state,
     );
 
-    let service_idx = state.state.selected().unwrap();
+    let service_idx = state.list_state.selected().unwrap();
     let service = &state.services[service_idx];
-    let text = if service.preprod_fetched() && service.prod_fetched(){
-        "Link available: [o] to Open in browser"
-    } else {
-        ""
+
+    let text = match service.link_status() {
+        LinkStatus::Diff => "Link available: [o] to Open in browser, [c] to Copy the url",
+        LinkStatus::NoDiff => "Preprod and Prod are on the same commit",
+        LinkStatus::Missing => "[Return] to retrieve commit",
     };
 
     frame.render_widget(Paragraph::new(text).wrap(Wrap { trim: true }), chunks[1]);

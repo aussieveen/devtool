@@ -34,6 +34,6 @@ pub fn render(
     frame.render_stateful_widget(
         menu,
         area,
-        &mut state.list.state,
+        &mut state.list.list_state,
     );
 }

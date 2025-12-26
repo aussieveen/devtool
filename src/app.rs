@@ -1,3 +1,6 @@
+use std::io::Write;
+use std::process::{Command, Stdio};
+use arboard::Clipboard;
 use crate::{
     ui::{layout},
     ui::widgets::*,
@@ -54,18 +57,18 @@ impl App {
                     Quit => self.running = false,
                     SetFocus(focus) => self.state.focus = focus,
                     ListSelect(tool_state) => self.state.current_tool = tool_state,
-                    ListMoveUp => self.state.list.state.select_previous(),
-                    ListMoveDown => self.state.list.state.select_next(),
-                    DiffCheckerListMoveDown => self.state.diffchecker.state.select_next(),
-                    DiffCheckerListMoveUp => self.state.diffchecker.state.select_previous(),
+                    ListMoveUp => self.state.list.list_state.select_previous(),
+                    ListMoveDown => self.state.list.list_state.select_next(),
+                    DiffCheckerListMoveDown => self.state.diffchecker.list_state.select_next(),
+                    DiffCheckerListMoveUp => self.state.diffchecker.list_state.select_previous(),
                     GenerateDiff => {
-                        let service_idx = self.state.diffchecker.state.selected().unwrap();
+                        let service_idx = self.state.diffchecker.list_state.selected().unwrap();
 
                         if !matches!(self.state.diffchecker.services[service_idx].preprod,Commit::Fetching) {
-                            self.state.diffchecker.set_preprod_commit(service_idx)
+                            self.state.diffchecker.set_preprod_commit(service_idx).await
                         }
                         if !matches!(self.state.diffchecker.services[service_idx].prod,Commit::Fetching) {
-                            self.state.diffchecker.set_prod_commit(service_idx)
+                            self.state.diffchecker.set_prod_commit(service_idx).await
                         }
                     }
                 },
@@ -106,11 +109,12 @@ impl App {
                 self.event_sender.send(ListMoveUp);
             }
             (Focus::List, _, KeyCode::Enter) => {
-                self.event_sender.send(ListSelect(match self.state.list.state.selected(){
+                self.event_sender.send(ListSelect(match self.state.list.list_state.selected(){
                     Some(1) => Tool::DiffChecker,
                     Some(2) => Tool::TokenGenerator,
                     _ => Tool::Home,
-                }))
+                }));
+                self.event_sender.send(SetFocus(Focus::Tool))
             }
             (Focus::List, _, KeyCode::Char('x')) => {
                 self.event_sender.send(SetFocus(Focus::Tool))
@@ -128,8 +132,13 @@ impl App {
                 self.event_sender.send(GenerateDiff)
             }
             (Focus::Tool, Tool::DiffChecker, KeyCode::Char('o')) => {
-                let link = self.state.diffchecker.get_link(self.state.diffchecker.state.selected().unwrap());
+                let d = &self.state.diffchecker;
+                let link = d.get_link(d.list_state.selected().unwrap());
                 webbrowser::open(link.as_str()).expect("Something has gone sideways");
+            }
+            (Focus::Tool, Tool::DiffChecker, KeyCode::Char('c')) => {
+                let link = self.state.diffchecker.get_link(self.state.diffchecker.list_state.selected().unwrap());
+                Self::copy_to_clipboard(link.as_str()).unwrap();
             }
             (Focus::List, _ , _) | ( Focus::Tool, _, _ ) => {}
         }
@@ -140,6 +149,34 @@ impl App {
             _ => {}
         }
 
+        Ok(())
+    }
+
+    fn copy_to_clipboard(text: &str) -> Result<(), String>{
+        if which::which("wl-copy").is_ok() {
+            return Self::pipe_to("wl-copy", &[], text)
+        }
+
+        if cfg!(target_os = "macos") {
+            return Self::pipe_to("pbcopy", &[], text);
+        }
+
+        Ok(())
+    }
+
+    fn pipe_to(cmd: &str, args: &[&str], text: &str) -> Result<(), String> {
+        let mut child = Command::new(cmd)
+            .args(args)
+            .stdin(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("Failed to run {cmd}: {e}"))?;
+
+        if let Some(mut stdin) = child.stdin.take() {
+            // Ignore broken pipe — clipboard tool may exit early
+            let _ = stdin.write_all(text.as_bytes());
+        }
+
+        let _ = child.wait();
         Ok(())
     }
 }
