@@ -34,7 +34,7 @@ impl App {
         let event_sender = event_handler.sender();
         Self {
             running: true,
-            state: AppState::default(config),
+            state: AppState::default(config, event_handler.sender()),
             event_handler,
             event_sender,
         }
@@ -70,6 +70,12 @@ impl App {
                         if !matches!(self.state.diffchecker.services[service_idx].prod,Commit::Fetching) {
                             self.state.diffchecker.set_prod_commit(service_idx).await
                         }
+                    }
+                    PreprodCommit(commit, service_idx) => {
+                        self.state.diffchecker.services[service_idx].preprod = commit
+                    },
+                    ProdCommit(commit, service_idx) => {
+                        self.state.diffchecker.services[service_idx].prod = commit
                     }
                 },
             }

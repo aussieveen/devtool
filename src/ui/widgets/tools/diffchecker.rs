@@ -30,6 +30,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     let service = &state.services[service_idx];
 
     let text = match service.link_status() {
+        LinkStatus::Fetching => "Retrieving commit references",
+        LinkStatus::Errored => "Error when attempting to get diff. Do you need to be on the VPN?",
         LinkStatus::Diff => "Link available: [o] to Open in browser, [c] to Copy the url",
         LinkStatus::NoDiff => "Preprod and Prod are on the same commit",
         LinkStatus::Missing => "[Return] to retrieve commit",

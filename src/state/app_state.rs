@@ -1,5 +1,6 @@
 use ratatui::widgets::ListState;
 use crate::config::Config;
+use crate::events::sender::EventSender;
 use crate::state::diffchecker::DiffChecker;
 pub(crate) use crate::state::focus::Focus;
 use crate::state::tool_list::ToolList;
@@ -14,7 +15,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub(crate) fn default(config: Config) -> AppState {
+    pub(crate) fn default(config: Config, event_sender: EventSender) -> AppState {
         Self {
             list: ToolList {
                 items: vec![
@@ -25,7 +26,7 @@ impl AppState {
                 list_state: ListState::default().with_selected(Some(0)),
             },
             current_tool: Tool::Home,
-            diffchecker: DiffChecker::new(config.diffchecker),
+            diffchecker: DiffChecker::new(config.diffchecker, event_sender),
             focus: Focus::List
         }
     }
