@@ -2,7 +2,7 @@ use ratatui::widgets::ListState;
 use crate::config::Config;
 use crate::events::sender::EventSender;
 use crate::state::diffchecker::DiffChecker;
-pub(crate) use crate::state::focus::Focus;
+pub(crate) use crate::state::focus::AppFocus;
 use crate::state::token_generator::TokenGenerator;
 use crate::state::tool_list::ToolList;
 pub(crate) use crate::state::tool_state::Tool;
@@ -13,7 +13,7 @@ pub struct AppState {
     pub current_tool: Tool,
     pub diffchecker: DiffChecker,
     pub tokengenerator: TokenGenerator,
-    pub focus: Focus
+    pub focus: AppFocus
 }
 
 impl AppState {
@@ -30,7 +30,7 @@ impl AppState {
             current_tool: Tool::Home,
             diffchecker: DiffChecker::new(config.diffchecker, event_sender.clone()),
             tokengenerator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
-            focus: Focus::List
+            focus: AppFocus::List
         }
     }
 }

@@ -1,6 +1,6 @@
 #[derive(Debug, Copy)]
 #[derive(Clone)]
-pub enum Focus{
+pub enum AppFocus {
     List,
     Tool
 }

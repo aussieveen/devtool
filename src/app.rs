@@ -8,15 +8,17 @@ use crate::{
 };
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
+use ratatui::widgets::{List, ListState};
 use crate::config::Config;
 use crate::events::event::AppEvent::*;
-use crate::events::event::Event;
+use crate::events::event::{AppEvent, Event, ListDir};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
-use crate::state::app_state::{Focus, Tool};
+use crate::state::app_state::{AppFocus, Tool};
 use crate::state::diffchecker::Commit;
 use webbrowser;
 use crate::environment::Environment::{Preproduction, Production};
+use crate::state::token_generator::Focus;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -78,11 +80,30 @@ impl App {
                             Production => self.state.diffchecker.services[service_idx].prod = commit,
                             _ => {}
                         }
+                    },
+                    TokenGenEnvListMove(list_dir) => {
+                        let list_state = &mut self.state.tokengenerator.env_list_state;
+                        Self::update_list(list_state, list_dir);
+                    }
+                    TokenGenServiceListMove(list_dir ) => {
+                        let list_state = &mut self.state.tokengenerator.service_list_state;
+                        Self::update_list(list_state, list_dir);
+                        self.state.tokengenerator.env_list_state.select_first();
+                    }
+                    SetTokenGenFocus(focus) => {
+                        self.state.tokengenerator.focus = focus;
                     }
                 },
             }
         }
         Ok(())
+    }
+
+    fn update_list(list_state: &mut ListState, list_dir: ListDir){
+        match list_dir {
+            ListDir::Up => list_state.select_previous(),
+            ListDir::Down => list_state.select_next()
+        }
     }
 
     /// Renders the user interface.
@@ -110,45 +131,63 @@ impl App {
     /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
         match (&self.state.focus, &self.state.current_tool, key.code){
-            (Focus::List, _,  KeyCode::Down) => {
+            (AppFocus::List, _,  KeyCode::Down) => {
                 self.event_sender.send(ListMoveDown);
             },
-            (Focus::List, _, KeyCode::Up) => {
+            (AppFocus::List, _, KeyCode::Up) => {
                 self.event_sender.send(ListMoveUp);
             }
-            (Focus::List, _, KeyCode::Enter) => {
+            (AppFocus::List, _, KeyCode::Enter) => {
                 self.event_sender.send(ListSelect(match self.state.list.list_state.selected(){
                     Some(1) => Tool::DiffChecker,
                     Some(2) => Tool::TokenGenerator,
                     _ => Tool::Home,
                 }));
-                self.event_sender.send(SetFocus(Focus::Tool))
+                self.event_sender.send(SetFocus(AppFocus::Tool))
             }
-            (Focus::List, _, KeyCode::Char('x')) => {
-                self.event_sender.send(SetFocus(Focus::Tool))
+            (AppFocus::List, _, KeyCode::Char('x')) => {
+                self.event_sender.send(SetFocus(AppFocus::Tool))
             }
-            (Focus::Tool, _, KeyCode::Char('x')) => {
-                self.event_sender.send(SetFocus(Focus::List))
+            (AppFocus::Tool, _, KeyCode::Char('x')) => {
+                self.event_sender.send(SetFocus(AppFocus::List))
             }
-            (Focus::Tool, Tool::DiffChecker, KeyCode::Down) => {
+            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Down) => {
                 self.event_sender.send(DiffCheckerListMoveDown);
             }
-            (Focus::Tool, Tool::DiffChecker, KeyCode::Up) => {
+            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Up) => {
                 self.event_sender.send(DiffCheckerListMoveUp);
             }
-            (Focus::Tool, Tool::DiffChecker, KeyCode::Enter) => {
+            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Enter) => {
                 self.event_sender.send(GenerateDiff)
             }
-            (Focus::Tool, Tool::DiffChecker, KeyCode::Char('o')) => {
+            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Char('o')) => {
                 let d = &self.state.diffchecker;
                 let link = d.get_link(d.list_state.selected().unwrap());
                 webbrowser::open(link.as_str()).expect("Something has gone sideways");
             }
-            (Focus::Tool, Tool::DiffChecker, KeyCode::Char('c')) => {
+            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Char('c')) => {
                 let link = self.state.diffchecker.get_link(self.state.diffchecker.list_state.selected().unwrap());
                 Self::copy_to_clipboard(link.as_str()).unwrap();
             }
-            (Focus::List, _ , _) | ( Focus::Tool, _, _ ) => {}
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Down) => {
+                match &self.state.tokengenerator.focus{
+                    Focus::Service => self.event_sender.send(TokenGenServiceListMove(ListDir::Down)),
+                    Focus::Env => self.event_sender.send(TokenGenEnvListMove(ListDir::Down)),
+                };
+            }
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Up) => {
+                match &self.state.tokengenerator.focus {
+                    Focus::Service => self.event_sender.send(TokenGenServiceListMove(ListDir::Up)),
+                    Focus::Env => self.event_sender.send(TokenGenEnvListMove(ListDir::Up)),
+                }
+            }
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Right) => {
+                self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Env));
+            }
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Left) => {
+                self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Service));
+            }
+            (AppFocus::List, _ , _) | ( AppFocus::Tool, _, _ ) => {}
         }
         match (key.modifiers, key.code) {
             (_, KeyCode::Esc | KeyCode::Char('q'))

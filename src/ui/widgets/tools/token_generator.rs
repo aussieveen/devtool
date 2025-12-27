@@ -1,9 +1,13 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::widgets::Paragraph;
-use crate::state::token_generator::TokenGenerator;
+use ratatui::style::Stylize;
+use ratatui::widgets::{List, ListItem, Paragraph};
+use crate::config::Credentials;
+use crate::environment::Environment;
+use crate::state::token_generator::{Focus, TokenGenerator};
+use crate::ui::styles::list_style;
 
-pub fn render(frame: &mut Frame, area: Rect, state: &TokenGenerator){
+pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator){
     let vertical_break = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -13,6 +17,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TokenGenerator){
         .split(area);
 
     let inner_horizonal = Layout::default()
+        .spacing(1)
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage(50),
@@ -20,8 +25,38 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TokenGenerator){
         ])
         .split(vertical_break[0]);
 
-    frame.render_widget(Paragraph::new("SERVICE"), inner_horizonal[0]);
-    frame.render_widget(Paragraph::new("ENV"), inner_horizonal[1]);
+    let services = List::new(
+        state.services.iter().map(|s| ListItem::new(s.name.clone()))
+    )
+        .style(list_style(matches!(state.focus, Focus::Service)))
+        .highlight_style(ratatui::style::Style::default().reversed())
+        .highlight_symbol(">> ")
+        .repeat_highlight_symbol(true);
+
+    frame.render_stateful_widget(
+        services,
+        inner_horizonal[0],
+        &mut state.service_list_state,
+    );
+
+    let service_idx = state.service_list_state.selected().unwrap();
+
+
+
+    let env = List::new(
+        state.services[service_idx].credentials.iter().filter(|(_, cred)| { cred.is_some() }).map(|(env, _)| ListItem::new(env.as_str()))
+    )
+        .style(list_style(matches!(state.focus, Focus::Env)))
+        .highlight_style(ratatui::style::Style::default().reversed())
+        .highlight_symbol(">> ")
+        .repeat_highlight_symbol(true);
+
+    frame.render_stateful_widget(
+        env,
+        inner_horizonal[1],
+        &mut state.env_list_state,
+    );
+
     frame.render_widget(Paragraph::new("TOKEN MESSAGING"), vertical_break[1]);
 
 }

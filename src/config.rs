@@ -33,10 +33,10 @@ pub struct Auth0Config {
 pub struct ServiceConfig {
     pub name: String,
     pub audience: String,
-    pub local: Credentials,
-    pub staging: Credentials,
-    pub preproduction: Credentials,
-    pub production: Credentials
+    pub local: Option<Credentials>,
+    pub staging: Option<Credentials>,
+    pub preproduction: Option<Credentials>,
+    pub production: Option<Credentials>
 }
 
 #[derive(Debug, Deserialize)]

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use ratatui::widgets::ListState;
 use crate::environment::Environment;
 use crate::events::sender::EventSender;
@@ -7,11 +7,18 @@ use crate::environment::Environment::{Local, Preproduction, Production, Staging}
 use crate::state::token_generator::Token::NoToken;
 
 #[derive(Debug)]
+pub enum Focus {
+    Service,
+    Env
+}
+
+#[derive(Debug)]
 pub(crate) struct TokenGenerator{
     pub services: Vec<Service>,
     pub env_list_state: ListState,
     pub service_list_state: ListState,
-    pub event_sender: EventSender
+    pub event_sender: EventSender,
+    pub focus: Focus
 }
 
 impl TokenGenerator {
@@ -20,7 +27,7 @@ impl TokenGenerator {
             services: config.services.into_iter().map(|s| Service{
                 name: s.name,
                 audience: s.audience,
-                credentials: HashMap::from(
+                credentials: BTreeMap::from(
                 [
                         (Local, s.local),
                         (Staging, s.staging),
@@ -35,20 +42,21 @@ impl TokenGenerator {
                         (Preproduction, NoToken),
                         (Production, NoToken)
                     ]
-                )
+                ),
             }).collect(),
             env_list_state: ListState::default().with_selected(Some(0)),
             service_list_state: ListState::default().with_selected(Some(0)),
-            event_sender: event_sender.clone()
+            event_sender: event_sender.clone(),
+            focus: Focus::Service
         }
     }
 }
 
 #[derive(Debug)]
 pub struct Service{
-    name: String,
+    pub(crate) name: String,
     audience: String,
-    credentials: HashMap<Environment, Credentials>,
+    pub(crate) credentials: BTreeMap<Environment, Option<Credentials>>,
     tokens: HashMap<Environment, Token>
 }
 
