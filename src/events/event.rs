@@ -1,5 +1,5 @@
 use ratatui::crossterm::event::Event as CrosstermEvent;
-use ratatui::widgets::ListState;
+use crate::environment::Environment;
 use crate::state::app_state::Tool;
 use crate::state::diffchecker::Commit;
 use crate::state::focus::Focus;
@@ -33,8 +33,7 @@ pub enum AppEvent {
     // DiffChecker
     DiffCheckerListMoveDown,
     DiffCheckerListMoveUp,
-    PreprodCommit(Commit, usize),
-    ProdCommit(Commit, usize),
+    CommitRefRetrieved(Commit, usize, Environment),
     GenerateDiff,
 
     // Generic Events

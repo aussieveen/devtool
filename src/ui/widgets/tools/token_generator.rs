@@ -1,8 +1,9 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::Paragraph;
+use crate::state::token_generator::TokenGenerator;
 
-pub fn render(frame: &mut Frame, area: Rect){
+pub fn render(frame: &mut Frame, area: Rect, state: &TokenGenerator){
     let vertical_break = Layout::default()
         .direction(Direction::Vertical)
         .constraints([

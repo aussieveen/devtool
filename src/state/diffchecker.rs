@@ -1,14 +1,12 @@
-use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 use ratatui::widgets::ListState;
-use reqwest::header::{ACCEPT, CONTENT_TYPE, USER_AGENT};
+use reqwest::header::{ACCEPT, USER_AGENT};
 use serde::Deserialize;
-use crate::config::{DiffChecker as DiffCheckerConfig};
+use crate::config::{DiffChecker as DiffCheckerServiceConfig};
+use crate::environment::Environment;
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
-use crate::state::diffchecker::Commit::Fetching;
-use crate::state::diffchecker::LinkStatus::{Diff, Errored, Missing, NoDiff};
 
 #[derive(Debug)]
 pub struct DiffChecker {
@@ -26,16 +24,28 @@ pub enum Commit{
 }
 
 impl Commit{
-    fn fetched_value(&self) -> Option<&str> {
+    fn value(&self) -> Option<&str> {
         match self {
             Commit::Fetched(s) => Some(s.as_str()),
             _ => None,
         }
     }
+
+    fn is_errored(&self) -> bool {
+        matches!(self, Commit::Error(_))
+    }
+
+    fn is_fetching(&self) -> bool {
+        matches!(self, Commit::Fetching)
+    }
+
+    fn is_fetched(&self) -> bool {
+        matches!(self, Commit::Fetched(_))
+    }
 }
 
 impl DiffChecker {
-    pub fn new(config: Vec<DiffCheckerConfig>, event_sender: EventSender) -> Self {
+    pub fn new(config: Vec<DiffCheckerServiceConfig>, event_sender: EventSender) -> Self {
         Self {
             services: config.into_iter().map(Service::new).collect(),
             list_state: ListState::default().with_selected(Some(0)),
@@ -43,37 +53,32 @@ impl DiffChecker {
         }
     }
 
-    pub(crate) async fn set_preprod_commit(&mut self, service_idx: usize) {
-        self.services[service_idx].preprod = Commit::Fetching;
-        let url = self.services[service_idx].config.preprod.clone();
+    pub(crate) async fn set_commit(&mut self, service_idx: usize, env: Environment){
+        let url = match env {
+            Environment::Preproduction => {
+                self.services[service_idx].preprod = Commit::Fetching;
+                self.services[service_idx].preprod_url.clone()
+            },
+            Environment::Production => {
+                self.services[service_idx].prod = Commit::Fetching;
+                self.services[service_idx].prod_url.clone()
+            },
+            _ => {
+                String::from("")
+            }
+        };
+
         let sender = self.event_sender.clone();
+
         tokio::spawn(async move {
             let commit = match Self::get_commit_from_healthcheck(&url).await {
                 Ok(commit) => Commit::Fetched(commit),
                 Err(err) => {
-                    println!("{}", err.to_string());
                     Commit::Error(err.to_string())
                 }
             };
 
-            sender.send(AppEvent::PreprodCommit(commit, service_idx))
-        });
-    }
-
-    pub(crate) async fn set_prod_commit(&mut self, service_idx: usize) {
-        self.services[service_idx].prod = Commit::Fetching;
-        let url = self.services[service_idx].config.prod.clone();
-        let sender = self.event_sender.clone();
-        tokio::spawn(async move {
-            let commit = match Self::get_commit_from_healthcheck(&url).await {
-                Ok(commit) => Commit::Fetched(commit),
-                Err(err) => {
-                    println!("{}", err.to_string());
-                    Commit::Error(err.to_string())
-                }
-            };
-
-            sender.send(AppEvent::ProdCommit(commit, service_idx))
+            sender.send(AppEvent::CommitRefRetrieved(commit, service_idx, env))
         });
     }
 
@@ -81,9 +86,9 @@ impl DiffChecker {
         let service = &self.services[service_idx];
         format!(
             "{}/compare/{}...{}",
-            service.config.repo,
-            service.prod.fetched_value().unwrap(),
-            service.preprod.fetched_value().unwrap(),
+            service.repo_url,
+            service.prod.value().unwrap(),
+            service.preprod.value().unwrap(),
         )
     }
 
@@ -111,7 +116,10 @@ struct Healthcheck {
 
 #[derive(Debug)]
 pub struct Service {
-    pub config: DiffCheckerConfig,
+    pub name: String,
+    pub preprod_url: String,
+    pub prod_url: String,
+    pub repo_url: String,
     pub preprod: Commit,
     pub prod: Commit
 }
@@ -125,41 +133,31 @@ pub enum LinkStatus {
 }
 
 impl Service {
-    pub fn new(config: DiffCheckerConfig) -> Self {
+    pub fn new(config: DiffCheckerServiceConfig) -> Self {
         Self {
-            config,
+            name: config.name,
+            preprod_url: config.preprod,
+            prod_url: config.prod,
+            repo_url: config.repo,
             preprod: Commit::NotFetched,
             prod: Commit::NotFetched
         }
     }
 
-    pub fn preprod_fetched(&self) -> bool{
-        matches!(self.preprod, Commit::Fetched(_))
-    }
-    pub fn preprod_errored(&self) -> bool { matches!(self.preprod, Commit::Error(_))}
-
-    pub fn prod_fetched(&self) -> bool{
-        matches!(self.preprod, Commit::Fetched(_))
-    }
-    pub fn prod_errored(&self) -> bool { matches!(self.prod, Commit::Error(_))}
-
-    pub fn prod_fetching(&self) -> bool { matches!(self.prod, Commit::Fetching)}
-    pub fn preprod_fetching(&self) -> bool { matches!(self.preprod, Commit::Fetching)}
-
     pub fn link_status(&self) -> LinkStatus{
-        if self.preprod_errored() || self.prod_errored() {
+        if self.preprod.is_errored() || self.prod.is_errored() {
             return LinkStatus::Errored;
         }
 
-        if self.preprod_fetching() || self.prod_fetching() {
+        if self.preprod.is_fetching() || self.prod.is_fetching() {
             return LinkStatus::Fetching;
         }
 
-        if !self.preprod_fetched() || !self.prod_fetched() {
+        if !self.preprod.is_fetched() || !self.prod.is_fetched() {
             return LinkStatus::Missing;
         }
 
-        if self.prod.fetched_value().unwrap() == self.preprod.fetched_value().unwrap(){
+        if self.prod.value() == self.preprod.value(){
             return LinkStatus::NoDiff;
         }
 

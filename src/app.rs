@@ -16,6 +16,7 @@ use crate::events::sender::EventSender;
 use crate::state::app_state::{Focus, Tool};
 use crate::state::diffchecker::Commit;
 use webbrowser;
+use crate::environment::Environment::{Preproduction, Production};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -65,17 +66,18 @@ impl App {
                         let service_idx = self.state.diffchecker.list_state.selected().unwrap();
 
                         if !matches!(self.state.diffchecker.services[service_idx].preprod,Commit::Fetching) {
-                            self.state.diffchecker.set_preprod_commit(service_idx).await
+                            self.state.diffchecker.set_commit(service_idx, Preproduction).await
                         }
                         if !matches!(self.state.diffchecker.services[service_idx].prod,Commit::Fetching) {
-                            self.state.diffchecker.set_prod_commit(service_idx).await
+                            self.state.diffchecker.set_commit(service_idx, Production).await
                         }
                     }
-                    PreprodCommit(commit, service_idx) => {
-                        self.state.diffchecker.services[service_idx].preprod = commit
-                    },
-                    ProdCommit(commit, service_idx) => {
-                        self.state.diffchecker.services[service_idx].prod = commit
+                    CommitRefRetrieved(commit, service_idx, env) => {
+                        match env {
+                            Preproduction => self.state.diffchecker.services[service_idx].preprod = commit,
+                            Production => self.state.diffchecker.services[service_idx].prod = commit,
+                            _ => {}
+                        }
                     }
                 },
             }

@@ -1,9 +1,0 @@
-diffchecker:
-  - name: Search Api
-    preprod: https://search.preproduction-api.immediate.co.uk/
-    prod: https://search.api.immediate.co.uk/
-    repo: https://github.immediate.co.uk/WCP-Services/search-api
-  - name: Entitlements Api
-    preprod: https://entitlements-api-preproduction.headless-preproduction.imdserve.com/
-    prod: https://entitlements-api-production.headless.imdserve.com/
-    repo: https://github.com/immediate-media/entitlements-api

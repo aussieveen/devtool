@@ -3,6 +3,7 @@ mod ui;
 mod state;
 mod events;
 mod config;
+mod environment;
 
 use crate::app::App;
 use crate::config::Config;

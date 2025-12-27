@@ -14,7 +14,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
         .split(area);
 
     let services = List::new(
-        state.services.iter().map(|s| ListItem::new(s.config.name.clone()))
+        state.services.iter().map(|s| ListItem::new(s.name.clone()))
     )
         .highlight_style(ratatui::style::Style::default().reversed())
         .highlight_symbol(">> ")

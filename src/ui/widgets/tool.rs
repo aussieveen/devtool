@@ -24,5 +24,5 @@ pub fn render(
 
     frame.render_widget(pane,area);
 
-    state.current_tool.render(frame, inner, &mut state.diffchecker);
+    state.current_tool.render(frame, inner, &mut state.diffchecker, &mut state.tokengenerator);
 }
