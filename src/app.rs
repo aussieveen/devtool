@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::process::{Command, Stdio};
-use arboard::Clipboard;
 use crate::{
     ui::{layout},
     ui::widgets::*,
@@ -8,7 +7,7 @@ use crate::{
 };
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
-use ratatui::widgets::{List, ListState};
+use ratatui::widgets::ListState;
 use crate::config::Config;
 use crate::events::event::AppEvent::*;
 use crate::events::event::{AppEvent, Event, ListDir};
@@ -60,10 +59,19 @@ impl App {
                     Quit => self.running = false,
                     SetFocus(focus) => self.state.focus = focus,
                     ListSelect(tool_state) => self.state.current_tool = tool_state,
-                    ListMoveUp => self.state.list.list_state.select_previous(),
-                    ListMoveDown => self.state.list.list_state.select_next(),
-                    DiffCheckerListMoveDown => self.state.diffchecker.list_state.select_next(),
-                    DiffCheckerListMoveUp => self.state.diffchecker.list_state.select_previous(),
+                    ListMove(list_dir) => {
+                        let list_state = &mut self.state.list.list_state;
+                        Self::update_list(list_state, list_dir);
+                        self.event_sender.send(ListSelect(match self.state.list.list_state.selected(){
+                            Some(1) => Tool::DiffChecker,
+                            Some(0) => Tool::Home,
+                            _ => Tool::TokenGenerator,
+                        }));
+                    }
+                    DiffCheckerListMove(list_dir) => {
+                        let list_state = &mut self.state.diffchecker.list_state;
+                        Self::update_list(list_state, list_dir);
+                    }
                     GenerateDiff => {
                         let service_idx = self.state.diffchecker.list_state.selected().unwrap();
 
@@ -92,6 +100,12 @@ impl App {
                     }
                     SetTokenGenFocus(focus) => {
                         self.state.tokengenerator.focus = focus;
+                    }
+                    GenerateToken => {
+                        let service_idx = self.state.tokengenerator.service_list_state.selected().unwrap();
+                        let env_idx = self.state.tokengenerator.env_list_state.selected().unwrap();
+
+                        self.state.tokengenerator.set_token(service_idx, env_idx).await;
                     }
                 },
             }
@@ -132,30 +146,25 @@ impl App {
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
         match (&self.state.focus, &self.state.current_tool, key.code){
             (AppFocus::List, _,  KeyCode::Down) => {
-                self.event_sender.send(ListMoveDown);
+                self.event_sender.send(ListMove(ListDir::Down));
             },
             (AppFocus::List, _, KeyCode::Up) => {
-                self.event_sender.send(ListMoveUp);
+                self.event_sender.send(ListMove(ListDir::Up));
             }
             (AppFocus::List, _, KeyCode::Enter) => {
-                self.event_sender.send(ListSelect(match self.state.list.list_state.selected(){
-                    Some(1) => Tool::DiffChecker,
-                    Some(2) => Tool::TokenGenerator,
-                    _ => Tool::Home,
-                }));
+
+            }
+            (AppFocus::List, _, KeyCode::Char('x') | KeyCode::Right) => {
                 self.event_sender.send(SetFocus(AppFocus::Tool))
             }
-            (AppFocus::List, _, KeyCode::Char('x')) => {
-                self.event_sender.send(SetFocus(AppFocus::Tool))
-            }
-            (AppFocus::Tool, _, KeyCode::Char('x')) => {
+            (AppFocus::Tool, Tool::Home | Tool::DiffChecker, KeyCode::Char('x') | KeyCode::Left) => {
                 self.event_sender.send(SetFocus(AppFocus::List))
             }
             (AppFocus::Tool, Tool::DiffChecker, KeyCode::Down) => {
-                self.event_sender.send(DiffCheckerListMoveDown);
+                self.event_sender.send(DiffCheckerListMove(ListDir::Down));
             }
             (AppFocus::Tool, Tool::DiffChecker, KeyCode::Up) => {
-                self.event_sender.send(DiffCheckerListMoveUp);
+                self.event_sender.send(DiffCheckerListMove(ListDir::Up));
             }
             (AppFocus::Tool, Tool::DiffChecker, KeyCode::Enter) => {
                 self.event_sender.send(GenerateDiff)
@@ -185,7 +194,13 @@ impl App {
                 self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Env));
             }
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Left) => {
-                self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Service));
+                match &self.state.tokengenerator.focus {
+                    Focus::Service => self.event_sender.send(SetFocus(AppFocus::List)),
+                    Focus::Env => self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Service))
+                }
+            }
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Enter) => {
+                self.event_sender.send(AppEvent::GenerateToken);
             }
             (AppFocus::List, _ , _) | ( AppFocus::Tool, _, _ ) => {}
         }

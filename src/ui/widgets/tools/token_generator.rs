@@ -44,7 +44,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator){
 
 
     let env = List::new(
-        state.services[service_idx].credentials.iter().filter(|(_, cred)| { cred.is_some() }).map(|(env, _)| ListItem::new(env.as_str()))
+        state.services[service_idx].credentials.iter().map(|c| ListItem::new(c.env.as_str()))
     )
         .style(list_style(matches!(state.focus, Focus::Env)))
         .highlight_style(ratatui::style::Style::default().reversed())

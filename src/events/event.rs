@@ -27,14 +27,12 @@ pub enum Event {
 #[derive(Debug)]
 pub enum AppEvent {
     // List events
-    ListMoveUp,
-    ListMoveDown,
+    ListMove(ListDir),
     ListSelect(Tool),
 
     // Tool events
     // DiffChecker
-    DiffCheckerListMoveDown,
-    DiffCheckerListMoveUp,
+    DiffCheckerListMove(ListDir),
     CommitRefRetrieved(Commit, usize, Environment),
     GenerateDiff,
 
@@ -42,6 +40,7 @@ pub enum AppEvent {
     TokenGenServiceListMove(ListDir),
     TokenGenEnvListMove(ListDir),
     SetTokenGenFocus(Focus),
+    GenerateToken,
 
     // Generic Events
     SetFocus(AppFocus),

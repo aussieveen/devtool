@@ -1,6 +1,9 @@
+use serde::Deserialize;
+
 #[derive(Debug)]
 #[derive(PartialEq,Eq,Hash)]
 #[derive(PartialOrd,Ord)]
+#[derive(Deserialize)]
 pub enum Environment {
     Local,
     Staging,
