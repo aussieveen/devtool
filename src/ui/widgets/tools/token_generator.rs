@@ -2,9 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{List, ListItem, Paragraph};
-use crate::config::Credentials;
-use crate::environment::Environment;
-use crate::state::token_generator::{Focus, TokenGenerator};
+use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::list_style;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator){
@@ -40,11 +38,20 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator){
     );
 
     let service_idx = state.service_list_state.selected().unwrap();
+    let env_idx = state.env_list_state.selected().unwrap();
 
+    let service = &state.services[service_idx];
 
-
-    let env = List::new(
-        state.services[service_idx].credentials.iter().map(|c| ListItem::new(c.env.as_str()))
+    let environments = List::new(
+        service.credentials.iter().map(|c| {
+            let token = service.tokens.get(&c.env).unwrap();
+            let prefix = match token {
+                &Token::Token(_) => "[✓]",
+                &Token::Error(_) => "[x]",
+                _ => "[ ]"
+            };
+            ListItem::new(format!("{} {}",prefix, c.env.as_str()))
+        })
     )
         .style(list_style(matches!(state.focus, Focus::Env)))
         .highlight_style(ratatui::style::Style::default().reversed())
@@ -52,11 +59,26 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator){
         .repeat_highlight_symbol(true);
 
     frame.render_stateful_widget(
-        env,
+        environments,
         inner_horizonal[1],
         &mut state.env_list_state,
     );
 
-    frame.render_widget(Paragraph::new("TOKEN MESSAGING"), vertical_break[1]);
+    let env = &service.credentials[env_idx].env;
+
+    let token = service.tokens.get(env).unwrap();
+
+    let text = match token {
+        &Token::NoToken => "[Return] to generate token",
+        &Token::Fetching => "Generating token",
+        &Token::Token(_) => "Token available: [c] to Copy the token value",
+        &Token::Error(_) => &*format!(
+            "{}: {}",
+            "Error when attempting to get the token",
+            token.value().unwrap()
+        )
+    };
+
+    frame.render_widget(Paragraph::new(text), vertical_break[1]);
 
 }

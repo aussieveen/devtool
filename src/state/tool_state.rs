@@ -14,7 +14,7 @@ pub enum Tool {
 impl Tool {
     pub fn title(&self) -> &'static str {
         match self {
-            Tool::Home => "Home",
+            Tool::Home => "Dev Tool",
             Tool::DiffChecker => "PR Diff Checker",
             Tool::TokenGenerator => "M2M Auth0 Token Generator",
         }

@@ -1,10 +1,12 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{HashMap};
+use std::time::Duration;
 use ratatui::widgets::ListState;
+use serde::Deserialize;
 use crate::environment::Environment;
 use crate::events::sender::EventSender;
 use crate::config::{Auth0Config, Credentials, TokenGenerator as TokenGeneratorConfig};
 use crate::environment::Environment::{Local, Preproduction, Production, Staging};
-use crate::events::event::Event::App;
+use crate::events::event::AppEvent;
 use crate::state::token_generator::Token::NoToken;
 
 #[derive(Debug)]
@@ -47,9 +49,11 @@ impl TokenGenerator {
         }
     }
 
-    pub(crate) async fn set_token(&self, service_idx: usize, env_idx: usize) {
-        let service = &self.services[service_idx];
+    pub(crate) async fn set_token(&mut self, service_idx: usize, env_idx: usize) {
+        let service = &mut self.services[service_idx];
         let credentials = &service.credentials[env_idx];
+
+        service.tokens.insert(credentials.env.clone(), Token::Fetching);
 
         let sender = self.event_sender.clone();
 
@@ -65,11 +69,13 @@ impl TokenGenerator {
                     Token::Error(err.to_string())
                 }
             };
-            // sender.send(AppEvent::TokenGenerated(service_idx, env_idx, token))
+            sender.send(AppEvent::TokenGenerated(token, service_idx, env_idx))
         });
     }
 
     async fn get_token(auth0_url: String, client_id: String, client_secret: String, audience: String) -> Result<String, Box<dyn std::error::Error>> {
+
+
         let client = reqwest::Client::builder()
             .build()?;
 
@@ -80,14 +86,12 @@ impl TokenGenerator {
         params.insert("audience", audience.as_str());
 
         let request = client.request(reqwest::Method::POST, auth0_url)
-            .form(&params);
+            .form(&params)
+            .timeout(Duration::from_secs(3));
 
         let response = request.send().await?;
-        let body = response.text().await?;
 
-        println!("{}", body);
-
-        Ok(body)
+        Ok(response.json::<TokenResponse>().await?.access_token)
     }
 }
 
@@ -96,7 +100,7 @@ pub struct Service{
     pub(crate) name: String,
     audience: String,
     pub(crate) credentials: Vec<Credentials>,
-    tokens: HashMap<Environment, Token>
+    pub(crate) tokens: HashMap<Environment, Token>
 }
 
 #[derive(Debug)]
@@ -105,5 +109,20 @@ pub enum Token{
     Fetching,
     Token(String),
     Error(String)
+}
+
+impl Token{
+    pub(crate) fn value(&self) -> Option<&str>{
+        match self {
+            Token::Token(s) | Token::Error(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[derive(Debug)]
+struct TokenResponse{
+    access_token: String
 }
 

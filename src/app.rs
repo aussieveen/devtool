@@ -107,6 +107,12 @@ impl App {
 
                         self.state.tokengenerator.set_token(service_idx, env_idx).await;
                     }
+                    TokenGenerated(token, service_idx, env_idx) => {
+                        let service = &mut self.state.tokengenerator.services[service_idx];
+                        let credentials = &service.credentials[env_idx];
+
+                        service.tokens.insert(credentials.env.clone(), token);
+                    }
                 },
             }
         }
@@ -140,6 +146,11 @@ impl App {
             areas.content,
             &mut self.state,
         );
+
+        footer::render(
+            frame,
+            areas.footer
+        )
     }
 
     /// Handles the key events and updates the state of [`App`].
@@ -151,13 +162,11 @@ impl App {
             (AppFocus::List, _, KeyCode::Up) => {
                 self.event_sender.send(ListMove(ListDir::Up));
             }
-            (AppFocus::List, _, KeyCode::Enter) => {
-
-            }
-            (AppFocus::List, _, KeyCode::Char('x') | KeyCode::Right) => {
+            (AppFocus::List, Tool::Home, KeyCode::Right) => {} // DO NOTHING
+            (AppFocus::List, _, KeyCode::Right) => {
                 self.event_sender.send(SetFocus(AppFocus::Tool))
             }
-            (AppFocus::Tool, Tool::Home | Tool::DiffChecker, KeyCode::Char('x') | KeyCode::Left) => {
+            (AppFocus::Tool, Tool::Home | Tool::DiffChecker, KeyCode::Left) => {
                 self.event_sender.send(SetFocus(AppFocus::List))
             }
             (AppFocus::Tool, Tool::DiffChecker, KeyCode::Down) => {
@@ -202,11 +211,18 @@ impl App {
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Enter) => {
                 self.event_sender.send(AppEvent::GenerateToken);
             }
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Char('c')) => {
+                let service_idx = self.state.tokengenerator.service_list_state.selected().unwrap();
+                let env_idx = self.state.tokengenerator.env_list_state.selected().unwrap();
+                let service = &self.state.tokengenerator.services[service_idx];
+                let token = service.tokens.get(&service.credentials[env_idx].env).unwrap();
+
+                Self::copy_to_clipboard(token.value().unwrap()).unwrap();
+            }
             (AppFocus::List, _ , _) | ( AppFocus::Tool, _, _ ) => {}
         }
         match (key.modifiers, key.code) {
-            (_, KeyCode::Esc | KeyCode::Char('q'))
-            | (KeyModifiers::CONTROL, KeyCode::Char('c') | KeyCode::Char('C')) => self.event_sender.send(Quit),
+            (_, KeyCode::Esc | KeyCode::Char('q')) => self.event_sender.send(Quit),
             // Add other key handlers here.
             _ => {}
         }

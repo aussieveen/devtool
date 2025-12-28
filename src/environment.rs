@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 #[derive(Debug)]
+#[derive(Clone)]
 #[derive(PartialEq,Eq,Hash)]
 #[derive(PartialOrd,Ord)]
 #[derive(Deserialize)]

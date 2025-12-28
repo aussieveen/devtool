@@ -1,8 +1,8 @@
 use color_eyre::eyre::OptionExt;
 use tokio::sync::mpsc;
-use crate::events::event::{AppEvent, Event};
+use crate::events::event::Event;
 use crate::events::sender::EventSender;
-use crate::events::task::{EventTask};
+use crate::events::task::EventTask;
 
 #[derive(Debug)]
 pub struct EventHandler {

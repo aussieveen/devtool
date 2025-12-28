@@ -4,9 +4,9 @@ use crate::state::focus::AppFocus;
 
 pub fn block_style(active: bool) -> Style {
     if active {
-        Style::default().fg(Color::Green)
-    } else {
         Style::default()
+    } else {
+        Style::default().fg(Color::DarkGray)
     }
 }
 
@@ -20,7 +20,7 @@ pub fn is_content_active(focus: AppFocus) -> bool {
 
 pub fn list_style(active: bool) -> Style {
     if active {
-        Style::default().fg(Color::White)
+        Style::default()
     } else {
         Style::default().fg(Color::DarkGray)
     }

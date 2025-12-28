@@ -15,7 +15,7 @@ pub fn render(
     state: &mut AppState,
 ) {
     let style = styles::block_style(
-        styles::is_menu_active(state.focus),
+        styles::is_menu_active(state.focus)
     );
 
     let menu = List::new(
@@ -24,12 +24,12 @@ pub fn render(
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(style)
                 .title(" Tools ")
         )
         .highlight_style(ratatui::style::Style::default().reversed())
         .highlight_symbol(">> ")
-        .repeat_highlight_symbol(true);
+        .repeat_highlight_symbol(true)
+        .style(style);
 
     frame.render_stateful_widget(
         menu,

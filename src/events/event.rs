@@ -1,10 +1,9 @@
 use ratatui::crossterm::event::Event as CrosstermEvent;
-use ratatui::widgets::List;
 use crate::environment::Environment;
 use crate::state::app_state::Tool;
 use crate::state::diffchecker::Commit;
 use crate::state::focus::AppFocus;
-use crate::state::token_generator::Focus;
+use crate::state::token_generator::{Focus, Token};
 
 #[derive(Debug)]
 pub enum Event {
@@ -41,6 +40,7 @@ pub enum AppEvent {
     TokenGenEnvListMove(ListDir),
     SetTokenGenFocus(Focus),
     GenerateToken,
+    TokenGenerated(Token, usize, usize),
 
     // Generic Events
     SetFocus(AppFocus),

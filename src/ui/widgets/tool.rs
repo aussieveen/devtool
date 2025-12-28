@@ -1,9 +1,12 @@
+use color_eyre::owo_colors::OwoColorize;
 // ui/tool
 use ratatui::{
     Frame,
     widgets::{Block, Borders},
 };
-use crate::state::app_state::AppState;
+use ratatui::prelude::{Alignment, Color};
+use ratatui::style::Style;
+use crate::state::app_state::{AppState, Tool};
 use crate::ui::styles;
 
 pub fn render(
@@ -12,13 +15,15 @@ pub fn render(
     state: &mut AppState,
 ) {
     let content_block_border_style = styles::block_style(
-        styles::is_content_active(state.focus),
+        styles::is_content_active(state.focus) || matches!(state.current_tool, Tool::Home),
     );
 
     let pane = Block::default()
         .borders(Borders::ALL)
         .border_style(content_block_border_style)
-        .title(format!(" {} ", state.current_tool.title()));
+        .title(format!(" {} ", state.current_tool.title()))
+        .title_alignment(Alignment::Center)
+        .style(content_block_border_style);
 
     let inner = pane.inner(area);
 
