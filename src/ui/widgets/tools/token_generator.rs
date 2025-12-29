@@ -2,7 +2,6 @@ use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::list_style;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::Stylize;
 use ratatui::widgets::{List, ListItem, Paragraph};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {

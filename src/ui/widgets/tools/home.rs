@@ -19,7 +19,7 @@ pub fn render(frame: &mut Frame, area: Rect) {
         .fg(Color::Yellow)
         .add_modifier(Modifier::BOLD);
     frame.render_widget(
-        Line::styled("Diff Checker", title_style).alignment(Alignment::Center),
+        Line::styled("Git Compare", title_style).alignment(Alignment::Center),
         text_blocks[0],
     );
 

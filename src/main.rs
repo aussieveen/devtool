@@ -10,7 +10,7 @@ use crate::config::Config;
 use std::fs;
 use std::path::PathBuf;
 
-const CONFIG_FILE: &str = ".imdevtool/config.yaml";
+const CONFIG_FILE: &str = ".devtool/config.yaml";
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {

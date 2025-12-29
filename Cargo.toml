@@ -1,5 +1,5 @@
 [package]
-name = "im-dev-tool"
+name = "dev-tool"
 version = "0.1.0"
 description = "Dev tool"
 authors = ["Simon McWhinnie <simon.mcwhinnie@gmail.com>"]
@@ -7,21 +7,14 @@ license = "MIT"
 edition = "2024"
 
 [dependencies]
-crossterm = { version = "0.28.1", features = ["event-stream"] }
-ratatui = "0.29.0"
+crossterm = { version = "0.29.0", features = ["event-stream"] }
+ratatui = "0.30.0"
 color-eyre = "0.6.3"
-state = "0.6.0"
-menu = "0.6.1"
-content = "0.6.0"
 tokio = { version = "1.48.0", features = ["full"] }
-tokio-util = "0.7.17"
 futures = "0.3.31"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
-serde_json = "1.0.147"
-itertools = "0.13.0"
 webbrowser = "1.0.6"
-arboard = "3.6.1"
 which = "8.0.0"
 reqwest = { version = "0.12", features = ["json", "blocking"] }
 dirs = "6.0.0"

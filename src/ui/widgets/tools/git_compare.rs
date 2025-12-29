@@ -1,10 +1,9 @@
-use crate::state::diff_checker::{DiffChecker, LinkStatus};
+use crate::state::git_compare::{GitCompare, LinkStatus};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::Stylize;
 use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker) {
+pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(2), Constraint::Percentage(99)])

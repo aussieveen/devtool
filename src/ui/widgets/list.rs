@@ -1,5 +1,4 @@
 use crate::{state::app::AppState, ui::styles};
-use ratatui::style::Stylize;
 // ui/tools
 use ratatui::{
     Frame,
