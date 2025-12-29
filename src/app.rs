@@ -5,7 +5,7 @@ use crate::events::event::{Event, ListDir};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::state::app::{AppFocus, Tool};
-use crate::state::diff_checker::Commit;
+use crate::state::git_compare::Commit;
 use crate::state::token_generator::Focus;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
@@ -58,42 +58,42 @@ impl App {
                         self.event_sender.send(ListSelect(
                             match self.state.tool_list.list_state.selected() {
                                 Some(0) => Tool::Home,
-                                Some(1) => Tool::DiffChecker,
+                                Some(1) => Tool::GitCompare,
                                 _ => Tool::TokenGenerator,
                             },
                         ));
                     }
-                    DiffCheckerListMove(list_dir) => {
-                        let list_state = &mut self.state.diff_checker.list_state;
+                    GitCompareListMove(list_dir) => {
+                        let list_state = &mut self.state.git_compare.list_state;
                         Self::update_list(list_state, list_dir);
                     }
                     GenerateDiff => {
-                        let service_idx = self.state.diff_checker.list_state.selected().unwrap();
+                        let service_idx = self.state.git_compare.list_state.selected().unwrap();
 
                         if !matches!(
-                            self.state.diff_checker.services[service_idx].preprod,
+                            self.state.git_compare.services[service_idx].preprod,
                             Commit::Fetching
                         ) {
                             self.state
-                                .diff_checker
+                                .git_compare
                                 .set_commit(service_idx, Preproduction)
                                 .await
                         }
                         if !matches!(
-                            self.state.diff_checker.services[service_idx].prod,
+                            self.state.git_compare.services[service_idx].prod,
                             Commit::Fetching
                         ) {
                             self.state
-                                .diff_checker
+                                .git_compare
                                 .set_commit(service_idx, Production)
                                 .await
                         }
                     }
                     CommitRefRetrieved(commit, service_idx, env) => match env {
                         Preproduction => {
-                            self.state.diff_checker.services[service_idx].preprod = commit
+                            self.state.git_compare.services[service_idx].preprod = commit
                         }
-                        Production => self.state.diff_checker.services[service_idx].prod = commit,
+                        Production => self.state.git_compare.services[service_idx].prod = commit,
                         _ => {}
                     },
                     TokenGenEnvListMove(list_dir) => {
@@ -168,26 +168,26 @@ impl App {
             (AppFocus::List, _, KeyCode::Right) => self.event_sender.send(SetFocus(AppFocus::Tool)),
 
             // Tool → List focus
-            (AppFocus::Tool, Tool::Home | Tool::DiffChecker, KeyCode::Left) => {
+            (AppFocus::Tool, Tool::Home | Tool::GitCompare, KeyCode::Left) => {
                 self.event_sender.send(SetFocus(AppFocus::List))
             }
 
-            // DiffChecker key events
-            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Down) => {
-                self.event_sender.send(DiffCheckerListMove(ListDir::Down))
+            // GitCompare key events
+            (AppFocus::Tool, Tool::GitCompare, KeyCode::Down) => {
+                self.event_sender.send(GitCompareListMove(ListDir::Down))
             }
-            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Up) => {
-                self.event_sender.send(DiffCheckerListMove(ListDir::Up))
+            (AppFocus::Tool, Tool::GitCompare, KeyCode::Up) => {
+                self.event_sender.send(GitCompareListMove(ListDir::Up))
             }
-            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Enter) => {
+            (AppFocus::Tool, Tool::GitCompare, KeyCode::Enter) => {
                 self.event_sender.send(GenerateDiff)
             }
-            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Char('o')) => {
-                let link = self.state.diff_checker.get_link();
+            (AppFocus::Tool, Tool::GitCompare, KeyCode::Char('o')) => {
+                let link = self.state.git_compare.get_link();
                 webbrowser::open(link.as_str()).expect("Failed to open link");
             }
-            (AppFocus::Tool, Tool::DiffChecker, KeyCode::Char('c')) => {
-                let link = self.state.diff_checker.get_link();
+            (AppFocus::Tool, Tool::GitCompare, KeyCode::Char('c')) => {
+                let link = self.state.git_compare.get_link();
                 Self::copy_to_clipboard(link).unwrap();
             }
 

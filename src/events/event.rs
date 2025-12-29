@@ -1,6 +1,6 @@
 use crate::environment::Environment;
 use crate::state::app::{AppFocus, Tool};
-use crate::state::diff_checker::Commit;
+use crate::state::git_compare::Commit;
 use crate::state::token_generator::{Focus, Token};
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
@@ -29,8 +29,8 @@ pub enum AppEvent {
     ListSelect(Tool),  // Select item on tool list
 
     // Tool events
-    // DiffChecker
-    DiffCheckerListMove(ListDir), // Move up and down on service list
+    // GitCompare
+    GitCompareListMove(ListDir), // Move up and down on service list
     // Commit reference received for service on env
     // usize is the index of the service in the ListState
     CommitRefRetrieved(Commit, usize, Environment),

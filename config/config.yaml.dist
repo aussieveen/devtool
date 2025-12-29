@@ -1,4 +1,4 @@
-diffchecker:
+gitcompare:
   - name: My Api
     preprod: https://myapi.preprod.com/
     prod: https://myapi.prod.com/

@@ -1,4 +1,4 @@
-use crate::state::diff_checker::DiffChecker;
+use crate::state::git_compare::GitCompare;
 use crate::state::token_generator::TokenGenerator;
 use crate::ui::widgets::tools::*;
 use ratatui::Frame;
@@ -14,7 +14,7 @@ pub struct ToolList {
 #[derive(Debug)]
 pub enum Tool {
     Home,
-    DiffChecker,
+    GitCompare,
     TokenGenerator,
 }
 
@@ -22,7 +22,7 @@ impl Tool {
     pub fn title(&self) -> &'static str {
         match self {
             Tool::Home => "Dev Tool",
-            Tool::DiffChecker => "PR Diff Checker",
+            Tool::GitCompare => "Git Compare",
             Tool::TokenGenerator => "M2M Auth0 Token Generator",
         }
     }
@@ -31,12 +31,12 @@ impl Tool {
         &self,
         frame: &mut Frame,
         area: Rect,
-        diff_checker_state: &mut DiffChecker,
+        git_compare_state: &mut GitCompare,
         token_generator_state: &mut TokenGenerator,
     ) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::DiffChecker => diff_checker::render(frame, area, diff_checker_state),
+            Tool::GitCompare => git_compare::render(frame, area, git_compare_state),
             Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
         }
     }
@@ -44,7 +44,7 @@ impl Tool {
     pub fn menu_entry(&self) -> &'static str {
         match self {
             Tool::Home => "Home",
-            Tool::DiffChecker => "Diff Checker",
+            Tool::GitCompare => "Git Compare",
             Tool::TokenGenerator => "Token Generator",
         }
     }

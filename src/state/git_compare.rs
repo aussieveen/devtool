@@ -1,4 +1,4 @@
-use crate::config::DiffChecker as DiffCheckerServiceConfig;
+use crate::config::GitCompare as GitCompareServiceConfig;
 use crate::environment::Environment;
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
@@ -38,14 +38,14 @@ impl Commit {
 }
 
 #[derive(Debug)]
-pub struct DiffChecker {
+pub struct GitCompare {
     pub services: Vec<Service>,
     pub list_state: ListState,
     pub event_sender: EventSender,
 }
 
-impl DiffChecker {
-    pub fn new(config: Vec<DiffCheckerServiceConfig>, event_sender: EventSender) -> Self {
+impl GitCompare {
+    pub fn new(config: Vec<GitCompareServiceConfig>, event_sender: EventSender) -> Self {
         Self {
             services: config.into_iter().map(Service::new).collect(),
             list_state: ListState::default().with_selected(Some(0)),
@@ -134,7 +134,7 @@ pub enum LinkStatus {
 }
 
 impl Service {
-    pub fn new(config: DiffCheckerServiceConfig) -> Self {
+    pub fn new(config: GitCompareServiceConfig) -> Self {
         Self {
             name: config.name,
             preprod_url: config.preprod,

@@ -3,12 +3,12 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Config {
-    pub diffchecker: Vec<DiffChecker>,
+    pub gitcompare: Vec<GitCompare>,
     pub tokengenerator: TokenGenerator,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct DiffChecker {
+pub(crate) struct GitCompare {
     pub name: String,
     pub preprod: String,
     pub prod: String,

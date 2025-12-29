@@ -1,4 +1,4 @@
 pub(crate) mod app;
-pub(crate) mod diff_checker;
+pub(crate) mod git_compare;
 pub(crate) mod token_generator;
 mod tools;
