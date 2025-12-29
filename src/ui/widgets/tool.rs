@@ -1,12 +1,9 @@
-use color_eyre::owo_colors::OwoColorize;
-// ui/tool
 use ratatui::{
     Frame,
     widgets::{Block, Borders},
 };
-use ratatui::prelude::{Alignment, Color};
-use ratatui::style::Style;
-use crate::state::app_state::{AppState, Tool};
+use ratatui::prelude::{Alignment};
+use crate::state::app::{AppState, Tool};
 use crate::ui::styles;
 
 pub fn render(
@@ -29,5 +26,5 @@ pub fn render(
 
     frame.render_widget(pane,area);
 
-    state.current_tool.render(frame, inner, &mut state.diffchecker, &mut state.tokengenerator);
+    state.current_tool.render(frame, inner, &mut state.diff_checker, &mut state.token_generator);
 }

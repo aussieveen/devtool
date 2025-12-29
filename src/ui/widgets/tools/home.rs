@@ -1,9 +1,8 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, Wrap};
-use ratatui::widgets::block::Title;
 
 pub fn render(frame: &mut Frame, area: Rect) {
     let text_blocks = Layout::default()

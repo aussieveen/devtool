@@ -93,6 +93,13 @@ impl TokenGenerator {
 
         Ok(response.json::<TokenResponse>().await?.access_token)
     }
+    
+    pub fn get_token_for_selected_service_env(&self) -> String {
+        let service_idx = self.service_list_state.selected().unwrap();
+        let env_idx = self.env_list_state.selected().unwrap();
+        let service = &self.services[service_idx];
+        service.tokens.get(&service.credentials[env_idx].env).unwrap().value().unwrap().to_string()
+    }
 }
 
 #[derive(Debug)]

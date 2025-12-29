@@ -17,6 +17,7 @@ impl EventHandler {
         let sender = EventSender { sender: tx.clone() };
 
         let actor = EventTask::new(tx.clone());
+        
         tokio::spawn(async { actor.run().await });
 
         Self {

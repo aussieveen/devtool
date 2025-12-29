@@ -1,0 +1,28 @@
+diffchecker:
+  - name: My Api
+    preprod: https://myapi.preprod.com/
+    prod: https://myapi.prod.com/
+    repo: https://github.com/myapi/
+tokengenerator:
+  auth0:
+    # url structure https://m2m-auth0-url.com/oauth/token
+    local:
+    staging:
+    preproduction:
+    production:
+  services:
+    - name:
+      audience:
+      credentials:
+        - env: Local
+          client_id:
+          client_secret:
+        - env: Staging
+          client_id:
+          client_secret:
+        - env: Preproduction
+          client_id:
+          client_secret:
+        - env: Production
+          client_id:
+          client_secret:

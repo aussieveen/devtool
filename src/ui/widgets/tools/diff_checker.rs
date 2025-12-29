@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
-use crate::state::diffchecker::{DiffChecker, LinkStatus};
+use crate::state::diff_checker::{DiffChecker, LinkStatus};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
     let chunks = Layout::default()

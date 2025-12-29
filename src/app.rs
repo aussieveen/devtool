@@ -3,18 +3,18 @@ use std::process::{Command, Stdio};
 use crate::{
     ui::{layout},
     ui::widgets::*,
-    state::app_state::AppState
+    state::app::AppState
 };
-use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
 use ratatui::widgets::ListState;
 use crate::config::Config;
 use crate::events::event::AppEvent::*;
-use crate::events::event::{AppEvent, Event, ListDir};
+use crate::events::event::{Event, ListDir};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
-use crate::state::app_state::{AppFocus, Tool};
-use crate::state::diffchecker::Commit;
+use crate::state::app::{AppFocus, Tool};
+use crate::state::diff_checker::Commit;
 use webbrowser;
 use crate::environment::Environment::{Preproduction, Production};
 use crate::state::token_generator::Focus;
@@ -36,7 +36,7 @@ impl App {
         let event_sender = event_handler.sender();
         Self {
             running: true,
-            state: AppState::default(config, event_handler.sender()),
+            state: AppState::new(config, event_handler.sender()),
             event_handler,
             event_sender,
         }
@@ -60,55 +60,55 @@ impl App {
                     SetFocus(focus) => self.state.focus = focus,
                     ListSelect(tool_state) => self.state.current_tool = tool_state,
                     ListMove(list_dir) => {
-                        let list_state = &mut self.state.list.list_state;
+                        let list_state = &mut self.state.tool_list.list_state;
                         Self::update_list(list_state, list_dir);
-                        self.event_sender.send(ListSelect(match self.state.list.list_state.selected(){
-                            Some(1) => Tool::DiffChecker,
+                        self.event_sender.send(ListSelect(match self.state.tool_list.list_state.selected(){
                             Some(0) => Tool::Home,
+                            Some(1) => Tool::DiffChecker,
                             _ => Tool::TokenGenerator,
                         }));
                     }
                     DiffCheckerListMove(list_dir) => {
-                        let list_state = &mut self.state.diffchecker.list_state;
+                        let list_state = &mut self.state.diff_checker.list_state;
                         Self::update_list(list_state, list_dir);
                     }
                     GenerateDiff => {
-                        let service_idx = self.state.diffchecker.list_state.selected().unwrap();
+                        let service_idx = self.state.diff_checker.list_state.selected().unwrap();
 
-                        if !matches!(self.state.diffchecker.services[service_idx].preprod,Commit::Fetching) {
-                            self.state.diffchecker.set_commit(service_idx, Preproduction).await
+                        if !matches!(self.state.diff_checker.services[service_idx].preprod,Commit::Fetching) {
+                            self.state.diff_checker.set_commit(service_idx, Preproduction).await
                         }
-                        if !matches!(self.state.diffchecker.services[service_idx].prod,Commit::Fetching) {
-                            self.state.diffchecker.set_commit(service_idx, Production).await
+                        if !matches!(self.state.diff_checker.services[service_idx].prod,Commit::Fetching) {
+                            self.state.diff_checker.set_commit(service_idx, Production).await
                         }
                     }
                     CommitRefRetrieved(commit, service_idx, env) => {
                         match env {
-                            Preproduction => self.state.diffchecker.services[service_idx].preprod = commit,
-                            Production => self.state.diffchecker.services[service_idx].prod = commit,
+                            Preproduction => self.state.diff_checker.services[service_idx].preprod = commit,
+                            Production => self.state.diff_checker.services[service_idx].prod = commit,
                             _ => {}
                         }
                     },
                     TokenGenEnvListMove(list_dir) => {
-                        let list_state = &mut self.state.tokengenerator.env_list_state;
+                        let list_state = &mut self.state.token_generator.env_list_state;
                         Self::update_list(list_state, list_dir);
                     }
                     TokenGenServiceListMove(list_dir ) => {
-                        let list_state = &mut self.state.tokengenerator.service_list_state;
+                        let list_state = &mut self.state.token_generator.service_list_state;
                         Self::update_list(list_state, list_dir);
-                        self.state.tokengenerator.env_list_state.select_first();
+                        self.state.token_generator.env_list_state.select_first();
                     }
                     SetTokenGenFocus(focus) => {
-                        self.state.tokengenerator.focus = focus;
+                        self.state.token_generator.focus = focus;
                     }
                     GenerateToken => {
-                        let service_idx = self.state.tokengenerator.service_list_state.selected().unwrap();
-                        let env_idx = self.state.tokengenerator.env_list_state.selected().unwrap();
+                        let service_idx = self.state.token_generator.service_list_state.selected().unwrap();
+                        let env_idx = self.state.token_generator.env_list_state.selected().unwrap();
 
-                        self.state.tokengenerator.set_token(service_idx, env_idx).await;
+                        self.state.token_generator.set_token(service_idx, env_idx).await;
                     }
                     TokenGenerated(token, service_idx, env_idx) => {
-                        let service = &mut self.state.tokengenerator.services[service_idx];
+                        let service = &mut self.state.token_generator.services[service_idx];
                         let credentials = &service.credentials[env_idx];
 
                         service.tokens.insert(credentials.env.clone(), token);
@@ -126,12 +126,6 @@ impl App {
         }
     }
 
-    /// Renders the user interface.
-    ///
-    /// This is where you add new widgets. See the following resources for more information:
-    ///
-    /// - <https://docs.rs/ratatui/latest/ratatui/widgets/index.html>
-    /// - <https://github.com/ratatui/ratatui/tree/main/ratatui-widgets/examples>
     fn render(&mut self, frame: &mut Frame) {
         let areas = layout::main(frame.area());
 
@@ -179,45 +173,44 @@ impl App {
                 self.event_sender.send(GenerateDiff)
             }
             (AppFocus::Tool, Tool::DiffChecker, KeyCode::Char('o')) => {
-                let d = &self.state.diffchecker;
-                let link = d.get_link(d.list_state.selected().unwrap());
+                let link = self.state.diff_checker.get_link();
                 webbrowser::open(link.as_str()).expect("Something has gone sideways");
             }
             (AppFocus::Tool, Tool::DiffChecker, KeyCode::Char('c')) => {
-                let link = self.state.diffchecker.get_link(self.state.diffchecker.list_state.selected().unwrap());
-                Self::copy_to_clipboard(link.as_str()).unwrap();
+                let link = self.state.diff_checker.get_link();
+                Self::copy_to_clipboard(link).unwrap();
             }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Down) => {
-                match &self.state.tokengenerator.focus{
-                    Focus::Service => self.event_sender.send(TokenGenServiceListMove(ListDir::Down)),
-                    Focus::Env => self.event_sender.send(TokenGenEnvListMove(ListDir::Down)),
+            (AppFocus::Tool, Tool::TokenGenerator, key) if matches!(key, KeyCode::Up | KeyCode::Down) => {
+                let dir = match key {
+                    KeyCode::Up => ListDir::Up,
+                    KeyCode::Down => ListDir::Down,
+                    _ => unreachable!(),
                 };
+
+                let event = match self.state.token_generator.focus {
+                    Focus::Service => TokenGenServiceListMove(dir),
+                    Focus::Env => TokenGenEnvListMove(dir),
+                };
+
+                self.event_sender.send(event);
             }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Up) => {
-                match &self.state.tokengenerator.focus {
-                    Focus::Service => self.event_sender.send(TokenGenServiceListMove(ListDir::Up)),
-                    Focus::Env => self.event_sender.send(TokenGenEnvListMove(ListDir::Up)),
-                }
-            }
+
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Right) => {
-                self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Env));
+                self.event_sender.send(SetTokenGenFocus(Focus::Env));
             }
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Left) => {
-                match &self.state.tokengenerator.focus {
+                match &self.state.token_generator.focus {
                     Focus::Service => self.event_sender.send(SetFocus(AppFocus::List)),
-                    Focus::Env => self.event_sender.send(AppEvent::SetTokenGenFocus(Focus::Service))
+                    Focus::Env => self.event_sender.send(SetTokenGenFocus(Focus::Service))
                 }
             }
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Enter) => {
-                self.event_sender.send(AppEvent::GenerateToken);
+                self.event_sender.send(GenerateToken);
             }
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Char('c')) => {
-                let service_idx = self.state.tokengenerator.service_list_state.selected().unwrap();
-                let env_idx = self.state.tokengenerator.env_list_state.selected().unwrap();
-                let service = &self.state.tokengenerator.services[service_idx];
-                let token = service.tokens.get(&service.credentials[env_idx].env).unwrap();
+                let token = self.state.token_generator.get_token_for_selected_service_env();
 
-                Self::copy_to_clipboard(token.value().unwrap()).unwrap();
+                Self::copy_to_clipboard(token).unwrap();
             }
             (AppFocus::List, _ , _) | ( AppFocus::Tool, _, _ ) => {}
         }
@@ -230,13 +223,14 @@ impl App {
         Ok(())
     }
 
-    fn copy_to_clipboard(text: &str) -> Result<(), String>{
+    fn copy_to_clipboard(text: String) -> Result<(), String>{
+        let str = text.as_str();
         if which::which("wl-copy").is_ok() {
-            return Self::pipe_to("wl-copy", &[], text)
+            return Self::pipe_to("wl-copy", &[], str)
         }
 
         if cfg!(target_os = "macos") {
-            return Self::pipe_to("pbcopy", &[], text);
+            return Self::pipe_to("pbcopy", &[], str);
         }
 
         Ok(())

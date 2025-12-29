@@ -1,8 +1,15 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use crate::state::diffchecker::DiffChecker;
+use ratatui::widgets::ListState;
+use crate::state::diff_checker::DiffChecker;
 use crate::state::token_generator::TokenGenerator;
 use crate::ui::widgets::tools::*;
+
+#[derive(Debug)]
+pub struct ToolList {
+    pub items: Vec<&'static str>,
+    pub list_state: ListState
+}
 
 #[derive(Debug)]
 pub enum Tool {
@@ -23,13 +30,13 @@ impl Tool {
     pub fn render(&self,
                   frame: &mut Frame,
                   area: Rect,
-                  diffchecker_state: &mut DiffChecker,
-                  token_generator: &mut TokenGenerator
+                  diff_checker_state: &mut DiffChecker,
+                  token_generator_state: &mut TokenGenerator
     ) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::DiffChecker => diffchecker::render(frame, area, diffchecker_state),
-            Tool::TokenGenerator => token_generator::render(frame, area, token_generator),
+            Tool::DiffChecker => diff_checker::render(frame, area, diff_checker_state),
+            Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
         }
     }
 

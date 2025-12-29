@@ -8,13 +8,6 @@ use crate::environment::Environment;
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
 
-#[derive(Debug)]
-pub struct DiffChecker {
-    pub services: Vec<Service>,
-    pub list_state: ListState,
-    pub event_sender: EventSender
-}
-
 #[derive(Debug, PartialEq)]
 pub enum Commit{
     NotFetched,
@@ -42,6 +35,13 @@ impl Commit{
     fn is_fetched(&self) -> bool {
         matches!(self, Commit::Fetched(_))
     }
+}
+
+#[derive(Debug)]
+pub struct DiffChecker {
+    pub services: Vec<Service>,
+    pub list_state: ListState,
+    pub event_sender: EventSender
 }
 
 impl DiffChecker {
@@ -82,10 +82,10 @@ impl DiffChecker {
         });
     }
 
-    pub(crate) fn get_link(&self, service_idx: usize) -> String {
-        let service = &self.services[service_idx];
+    pub(crate) fn get_link(&self) -> String {
+        let service = &self.services[self.list_state.selected().unwrap()];
         format!(
-            "{}/compare/{}...{}",
+            "{}compare/{}...{}",
             service.repo_url,
             service.prod.value().unwrap(),
             service.preprod.value().unwrap(),
