@@ -11,7 +11,7 @@ https://github.com/user-attachments/assets/c300f2b4-9142-4a5c-bbff-a91561652826
 
 ### GitHub Compare
 
---  Configure with **preproduction** and **production** healthchecks, along with the repository URL.
+- Configure with **preproduction** and **production** healthchecks, along with the repository URL.
 - Generates a **compare URL** that allows you to inspect code differences between the two environments.
 - The URL can be copied to your clipboard or opened directly in your default browser.
 
