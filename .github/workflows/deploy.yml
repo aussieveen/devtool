@@ -45,7 +45,7 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          binary_name="devtool"
+          binary_name="dev-tool"
 
           dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
           mkdir "$dirname"
