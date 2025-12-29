@@ -27,7 +27,7 @@ jobs:
 
       - name: Get the release version from the tag
         shell: bash
-        run: echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
