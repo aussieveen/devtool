@@ -62,6 +62,7 @@ jobs:
           else
             tar -czf "$dirname.tar.gz" "$dirname"
             echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
+          fi
 
       - name: Upload Asset
         run: gh release upload ${{github.event.release.tag_name}} ${{ env.ASSET}}
