@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build-and-upload:
     name: Build and upload
@@ -25,7 +28,7 @@ jobs:
 
       - name: Get the release version from the tag
         shell: bash
-        run: echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -43,8 +46,7 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          # Replace with the name of your binary
-          binary_name="devtool"
+          binary_name="dev-tool"
 
           dirname="$binary_name-${{ env.VERSION }}-${{ matrix.target }}"
           mkdir "$dirname"
@@ -62,8 +64,8 @@ jobs:
             echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
           fi
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ${{ env.ASSET }}
+      - name: Upload Asset
+        run: gh release upload ${{github.event.release.tag_name}} ${{ env.ASSET}}
+        env:
+          GITHUB_TOKEN: ${{github.TOKEN}}
+        shell: bash
