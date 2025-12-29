@@ -7,7 +7,6 @@ mod ui;
 
 use crate::app::App;
 use crate::config::Config;
-use serde_yaml;
 use std::fs;
 use std::path::PathBuf;
 

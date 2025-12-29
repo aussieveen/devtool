@@ -3,7 +3,7 @@ use crate::environment::Environment;
 use crate::environment::Environment::{Local, Preproduction, Production, Staging};
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
-use crate::state::token_generator::Token::NoToken;
+use crate::state::token_generator::Token::NotGenerated;
 use ratatui::widgets::ListState;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -37,10 +37,10 @@ impl TokenGenerator {
                     audience: s.audience,
                     credentials: s.credentials,
                     tokens: HashMap::from([
-                        (Local, NoToken),
-                        (Staging, NoToken),
-                        (Preproduction, NoToken),
-                        (Production, NoToken),
+                        (Local, NotGenerated),
+                        (Staging, NotGenerated),
+                        (Preproduction, NotGenerated),
+                        (Production, NotGenerated),
                     ]),
                 })
                 .collect(),
@@ -68,7 +68,7 @@ impl TokenGenerator {
 
         tokio::spawn(async move {
             let token = match Self::get_token(auth0_url, client_id, client_secret, audience).await {
-                Ok(token) => Token::Token(token),
+                Ok(token) => Token::Generated(token),
                 Err(err) => Token::Error(err.to_string()),
             };
             sender.send(AppEvent::TokenGenerated(token, service_idx, env_idx))
@@ -123,16 +123,16 @@ pub struct Service {
 
 #[derive(Debug)]
 pub enum Token {
-    NoToken,
+    NotGenerated,
     Fetching,
-    Token(String),
+    Generated(String),
     Error(String),
 }
 
 impl Token {
     pub(crate) fn value(&self) -> Option<&str> {
         match self {
-            Token::Token(s) | Token::Error(s) => Some(s.as_str()),
+            Token::Generated(s) | Token::Error(s) => Some(s.as_str()),
             _ => None,
         }
     }

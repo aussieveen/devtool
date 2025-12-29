@@ -88,8 +88,8 @@ impl DiffChecker {
         )
     }
 
-    async fn get_commit_from_healthcheck(base_url: &String) -> Result<String, Box<dyn Error>> {
-        let mut url = base_url.clone();
+    async fn get_commit_from_healthcheck(base_url: &str) -> Result<String, Box<dyn Error>> {
+        let mut url = base_url.to_owned();
         url.push_str("healthcheck");
 
         let client = reqwest::Client::new();

@@ -13,7 +13,6 @@ use ratatui::widgets::ListState;
 use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
-use webbrowser;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]

@@ -32,9 +32,9 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {
 
     let environments = List::new(service.credentials.iter().map(|c| {
         let token = service.tokens.get(&c.env).unwrap();
-        let prefix = match token {
-            &Token::Token(_) => "[✓]",
-            &Token::Error(_) => "[x]",
+        let prefix = match *token {
+            Token::Generated(_) => "[✓]",
+            Token::Error(_) => "[x]",
             _ => "[ ]",
         };
         ListItem::new(format!("{} {}", prefix, c.env.as_str()))
@@ -50,11 +50,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {
 
     let token = service.tokens.get(env).unwrap();
 
-    let text = match token {
-        &Token::NoToken => "[Return] to generate token",
-        &Token::Fetching => "Generating token",
-        &Token::Token(_) => "Token available: [c] to Copy the token value",
-        &Token::Error(_) => &*format!(
+    let text = match *token {
+        Token::NotGenerated => "[Return] to generate token",
+        Token::Fetching => "Generating token",
+        Token::Generated(_) => "Token available: [c] to Copy the token value",
+        Token::Error(_) => &*format!(
             "{}: {}",
             "Error when attempting to get the token",
             token.value().unwrap()
