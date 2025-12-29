@@ -1,10 +1,11 @@
 name: Deploy
 
 on:
-  push:
-    tags:
-      # Regex for a version number such as 0.2.1
-      - "[0-9]+.[0-9]+.[0-9]+"
+  release:
+    types: [published]
+
+permissions:
+  contents: write
 
 jobs:
   build-and-upload:
@@ -61,10 +62,9 @@ jobs:
           else
             tar -czf "$dirname.tar.gz" "$dirname"
             echo "ASSET=$dirname.tar.gz" >> $GITHUB_ENV
-          fi
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            ${{ env.ASSET }}
+      - name: Upload Asset
+        run: gh release upload ${{github.event.release.tag_name}} ${{ env.ASSET}}
+        env:
+          GITHUB_TOKEN: ${{github.TOKEN}}
+        shell: bash
