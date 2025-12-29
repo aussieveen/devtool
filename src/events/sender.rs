@@ -1,5 +1,5 @@
-use tokio::sync::mpsc;
 use crate::events::event::{AppEvent, Event};
+use tokio::sync::mpsc;
 
 #[derive(Clone, Debug)]
 pub struct EventSender {

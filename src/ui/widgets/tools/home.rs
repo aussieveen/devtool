@@ -15,9 +15,12 @@ pub fn render(frame: &mut Frame, area: Rect) {
         ])
         .split(area);
 
-    let title_style = Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD);
+    let title_style = Style::default()
+        .fg(Color::Yellow)
+        .add_modifier(Modifier::BOLD);
     frame.render_widget(
-        Line::styled("Diff Checker", title_style).alignment(Alignment::Center),text_blocks[0]
+        Line::styled("Diff Checker", title_style).alignment(Alignment::Center),
+        text_blocks[0],
     );
 
     frame.render_widget(
@@ -27,7 +30,8 @@ pub fn render(frame: &mut Frame, area: Rect) {
     );
 
     frame.render_widget(
-        Line::styled("Auth0 Token Generator", title_style).alignment(Alignment::Center),text_blocks[2]
+        Line::styled("Auth0 Token Generator", title_style).alignment(Alignment::Center),
+        text_blocks[2],
     );
 
     frame.render_widget(

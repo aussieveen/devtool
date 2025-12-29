@@ -1,30 +1,21 @@
+use crate::state::diff_checker::{DiffChecker, LinkStatus};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
-use crate::state::diff_checker::{DiffChecker, LinkStatus};
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker){
+pub fn render(frame: &mut Frame, area: Rect, state: &mut DiffChecker) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(2),
-            Constraint::Percentage(99),
-        ])
+        .constraints([Constraint::Min(2), Constraint::Percentage(99)])
         .split(area);
 
-    let services = List::new(
-        state.services.iter().map(|s| ListItem::new(s.name.clone()))
-    )
+    let services = List::new(state.services.iter().map(|s| ListItem::new(s.name.clone())))
         .highlight_style(ratatui::style::Style::default().reversed())
         .highlight_symbol(">> ")
         .repeat_highlight_symbol(true);
 
-    frame.render_stateful_widget(
-        services,
-        chunks[0],
-        &mut state.list_state,
-    );
+    frame.render_stateful_widget(services, chunks[0], &mut state.list_state);
 
     let service_idx = state.list_state.selected().unwrap();
     let service = &state.services[service_idx];

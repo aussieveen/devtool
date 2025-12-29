@@ -1,8 +1,8 @@
-use futures::FutureExt;
-use std::time::Duration;
-use futures::StreamExt;
-use tokio::sync::mpsc;
 use crate::events::event::Event;
+use futures::FutureExt;
+use futures::StreamExt;
+use std::time::Duration;
+use tokio::sync::mpsc;
 
 const TICK_FPS: f64 = 30.0;
 

@@ -1,16 +1,12 @@
+use crate::state::app::{AppState, Tool};
+use crate::ui::styles;
+use ratatui::prelude::Alignment;
 use ratatui::{
     Frame,
     widgets::{Block, Borders},
 };
-use ratatui::prelude::{Alignment};
-use crate::state::app::{AppState, Tool};
-use crate::ui::styles;
 
-pub fn render(
-    frame: &mut Frame,
-    area: ratatui::layout::Rect,
-    state: &mut AppState,
-) {
+pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState) {
     let content_block_border_style = styles::block_style(
         styles::is_content_active(state.focus) || matches!(state.current_tool, Tool::Home),
     );
@@ -24,7 +20,12 @@ pub fn render(
 
     let inner = pane.inner(area);
 
-    frame.render_widget(pane,area);
+    frame.render_widget(pane, area);
 
-    state.current_tool.render(frame, inner, &mut state.diff_checker, &mut state.token_generator);
+    state.current_tool.render(
+        frame,
+        inner,
+        &mut state.diff_checker,
+        &mut state.token_generator,
+    );
 }

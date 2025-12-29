@@ -1,10 +1,10 @@
-use serde::Deserialize;
 use crate::environment::Environment;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct Config{
+pub(crate) struct Config {
     pub diffchecker: Vec<DiffChecker>,
-    pub tokengenerator: TokenGenerator
+    pub tokengenerator: TokenGenerator,
 }
 
 #[derive(Debug, Deserialize)]
@@ -18,7 +18,7 @@ pub(crate) struct DiffChecker {
 #[derive(Debug, Deserialize)]
 pub(crate) struct TokenGenerator {
     pub auth0: Auth0Config,
-    pub services: Vec<ServiceConfig>
+    pub services: Vec<ServiceConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -30,13 +30,12 @@ pub struct Auth0Config {
 }
 
 impl Auth0Config {
-    pub fn get_from_env(&self, env: &Environment) -> &String
-    {
+    pub fn get_from_env(&self, env: &Environment) -> &String {
         match env {
             Environment::Local => &self.local,
             Environment::Staging => &self.staging,
             Environment::Preproduction => &self.preproduction,
-            Environment::Production => &self.production
+            Environment::Production => &self.production,
         }
     }
 }
@@ -45,12 +44,12 @@ impl Auth0Config {
 pub struct ServiceConfig {
     pub name: String,
     pub audience: String,
-    pub credentials: Vec<Credentials>
+    pub credentials: Vec<Credentials>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Credentials {
     pub env: Environment,
     pub client_id: String,
-    pub client_secret: String
+    pub client_secret: String,
 }

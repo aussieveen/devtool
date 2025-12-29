@@ -1,15 +1,15 @@
 mod app;
-mod ui;
-mod state;
-mod events;
 mod config;
 mod environment;
+mod events;
+mod state;
+mod ui;
 
-use std::fs;
-use std::path::PathBuf;
 use crate::app::App;
 use crate::config::Config;
 use serde_yaml;
+use std::fs;
+use std::path::PathBuf;
 
 const CONFIG_FILE: &str = ".imdevtool/config.yaml";
 
@@ -34,4 +34,3 @@ fn load_config() -> Config {
 
     serde_yaml::from_str(config.as_str()).unwrap()
 }
-

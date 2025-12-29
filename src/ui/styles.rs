@@ -1,6 +1,6 @@
 // ui/styles.rs
-use ratatui::style::{Style, Color};
 use crate::state::app::AppFocus;
+use ratatui::style::{Color, Style};
 
 pub fn block_style(active: bool) -> Style {
     if active {

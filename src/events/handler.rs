@@ -1,8 +1,8 @@
-use color_eyre::eyre::OptionExt;
-use tokio::sync::mpsc;
 use crate::events::event::Event;
 use crate::events::sender::EventSender;
 use crate::events::task::EventTask;
+use color_eyre::eyre::OptionExt;
+use tokio::sync::mpsc;
 
 #[derive(Debug)]
 pub struct EventHandler {
@@ -17,7 +17,7 @@ impl EventHandler {
         let sender = EventSender { sender: tx.clone() };
 
         let actor = EventTask::new(tx.clone());
-        
+
         tokio::spawn(async { actor.run().await });
 
         Self {

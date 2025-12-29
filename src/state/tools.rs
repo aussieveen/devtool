@@ -1,14 +1,14 @@
-use ratatui::Frame;
-use ratatui::layout::Rect;
-use ratatui::widgets::ListState;
 use crate::state::diff_checker::DiffChecker;
 use crate::state::token_generator::TokenGenerator;
 use crate::ui::widgets::tools::*;
+use ratatui::Frame;
+use ratatui::layout::Rect;
+use ratatui::widgets::ListState;
 
 #[derive(Debug)]
 pub struct ToolList {
     pub items: Vec<&'static str>,
-    pub list_state: ListState
+    pub list_state: ListState,
 }
 
 #[derive(Debug)]
@@ -27,11 +27,12 @@ impl Tool {
         }
     }
 
-    pub fn render(&self,
-                  frame: &mut Frame,
-                  area: Rect,
-                  diff_checker_state: &mut DiffChecker,
-                  token_generator_state: &mut TokenGenerator
+    pub fn render(
+        &self,
+        frame: &mut Frame,
+        area: Rect,
+        diff_checker_state: &mut DiffChecker,
+        token_generator_state: &mut TokenGenerator,
     ) {
         match self {
             Tool::Home => home::render(frame, area),
