@@ -1,3 +1,4 @@
+use crate::environment::Environment;
 use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::list_style;
 use ratatui::Frame;
@@ -5,13 +6,15 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::{List, ListItem, Paragraph};
 use std::cmp::max;
 use strum::EnumCount;
-use crate::environment::Environment;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {
     let vertical_break = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(max(state.services.capacity() as u16, Environment::COUNT as u16)),
+            Constraint::Length(max(
+                state.services.capacity() as u16,
+                Environment::COUNT as u16,
+            )),
             Constraint::Percentage(99),
         ])
         .split(area);
