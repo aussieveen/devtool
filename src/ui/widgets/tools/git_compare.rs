@@ -6,7 +6,10 @@ use ratatui::widgets::{List, ListItem, Paragraph, Wrap};
 pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(2), Constraint::Percentage(99)])
+        .constraints([
+            Constraint::Min(state.services.capacity() as u16),
+            Constraint::Percentage(99),
+        ])
         .split(area);
 
     let services = List::new(state.services.iter().map(|s| ListItem::new(s.name.clone())))
