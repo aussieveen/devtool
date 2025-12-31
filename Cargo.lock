@@ -388,6 +388,8 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_yaml",
+ "strum",
+ "strum_macros",
  "tokio",
  "webbrowser",
  "which",

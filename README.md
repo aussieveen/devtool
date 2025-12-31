@@ -29,10 +29,10 @@ https://github.com/user-attachments/assets/c300f2b4-9142-4a5c-bbff-a91561652826
 ### Prebuilt Binaries (Recommended)
 
 Prebuilt binaries are available for macOS and Linux.
-1. Go to the Releases page of this repository. 
+1. Go to the [latest release](https://github.com/aussieveen/devtool/releases/latest) of this repository. 
 2. Download the archive corresponding to your operating system.
 3. Extract the archive.
-4. Move the dev-tool binary into a directory on your PATH, for example:
+4. Move the dev-tool binary into a directory on your `PATH`, for example:
     ```bash
     sudo mv dev-tool /usr/local/bin
    ```
@@ -41,8 +41,8 @@ Prebuilt binaries are available for macOS and Linux.
     mkdir -p ~/.devtool
     cp config/config.yaml.dist ~/.devtool/config.yaml
     ```
-6.  Open ~/.devtool/config.yaml and configure it with your required values.
-
+6. Open `~/.devtool/config.yaml` and configure it with your required values.
+7. Run `dev-tool` from the command line in order to bring up the TUI.
 ### Run From Source
 
 If you have Rust installed, you can also run the application directly from source.
@@ -53,7 +53,7 @@ cd devtool
 cargo run
 ```
 
-⚠️ The configuration file at ~/.devtool/config.yaml is required when running from source as well.
+⚠️ The configuration file at `~/.devtool/config.yaml` is still required when running from source.
 
 ### Supported Platforms
 - macOS (Intel & Apple Silicon)
