@@ -17,9 +17,20 @@ pub enum Commit {
 }
 
 impl Commit {
-    fn value(&self) -> Option<&str> {
+    pub fn value(&self) -> Option<&str> {
         match self {
             Commit::Fetched(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn short_value(&self) -> Option<String> {
+        match self {
+            Commit::Fetched(s) => {
+                let first: String = s.chars().take(6).collect();
+                let last: String = s.chars().rev().take(6).collect::<String>().chars().rev().collect();
+                Some(format!("{}...{}", first, last))
+            },
             _ => None,
         }
     }

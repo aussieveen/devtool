@@ -35,6 +35,7 @@ pub enum AppEvent {
     // usize is the index of the service in the ListState
     CommitRefRetrieved(Commit, usize, Environment),
     GenerateDiff, // Generate diff url
+    ScanServices, // Scan all services
 
     // TokenGenerator
     TokenGenServiceListMove(ListDir),

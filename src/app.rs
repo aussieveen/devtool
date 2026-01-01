@@ -67,6 +67,30 @@ impl App {
                         let list_state = &mut self.state.git_compare.list_state;
                         Self::update_list(list_state, list_dir);
                     }
+                    ScanServices => {
+                        let len = self.state.git_compare.services.len();
+
+                        for service_idx in 0..len {
+                            if !matches!(
+                                self.state.git_compare.services[service_idx].preprod,
+                                Commit::Fetching
+                            ) {
+                                self.state
+                                    .git_compare
+                                    .set_commit(service_idx, Preproduction)
+                                    .await
+                            }
+                            if !matches!(
+                                self.state.git_compare.services[service_idx].prod,
+                                Commit::Fetching
+                            ) {
+                                self.state
+                                    .git_compare
+                                    .set_commit(service_idx, Production)
+                                    .await
+                            }
+                        }
+                    }
                     GenerateDiff => {
                         let service_idx = self.state.git_compare.list_state.selected().unwrap();
 
@@ -190,7 +214,9 @@ impl App {
                 let link = self.state.git_compare.get_link();
                 Self::copy_to_clipboard(link).unwrap();
             }
-
+            (AppFocus::Tool, Tool::GitCompare, KeyCode::Char('s')) => {
+                self.event_sender.send(ScanServices)
+            }
             // TokenGenerator key events
             (AppFocus::Tool, Tool::TokenGenerator, key)
                 if matches!(key, KeyCode::Up | KeyCode::Down) =>
