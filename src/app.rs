@@ -13,6 +13,7 @@ use ratatui::widgets::ListState;
 use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
+use std::time::{Duration, SystemTime};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -38,10 +39,20 @@ impl App {
     }
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
+        let async_sender = self.event_sender.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_mins(15));
+            loop {
+                interval.tick().await; // This should go first.
+                async_sender.send(ScanServices);
+            }
+        });
+
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
             match self.event_handler.next().await? {
-                Event::Tick => {}
+                Event::Tick => {
+                }
                 Event::Crossterm(event) => match event {
                     event::Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
                         self.handle_key_events(key_event)?
@@ -65,7 +76,8 @@ impl App {
                     }
                     GitCompareListMove(list_dir) => {
                         let list_state = &mut self.state.git_compare.list_state;
-                        Self::update_list(list_state, list_dir);
+                        let list_limit = self.state.git_compare.services.len() - 1;
+                        Self::update_noneable_list(list_state, list_dir, list_limit);
                     }
                     ScanServices => {
                         let len = self.state.git_compare.services.len();
@@ -167,6 +179,26 @@ impl App {
         match list_dir {
             ListDir::Up => list_state.select_previous(),
             ListDir::Down => list_state.select_next(),
+        }
+    }
+
+    fn update_noneable_list(list_state: &mut ListState, list_dir: ListDir, list_limit: usize) {
+        let selected = list_state.selected();
+        match list_dir {
+            ListDir::Up => {
+                if selected.is_some() && selected.unwrap() > 0 {
+                    list_state.select_previous();
+                } else {
+                    list_state.select(None);
+                }
+            },
+            ListDir::Down => {
+                if selected.is_some() && selected.unwrap() == list_limit {
+                    list_state.select(Some(list_limit));
+                } else {
+                    list_state.select_next();
+                }
+            }
         }
     }
 

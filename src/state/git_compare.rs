@@ -6,7 +6,7 @@ use ratatui::widgets::ListState;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use serde::Deserialize;
 use std::error::Error;
-use std::time::Duration;
+use std::time::{Duration};
 
 #[derive(Debug, PartialEq)]
 pub enum Commit {
@@ -25,12 +25,20 @@ impl Commit {
     }
 
     pub fn short_value(&self) -> Option<String> {
+        let char_display_count = 6;
         match self {
             Commit::Fetched(s) => {
-                let first: String = s.chars().take(6).collect();
-                let last: String = s.chars().rev().take(6).collect::<String>().chars().rev().collect();
+                let first: String = s.chars().take(char_display_count).collect();
+                let last: String = s
+                    .chars()
+                    .rev()
+                    .take(char_display_count)
+                    .collect::<String>()
+                    .chars()
+                    .rev()
+                    .collect();
                 Some(format!("{}...{}", first, last))
-            },
+            }
             _ => None,
         }
     }
@@ -52,14 +60,14 @@ impl Commit {
 pub struct GitCompare {
     pub services: Vec<Service>,
     pub list_state: ListState,
-    pub event_sender: EventSender,
+    pub event_sender: EventSender
 }
 
 impl GitCompare {
     pub fn new(config: Vec<GitCompareServiceConfig>, event_sender: EventSender) -> Self {
         Self {
             services: config.into_iter().map(Service::new).collect(),
-            list_state: ListState::default().with_selected(Some(0)),
+            list_state: ListState::default().with_selected(None),
             event_sender,
         }
     }

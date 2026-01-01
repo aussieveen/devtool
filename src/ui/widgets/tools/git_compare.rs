@@ -1,10 +1,12 @@
-use std::fmt::format;
 use crate::state::git_compare::{GitCompare, LinkStatus};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph, Wrap};
+use std::fmt::format;
+use crossterm::style::style;
+use crate::ui::styles::list_style;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
     // let services = List::new(state.services.iter().map(|s| ListItem::new(s.name.clone())))
@@ -14,15 +16,23 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
     //
     // frame.render_stateful_widget(services, chunks[0], &mut state.list_state);
 
-    let service_idx = state.list_state.selected().unwrap();
-    let service = &state.services[service_idx];
+    let selected_service_idx = state.list_state.selected();
 
-    let text = match service.link_status() {
-        LinkStatus::Fetching => "Retrieving commit references",
-        LinkStatus::Errored => "Error when attempting to get diff. Do you need to be on the VPN?",
-        LinkStatus::Diff => "Link available: [o] to Open in browser, [c] to Copy the url",
-        LinkStatus::NoDiff => "Preprod and Prod are on the same commit",
-        LinkStatus::Missing => "[Return] to retrieve commit",
+    let service = if selected_service_idx.is_some() {
+        state.services.get(selected_service_idx.unwrap())
+    }else{
+        None
+    };
+
+    let (status_text, service_action_text) = if service.is_some() {
+        match service.unwrap().link_status() {
+            LinkStatus::Errored => ("Error when attempting to get diff. Do you need to be on the VPN?",""),
+            LinkStatus::Diff => ("Preproduction and Production are on different commits", "[o] to Open in browser [c] to Copy the url"),
+            LinkStatus::NoDiff => ("Preproduction and Production are on the same commit", ""),
+            _ => ("",""),
+        }
+    }else{
+        ("","")
     };
 
     // ── 1. Split into header row + grid ─────────────────────────────────────────────
@@ -76,18 +86,29 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
         Vec::new(), // Prod
     ];
 
-    for (service_idx, service) in state.services.iter().enumerate() {
-        columns[0].push((
-            service.name.clone(),
-            Color::Gray
-        ));
-        columns[1].push((
-            service.preprod.short_value().unwrap_or("No commit found".to_string()),
+    for (_, service) in state.services.iter().enumerate() {
+        let preprod_commit = service.preprod.value();
+        let prod_commit = service.prod.value();
+        let service_colour = if(preprod_commit.unwrap_or("NO VALUE") == prod_commit.unwrap_or("NO VALUE")){
             Color::Green
+        } else {
+            Color::Red
+        };
+
+        columns[0].push((service.name.clone(), service_colour));
+        columns[1].push((
+            service
+                .preprod
+                .short_value()
+                .unwrap_or("No commit found".to_string()),
+            service_colour,
         ));
         columns[2].push((
-            service.prod.short_value().unwrap_or("No commit found".to_string()),
-            Color::Red
+            service
+                .prod
+                .short_value()
+                .unwrap_or("No commit found".to_string()),
+            service_colour,
         ));
     }
 
@@ -95,15 +116,26 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
     for (col_idx, col_area) in grid_cols.iter().enumerate() {
         let lines: Vec<Line> = columns[col_idx]
             .iter()
-            .map(|(hash, status_color)| {
+            .enumerate()
+            .map(|(row_idx, (hash, status_color))| {
+                let line_style = list_style(
+                    (selected_service_idx.is_some() && selected_service_idx.unwrap() == row_idx) || selected_service_idx.is_none()
+                );
+
                 Line::from(vec![
                     // status stripe
                     Span::styled("▍", Style::default().bg(*status_color)),
                     Span::raw(" "),
-                    Span::styled(hash.clone(), Style::default().fg(Color::Gray)),
+                    Span::styled(hash.clone(), line_style),
                 ])
             })
             .collect();
+
+        // let line_style = if selected_service_idx.is_some() && selected_service_idx.unwrap() == col_idx{
+        //     Style::default().fg(Color::DarkGray)
+        // }else{
+        //     Style::default()
+        // };
 
         let column = Paragraph::new(lines)
             .block(Block::default())
@@ -112,9 +144,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut GitCompare) {
         frame.render_widget(column, *col_area);
     }
 
-    frame.render_widget(
-        Paragraph::new("STATUS TEXT"),
-        status_area,
-    );
-    frame.render_widget(Paragraph::new("[s] to scan the services"), action_area);
+    frame.render_widget(Paragraph::new(status_text), status_area);
+    let action_text = format!("{} {}", "[s] to scan the services", service_action_text );
+    frame.render_widget(Paragraph::new(action_text).wrap(Wrap { trim: false }), action_area);
 }
