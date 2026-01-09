@@ -16,7 +16,7 @@ pub enum AppFocus {
 pub struct AppState {
     pub tool_list: ToolList,
     pub current_tool: Tool,
-    pub git_compare: ServiceStatus,
+    pub service_status: ServiceStatus,
     pub token_generator: TokenGenerator,
     pub focus: AppFocus,
 }
@@ -33,7 +33,7 @@ impl AppState {
                 list_state: ListState::default().with_selected(Some(0)),
             },
             current_tool: Tool::Home,
-            git_compare: ServiceStatus::new(config.servicestatus, event_sender.clone()),
+            service_status: ServiceStatus::new(config.servicestatus, event_sender.clone()),
             token_generator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
             focus: AppFocus::List,
         }
