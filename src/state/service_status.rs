@@ -1,4 +1,4 @@
-use crate::config::GitCompare as GitCompareServiceConfig;
+use crate::config::ServiceStatus as ServiceStatusConfig;
 use crate::environment::Environment;
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
@@ -17,9 +17,28 @@ pub enum Commit {
 }
 
 impl Commit {
-    fn value(&self) -> Option<&str> {
+    pub fn value(&self) -> Option<&str> {
         match self {
             Commit::Fetched(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn short_value(&self) -> Option<String> {
+        let char_display_count = 6;
+        match self {
+            Commit::Fetched(s) => {
+                let first: String = s.chars().take(char_display_count).collect();
+                let last: String = s
+                    .chars()
+                    .rev()
+                    .take(char_display_count)
+                    .collect::<String>()
+                    .chars()
+                    .rev()
+                    .collect();
+                Some(format!("{}...{}", first, last))
+            }
             _ => None,
         }
     }
@@ -27,34 +46,30 @@ impl Commit {
     fn is_errored(&self) -> bool {
         matches!(self, Commit::Error(_))
     }
-
-    fn is_fetching(&self) -> bool {
-        matches!(self, Commit::Fetching)
-    }
-
-    fn is_fetched(&self) -> bool {
-        matches!(self, Commit::Fetched(_))
-    }
 }
 
 #[derive(Debug)]
-pub struct GitCompare {
+pub struct ServiceStatus {
     pub services: Vec<Service>,
     pub list_state: ListState,
     pub event_sender: EventSender,
 }
 
-impl GitCompare {
-    pub fn new(config: Vec<GitCompareServiceConfig>, event_sender: EventSender) -> Self {
+impl ServiceStatus {
+    pub fn new(config: Vec<ServiceStatusConfig>, event_sender: EventSender) -> Self {
         Self {
             services: config.into_iter().map(Service::new).collect(),
-            list_state: ListState::default().with_selected(Some(0)),
+            list_state: ListState::default().with_selected(None),
             event_sender,
         }
     }
 
     pub(crate) async fn set_commit(&mut self, service_idx: usize, env: Environment) {
         let url = match env {
+            Environment::Staging => {
+                self.services[service_idx].staging = Commit::Fetching;
+                self.services[service_idx].staging_url.clone()
+            }
             Environment::Preproduction => {
                 self.services[service_idx].preprod = Commit::Fetching;
                 self.services[service_idx].preprod_url.clone()
@@ -76,6 +91,11 @@ impl GitCompare {
 
             sender.send(AppEvent::CommitRefRetrieved(commit, service_idx, env))
         });
+    }
+
+    pub(crate) fn has_link(&self) -> bool {
+        let service = &self.services[self.list_state.selected().unwrap()];
+        service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
     }
 
     pub(crate) fn get_link(&self) -> String {
@@ -118,50 +138,58 @@ struct Healthcheck {
 #[derive(Debug)]
 pub struct Service {
     pub name: String,
+    pub staging_url: String,
     pub preprod_url: String,
     pub prod_url: String,
     pub repo_url: String,
+    pub staging: Commit,
     pub preprod: Commit,
     pub prod: Commit,
 }
 
-pub enum LinkStatus {
-    Missing,
-    Fetching,
-    Errored,
-    NoDiff,
-    Diff,
+#[derive(PartialEq)]
+pub enum CommitRefStatus {
+    NothingMatches,
+    AllMatches,
+    StagingPreprodMatch,
+    PreprodProdMatch,
+    CommitMissing,
 }
 
 impl Service {
-    pub fn new(config: GitCompareServiceConfig) -> Self {
+    pub fn new(config: ServiceStatusConfig) -> Self {
         Self {
             name: config.name,
+            staging_url: config.staging,
             preprod_url: config.preprod,
             prod_url: config.prod,
             repo_url: config.repo,
+            staging: Commit::NotFetched,
             preprod: Commit::NotFetched,
             prod: Commit::NotFetched,
         }
     }
 
-    pub fn link_status(&self) -> LinkStatus {
-        if self.preprod.is_errored() || self.prod.is_errored() {
-            return LinkStatus::Errored;
+    pub fn commit_ref_status(&self) -> CommitRefStatus {
+        if self.prod.is_errored() || self.preprod.is_errored() || self.staging.is_errored() {
+            return CommitRefStatus::CommitMissing;
         }
 
-        if self.preprod.is_fetching() || self.prod.is_fetching() {
-            return LinkStatus::Fetching;
+        let preprod_prod_match = self.prod.value() == self.preprod.value();
+        let staging_preprod_match = self.preprod.value() == self.staging.value();
+
+        if preprod_prod_match && staging_preprod_match {
+            return CommitRefStatus::AllMatches;
         }
 
-        if !self.preprod.is_fetched() || !self.prod.is_fetched() {
-            return LinkStatus::Missing;
+        if preprod_prod_match {
+            return CommitRefStatus::PreprodProdMatch;
         }
 
-        if self.prod.value() == self.preprod.value() {
-            return LinkStatus::NoDiff;
+        if staging_preprod_match {
+            return CommitRefStatus::StagingPreprodMatch;
         }
 
-        LinkStatus::Diff
+        CommitRefStatus::NothingMatches
     }
 }

@@ -19,12 +19,12 @@ pub fn render(frame: &mut Frame, area: Rect) {
         .fg(Color::Yellow)
         .add_modifier(Modifier::BOLD);
     frame.render_widget(
-        Line::styled("Git Compare", title_style).alignment(Alignment::Center),
+        Line::styled("Service Status", title_style).alignment(Alignment::Center),
         text_blocks[0],
     );
 
     frame.render_widget(
-        Paragraph::new("Generate a GitHub compare URL. Using health checks, the tool builds a URL to compare code differences between pre-production and production.")
+        Paragraph::new("Display the status of services. Using health checks, the tool compares the commit references between the services and generates a status. It will also produce a Github compare url should preproduction and production differ")
             .wrap(Wrap { trim: true }),
         text_blocks[1]
     );

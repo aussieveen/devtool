@@ -3,13 +3,14 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Config {
-    pub gitcompare: Vec<GitCompare>,
+    pub servicestatus: Vec<ServiceStatus>,
     pub tokengenerator: TokenGenerator,
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct GitCompare {
+pub(crate) struct ServiceStatus {
     pub name: String,
+    pub staging: String,
     pub preprod: String,
     pub prod: String,
     pub repo: String,

@@ -1,4 +1,4 @@
-use crate::state::git_compare::GitCompare;
+use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
 use crate::ui::widgets::tools::*;
 use ratatui::Frame;
@@ -14,7 +14,7 @@ pub struct ToolList {
 #[derive(Debug)]
 pub enum Tool {
     Home,
-    GitCompare,
+    ServiceStatus,
     TokenGenerator,
 }
 
@@ -22,7 +22,7 @@ impl Tool {
     pub fn title(&self) -> &'static str {
         match self {
             Tool::Home => "Dev Tool",
-            Tool::GitCompare => "Git Compare",
+            Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "M2M Auth0 Token Generator",
         }
     }
@@ -31,12 +31,12 @@ impl Tool {
         &self,
         frame: &mut Frame,
         area: Rect,
-        git_compare_state: &mut GitCompare,
+        git_compare_state: &mut ServiceStatus,
         token_generator_state: &mut TokenGenerator,
     ) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::GitCompare => git_compare::render(frame, area, git_compare_state),
+            Tool::ServiceStatus => service_status::render(frame, area, git_compare_state),
             Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
         }
     }
@@ -44,7 +44,7 @@ impl Tool {
     pub fn menu_entry(&self) -> &'static str {
         match self {
             Tool::Home => "Home",
-            Tool::GitCompare => "Git Compare",
+            Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "Token Generator",
         }
     }

@@ -1,11 +1,11 @@
 use crate::config::Config;
-use crate::environment::Environment::{Preproduction, Production};
+use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent::*;
 use crate::events::event::{Event, ListDir};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::state::app::{AppFocus, Tool};
-use crate::state::git_compare::Commit;
+use crate::state::service_status::Commit;
 use crate::state::token_generator::Focus;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
@@ -13,6 +13,7 @@ use ratatui::widgets::ListState;
 use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
+use std::time::Duration;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -38,6 +39,15 @@ impl App {
     }
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
+        let async_sender = self.event_sender.clone();
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_mins(15));
+            loop {
+                interval.tick().await; // This should go first.
+                async_sender.send(ScanServices);
+            }
+        });
+
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
             match self.event_handler.next().await? {
@@ -58,18 +68,60 @@ impl App {
                         self.event_sender.send(ListSelect(
                             match self.state.tool_list.list_state.selected() {
                                 Some(0) => Tool::Home,
-                                Some(1) => Tool::GitCompare,
+                                Some(1) => Tool::ServiceStatus,
                                 _ => Tool::TokenGenerator,
                             },
                         ));
                     }
-                    GitCompareListMove(list_dir) => {
+                    ServiceStatusListMove(list_dir) => {
                         let list_state = &mut self.state.git_compare.list_state;
-                        Self::update_list(list_state, list_dir);
+                        let list_limit = self.state.git_compare.services.len() - 1;
+                        Self::update_noneable_list(list_state, list_dir, list_limit);
+                    }
+                    ScanServices => {
+                        let len = self.state.git_compare.services.len();
+
+                        for service_idx in 0..len {
+                            if !matches!(
+                                self.state.git_compare.services[service_idx].staging,
+                                Commit::Fetching
+                            ) {
+                                self.state
+                                    .git_compare
+                                    .set_commit(service_idx, Staging)
+                                    .await
+                            }
+                            if !matches!(
+                                self.state.git_compare.services[service_idx].preprod,
+                                Commit::Fetching
+                            ) {
+                                self.state
+                                    .git_compare
+                                    .set_commit(service_idx, Preproduction)
+                                    .await
+                            }
+                            if !matches!(
+                                self.state.git_compare.services[service_idx].prod,
+                                Commit::Fetching
+                            ) {
+                                self.state
+                                    .git_compare
+                                    .set_commit(service_idx, Production)
+                                    .await
+                            }
+                        }
                     }
                     GenerateDiff => {
                         let service_idx = self.state.git_compare.list_state.selected().unwrap();
-
+                        if !matches!(
+                            self.state.git_compare.services[service_idx].staging,
+                            Commit::Fetching
+                        ) {
+                            self.state
+                                .git_compare
+                                .set_commit(service_idx, Staging)
+                                .await
+                        }
                         if !matches!(
                             self.state.git_compare.services[service_idx].preprod,
                             Commit::Fetching
@@ -90,6 +142,7 @@ impl App {
                         }
                     }
                     CommitRefRetrieved(commit, service_idx, env) => match env {
+                        Staging => self.state.git_compare.services[service_idx].staging = commit,
                         Preproduction => {
                             self.state.git_compare.services[service_idx].preprod = commit
                         }
@@ -146,6 +199,26 @@ impl App {
         }
     }
 
+    fn update_noneable_list(list_state: &mut ListState, list_dir: ListDir, list_limit: usize) {
+        let selected = list_state.selected();
+        match list_dir {
+            ListDir::Up => {
+                if selected.is_some() && selected.unwrap() > 0 {
+                    list_state.select_previous();
+                } else {
+                    list_state.select(None);
+                }
+            }
+            ListDir::Down => {
+                if selected.is_some() && selected.unwrap() == list_limit {
+                    list_state.select(Some(list_limit));
+                } else {
+                    list_state.select_next();
+                }
+            }
+        }
+    }
+
     fn render(&mut self, frame: &mut Frame) {
         let areas = layout::main(frame.area());
 
@@ -168,29 +241,35 @@ impl App {
             (AppFocus::List, _, KeyCode::Right) => self.event_sender.send(SetFocus(AppFocus::Tool)),
 
             // Tool → List focus
-            (AppFocus::Tool, Tool::Home | Tool::GitCompare, KeyCode::Left) => {
+            (AppFocus::Tool, Tool::Home | Tool::ServiceStatus, KeyCode::Left) => {
                 self.event_sender.send(SetFocus(AppFocus::List))
             }
 
-            // GitCompare key events
-            (AppFocus::Tool, Tool::GitCompare, KeyCode::Down) => {
-                self.event_sender.send(GitCompareListMove(ListDir::Down))
+            // ServiceStatus key events
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Down) => {
+                self.event_sender.send(ServiceStatusListMove(ListDir::Down))
             }
-            (AppFocus::Tool, Tool::GitCompare, KeyCode::Up) => {
-                self.event_sender.send(GitCompareListMove(ListDir::Up))
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Up) => {
+                self.event_sender.send(ServiceStatusListMove(ListDir::Up))
             }
-            (AppFocus::Tool, Tool::GitCompare, KeyCode::Enter) => {
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Enter) => {
                 self.event_sender.send(GenerateDiff)
             }
-            (AppFocus::Tool, Tool::GitCompare, KeyCode::Char('o')) => {
-                let link = self.state.git_compare.get_link();
-                webbrowser::open(link.as_str()).expect("Failed to open link");
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o')) => {
+                if self.state.git_compare.has_link() {
+                    let link = self.state.git_compare.get_link();
+                    webbrowser::open(link.as_str()).expect("Failed to open link");
+                }
             }
-            (AppFocus::Tool, Tool::GitCompare, KeyCode::Char('c')) => {
-                let link = self.state.git_compare.get_link();
-                Self::copy_to_clipboard(link).unwrap();
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c')) => {
+                if self.state.git_compare.has_link() {
+                    let link = self.state.git_compare.get_link();
+                    Self::copy_to_clipboard(link).unwrap();
+                }
             }
-
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('s')) => {
+                self.event_sender.send(ScanServices)
+            }
             // TokenGenerator key events
             (AppFocus::Tool, Tool::TokenGenerator, key)
                 if matches!(key, KeyCode::Up | KeyCode::Down) =>
