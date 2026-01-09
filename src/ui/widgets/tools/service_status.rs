@@ -146,7 +146,9 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut ServiceStatus) {
         .and_then(|idx| state.services.get(idx))
     {
         match service.commit_ref_status() {
-            CommitRefStatus::StagingPreprodMatch | CommitRefStatus::NothingMatches => "[o] to Open in browser [c] to Copy the url",
+            CommitRefStatus::StagingPreprodMatch | CommitRefStatus::NothingMatches => {
+                "[o] to Open in browser [c] to Copy the url"
+            }
             _ => "",
         }
     } else {
