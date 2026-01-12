@@ -5,6 +5,7 @@ use serde::Deserialize;
 pub(crate) struct Config {
     pub servicestatus: Vec<ServiceStatus>,
     pub tokengenerator: TokenGenerator,
+    pub jira: Option<JiraConfig>
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,4 +54,10 @@ pub struct Credentials {
     pub env: Environment,
     pub client_id: String,
     pub client_secret: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct JiraConfig {
+    pub email: String,
+    pub token: String
 }

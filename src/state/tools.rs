@@ -16,6 +16,7 @@ pub enum Tool {
     Home,
     ServiceStatus,
     TokenGenerator,
+    Jira
 }
 
 impl Tool {
@@ -24,6 +25,7 @@ impl Tool {
             Tool::Home => "Dev Tool",
             Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "M2M Auth0 Token Generator",
+            Tool::Jira => "My Jira Tickets",
         }
     }
 
@@ -38,6 +40,7 @@ impl Tool {
             Tool::Home => home::render(frame, area),
             Tool::ServiceStatus => service_status::render(frame, area, git_compare_state),
             Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
+            Tool::Jira => {}
         }
     }
 
@@ -46,6 +49,7 @@ impl Tool {
             Tool::Home => "Home",
             Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "Token Generator",
+            Tool::Jira => "Jira"
         }
     }
 }
