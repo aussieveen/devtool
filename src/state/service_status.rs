@@ -126,7 +126,9 @@ impl ServiceStatus {
             .await?
             .version
             .split("_")
-            .collect())
+            .next()
+            .unwrap()
+            .to_string())
     }
 }
 
