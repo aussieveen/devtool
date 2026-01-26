@@ -74,79 +74,79 @@ impl App {
                         ));
                     }
                     ServiceStatusListMove(list_dir) => {
-                        let list_state = &mut self.state.git_compare.list_state;
-                        let list_limit = self.state.git_compare.services.len() - 1;
+                        let list_state = &mut self.state.service_status.list_state;
+                        let list_limit = self.state.service_status.services.len() - 1;
                         Self::update_noneable_list(list_state, list_dir, list_limit);
                     }
                     ScanServices => {
-                        let len = self.state.git_compare.services.len();
+                        let len = self.state.service_status.services.len();
 
                         for service_idx in 0..len {
                             if !matches!(
-                                self.state.git_compare.services[service_idx].staging,
+                                self.state.service_status.services[service_idx].staging,
                                 Commit::Fetching
                             ) {
                                 self.state
-                                    .git_compare
+                                    .service_status
                                     .set_commit(service_idx, Staging)
                                     .await
                             }
                             if !matches!(
-                                self.state.git_compare.services[service_idx].preprod,
+                                self.state.service_status.services[service_idx].preprod,
                                 Commit::Fetching
                             ) {
                                 self.state
-                                    .git_compare
+                                    .service_status
                                     .set_commit(service_idx, Preproduction)
                                     .await
                             }
                             if !matches!(
-                                self.state.git_compare.services[service_idx].prod,
+                                self.state.service_status.services[service_idx].prod,
                                 Commit::Fetching
                             ) {
                                 self.state
-                                    .git_compare
+                                    .service_status
                                     .set_commit(service_idx, Production)
                                     .await
                             }
                         }
                     }
                     GenerateDiff => {
-                        let service_idx = self.state.git_compare.list_state.selected().unwrap();
+                        let service_idx = self.state.service_status.list_state.selected().unwrap();
                         if !matches!(
-                            self.state.git_compare.services[service_idx].staging,
+                            self.state.service_status.services[service_idx].staging,
                             Commit::Fetching
                         ) {
                             self.state
-                                .git_compare
+                                .service_status
                                 .set_commit(service_idx, Staging)
                                 .await
                         }
                         if !matches!(
-                            self.state.git_compare.services[service_idx].preprod,
+                            self.state.service_status.services[service_idx].preprod,
                             Commit::Fetching
                         ) {
                             self.state
-                                .git_compare
+                                .service_status
                                 .set_commit(service_idx, Preproduction)
                                 .await
                         }
                         if !matches!(
-                            self.state.git_compare.services[service_idx].prod,
+                            self.state.service_status.services[service_idx].prod,
                             Commit::Fetching
                         ) {
                             self.state
-                                .git_compare
+                                .service_status
                                 .set_commit(service_idx, Production)
                                 .await
                         }
                     }
                     CommitRefRetrieved(commit, service_idx, env) => match env {
-                        Staging => self.state.git_compare.services[service_idx].staging = commit,
+                        Staging => self.state.service_status.services[service_idx].staging = commit,
                         Preproduction => {
-                            self.state.git_compare.services[service_idx].preprod = commit
+                            self.state.service_status.services[service_idx].preprod = commit
                         }
-                        Production => self.state.git_compare.services[service_idx].prod = commit,
+                        Production => self.state.service_status.services[service_idx].prod = commit,
                         _ => {}
                     },
                     TokenGenEnvListMove(list_dir) => {
@@ -256,14 +256,14 @@ impl App {
                 self.event_sender.send(GenerateDiff)
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o')) => {
-                if self.state.git_compare.has_link() {
-                    let link = self.state.git_compare.get_link();
+                if self.state.service_status.has_link() {
+                    let link = self.state.service_status.get_link();
                     webbrowser::open(link.as_str()).expect("Failed to open link");
                 }
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c')) => {
-                if self.state.git_compare.has_link() {
-                    let link = self.state.git_compare.get_link();
+                if self.state.service_status.has_link() {
+                    let link = self.state.service_status.get_link();
                     Self::copy_to_clipboard(link).unwrap();
                 }
             }

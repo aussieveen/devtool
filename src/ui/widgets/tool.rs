@@ -25,7 +25,7 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
     state.current_tool.render(
         frame,
         inner,
-        &mut state.git_compare,
+        &mut state.service_status,
         &mut state.token_generator,
     );
 }

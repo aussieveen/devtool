@@ -33,12 +33,12 @@ impl Tool {
         &self,
         frame: &mut Frame,
         area: Rect,
-        git_compare_state: &mut ServiceStatus,
+        service_status_state: &mut ServiceStatus,
         token_generator_state: &mut TokenGenerator,
     ) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::ServiceStatus => service_status::render(frame, area, git_compare_state),
+            Tool::ServiceStatus => service_status::render(frame, area, service_status_state),
             Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
             Tool::Jira => {}
         }
