@@ -1,14 +1,14 @@
 use crate::config::Config;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent::*;
-use crate::events::event::{Event, ListDir};
+use crate::events::event::{Event, Direction};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::service_status::Commit;
 use crate::state::token_generator::Focus;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
-use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
+use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::widgets::ListState;
 use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
@@ -62,21 +62,19 @@ impl App {
                     Quit => self.running = false,
                     SetFocus(focus) => self.state.focus = focus,
                     ListSelect(tool_state) => self.state.current_tool = tool_state,
-                    ListMove(list_dir) => {
-                        let list_state = &mut self.state.tool_list.list_state;
-                        Self::update_list(list_state, list_dir);
-                        self.event_sender.send(ListSelect(
-                            match self.state.tool_list.list_state.selected() {
-                                Some(0) => Tool::Home,
-                                Some(1) => Tool::ServiceStatus,
-                                _ => Tool::TokenGenerator,
-                            },
-                        ));
+                    ListMove(direction) => {
+                        let tool_list = &mut self.state.tool_list;
+                        Self::update_list(&mut tool_list.list_state, direction);
+                        if let Some(index) = tool_list.list_state.selected(){
+                            if let Some(tool) = tool_list.items.get(index).cloned(){
+                                self.event_sender.send(ListSelect(tool))
+                            }
+                        }
                     }
-                    ServiceStatusListMove(list_dir) => {
+                    ServiceStatusListMove(direction) => {
                         let list_state = &mut self.state.service_status.list_state;
                         let list_limit = self.state.service_status.services.len() - 1;
-                        Self::update_noneable_list(list_state, list_dir, list_limit);
+                        Self::update_noneable_list(list_state, direction, list_limit);
                     }
                     ScanServices => {
                         let len = self.state.service_status.services.len();
@@ -149,13 +147,14 @@ impl App {
                         Production => self.state.service_status.services[service_idx].prod = commit,
                         _ => {}
                     },
-                    TokenGenEnvListMove(list_dir) => {
+                    TokenGenEnvListMove(direction) => {
                         let list_state = &mut self.state.token_generator.env_list_state;
-                        Self::update_list(list_state, list_dir);
+                        let selected_service = self.state.token_generator.service_list_state.selected().unwrap_or(0);
+                        Self::update_list(list_state, direction);
                     }
-                    TokenGenServiceListMove(list_dir) => {
+                    TokenGenServiceListMove(direction) => {
                         let list_state = &mut self.state.token_generator.service_list_state;
-                        Self::update_list(list_state, list_dir);
+                        Self::update_list(list_state, direction);
                         self.state.token_generator.env_list_state.select_first();
                     }
                     SetTokenGenFocus(focus) => {
@@ -186,32 +185,40 @@ impl App {
 
                         service.tokens.insert(credentials.env.clone(), token);
                     }
+                    JiraTicketListMove(direction) => {
+                        if(self.state.jira.is_some()) {
+                            let list_len = self.state.jira.clone().unwrap().tickets.len();
+                            let list_state = &mut self.state.jira.as_mut().unwrap().list_state;
+                            Self::update_noneable_list(list_state, direction, list_len);
+                        }
+                    }
+                    JiraTicketMove(direction) => {}
                 },
             }
         }
         Ok(())
     }
 
-    fn update_list(list_state: &mut ListState, list_dir: ListDir) {
-        match list_dir {
-            ListDir::Up => list_state.select_previous(),
-            ListDir::Down => list_state.select_next(),
+    fn update_list(list_state: &mut ListState, direction: Direction) {
+        match direction {
+            Direction::Up => list_state.select_previous(),
+            Direction::Down => list_state.select_next(),
         }
     }
 
-    fn update_noneable_list(list_state: &mut ListState, list_dir: ListDir, list_limit: usize) {
+    fn update_noneable_list(list_state: &mut ListState, direction: Direction, len: usize) {
         let selected = list_state.selected();
-        match list_dir {
-            ListDir::Up => {
-                if selected.is_some() && selected.unwrap() > 0 {
+        match direction {
+            Direction::Up => {
+                if selected.unwrap_or(0) > 0 {
                     list_state.select_previous();
                 } else {
                     list_state.select(None);
                 }
             }
-            ListDir::Down => {
-                if selected.is_some() && selected.unwrap() == list_limit {
-                    list_state.select(Some(list_limit));
+            Direction::Down => {
+                if selected.unwrap_or(0) == len {
+                    list_state.select(Some(len));
                 } else {
                     list_state.select_next();
                 }
@@ -231,52 +238,52 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
-        match (&self.state.focus, &self.state.current_tool, key.code) {
+        match (&self.state.focus, &self.state.current_tool, key.code, key.modifiers) {
             // List navigation
-            (AppFocus::List, _, KeyCode::Down) => self.event_sender.send(ListMove(ListDir::Down)),
-            (AppFocus::List, _, KeyCode::Up) => self.event_sender.send(ListMove(ListDir::Up)),
+            (AppFocus::List, _, KeyCode::Down, _) => self.event_sender.send(ListMove(Direction::Down)),
+            (AppFocus::List, _, KeyCode::Up, _) => self.event_sender.send(ListMove(Direction::Up)),
 
             // List → Tool focus
-            (AppFocus::List, Tool::Home, KeyCode::Right) => {} // no-op
-            (AppFocus::List, _, KeyCode::Right) => self.event_sender.send(SetFocus(AppFocus::Tool)),
+            (AppFocus::List, Tool::Home, KeyCode::Right, _) => {} // no-op
+            (AppFocus::List, _, KeyCode::Right, _) => self.event_sender.send(SetFocus(AppFocus::Tool)),
 
             // Tool → List focus
-            (AppFocus::Tool, Tool::Home | Tool::ServiceStatus, KeyCode::Left) => {
+            (AppFocus::Tool, Tool::Home | Tool::ServiceStatus | Tool::Jira, KeyCode::Left, _) => {
                 self.event_sender.send(SetFocus(AppFocus::List))
             }
 
             // ServiceStatus key events
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Down) => {
-                self.event_sender.send(ServiceStatusListMove(ListDir::Down))
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Down, _) => {
+                self.event_sender.send(ServiceStatusListMove(Direction::Down))
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Up) => {
-                self.event_sender.send(ServiceStatusListMove(ListDir::Up))
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Up, _) => {
+                self.event_sender.send(ServiceStatusListMove(Direction::Up))
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Enter) => {
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Enter, _) => {
                 self.event_sender.send(GenerateDiff)
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o')) => {
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o'), _) => {
                 if self.state.service_status.has_link() {
                     let link = self.state.service_status.get_link();
                     webbrowser::open(link.as_str()).expect("Failed to open link");
                 }
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c')) => {
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c'), _) => {
                 if self.state.service_status.has_link() {
                     let link = self.state.service_status.get_link();
                     Self::copy_to_clipboard(link).unwrap();
                 }
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('s')) => {
+            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('s'), _) => {
                 self.event_sender.send(ScanServices)
             }
             // TokenGenerator key events
-            (AppFocus::Tool, Tool::TokenGenerator, key)
+            (AppFocus::Tool, Tool::TokenGenerator, key, _)
                 if matches!(key, KeyCode::Up | KeyCode::Down) =>
             {
                 let dir = match key {
-                    KeyCode::Up => ListDir::Up,
-                    KeyCode::Down => ListDir::Down,
+                    KeyCode::Up => Direction::Up,
+                    KeyCode::Down => Direction::Down,
                     _ => unreachable!(),
                 };
 
@@ -287,28 +294,34 @@ impl App {
 
                 self.event_sender.send(event);
             }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Right) => {
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Right, _) => {
                 self.event_sender.send(SetTokenGenFocus(Focus::Env));
             }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Left) => {
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Left, _) => {
                 match &self.state.token_generator.focus {
                     Focus::Service => self.event_sender.send(SetFocus(AppFocus::List)),
                     Focus::Env => self.event_sender.send(SetTokenGenFocus(Focus::Service)),
                 }
             }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Enter) => {
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Enter, _) => {
                 self.event_sender.send(GenerateToken)
             }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Char('c')) => {
+            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Char('c'), _) => {
                 let token = self
                     .state
                     .token_generator
                     .get_token_for_selected_service_env();
                 Self::copy_to_clipboard(token).unwrap();
             }
+            (AppFocus::Tool, Tool::Jira, KeyCode::Down, _) => {
+                self.event_sender.send(JiraTicketListMove(Direction::Down))
+            }
+            (AppFocus::Tool, Tool::Jira, KeyCode::Up, _) => {
+                self.event_sender.send(JiraTicketListMove(Direction::Up))
+            }
 
             // Fallback
-            (AppFocus::List, _, _) | (AppFocus::Tool, _, _) => {}
+            (AppFocus::List, _, _, _) | (AppFocus::Tool, _, _, _) => {}
         }
 
         // Global quit

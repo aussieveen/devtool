@@ -384,6 +384,7 @@ dependencies = [
  "crossterm",
  "dirs",
  "futures",
+ "log",
  "ratatui",
  "reqwest",
  "serde",

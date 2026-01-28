@@ -4,14 +4,16 @@ use crate::ui::widgets::tools::*;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::ListState;
+use crate::state::jira::Jira;
 
 #[derive(Debug)]
 pub struct ToolList {
-    pub items: Vec<&'static str>,
+    pub items: Vec<Tool>,
     pub list_state: ListState,
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub enum Tool {
     Home,
     ServiceStatus,
@@ -35,12 +37,13 @@ impl Tool {
         area: Rect,
         service_status_state: &mut ServiceStatus,
         token_generator_state: &mut TokenGenerator,
+        jira_state: &mut Option<Jira>
     ) {
         match self {
             Tool::Home => home::render(frame, area),
             Tool::ServiceStatus => service_status::render(frame, area, service_status_state),
             Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
-            Tool::Jira => {}
+            Tool::Jira => jira::render(frame, area, jira_state)
         }
     }
 

@@ -28,12 +28,12 @@ impl AppState {
         Self {
             tool_list: ToolList {
                 items: {
-                    let mut items: Vec<&'static str> = Vec::new();
-                    items.push(Tool::Home.menu_entry());
-                    items.push(Tool::ServiceStatus.menu_entry());
-                    items.push(Tool::TokenGenerator.menu_entry());
+                    let mut items: Vec<Tool> = Vec::new();
+                    items.push(Tool::Home);
+                    items.push(Tool::ServiceStatus);
+                    items.push(Tool::TokenGenerator);
                     if let Some(_) = config.jira {
-                        items.push(Tool::Jira.menu_entry());
+                        items.push(Tool::Jira);
                     }
 
                     items

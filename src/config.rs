@@ -57,6 +57,7 @@ pub struct Credentials {
 }
 
 #[derive(Debug, Deserialize)]
+#[derive(Clone)]
 pub struct JiraConfig {
     pub email: String,
     pub token: String

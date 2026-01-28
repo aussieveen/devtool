@@ -3,20 +3,38 @@ use serde::Deserialize;
 use crate::config::JiraConfig;
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Jira{
     pub config: JiraConfig,
     pub tickets: Vec<Ticket>,
-    pub list_state: ListState
+    pub list_state: ListState,
+    pub new_ticket_popup: bool,
 }
 
 impl Jira {
     const JIRA_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
 
     pub fn new(config: JiraConfig) -> Jira{
+        let mut tickets = Vec::new();
+        tickets.push(Ticket::new(
+            "FAB-1234".to_string(),
+            "TEST TICKET 1".to_string(),
+            "READY FOR REVIEW".to_string(),
+            "SIMON MCWHINNIE".to_string()
+        ));
+        tickets.push(Ticket::new(
+            "SEAR-12".to_string(),
+            "SEARCH TRICKET".to_string(),
+            "IN PROGRESS".to_string(),
+            "NOT SIMON".to_string()
+        ));
+
         Self{
             config,
-            tickets: Vec::<Ticket>::new(),
-            list_state: ListState::default().with_selected(None)
+            // tickets: Vec::<Ticket>::new(),
+            tickets,
+            list_state: ListState::default().with_selected(None),
+            new_ticket_popup: false
         }
     }
 
@@ -55,6 +73,7 @@ impl Jira {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Ticket{
     pub id: String,
     pub title: String,
