@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 use serde::Deserialize;
 use crate::config::JiraConfig;
-use crate::persistence::read_persistence;
+use crate::persistence::{read_jira_persistence, Jira as persistence_jira};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -16,11 +16,14 @@ impl Jira {
     const JIRA_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
 
     pub fn new(config: JiraConfig) -> Jira{
-        let persistence = read_persistence();
+        let tickets = match read_jira_persistence(){
+            Some(jira) => jira.tickets,
+            None => Vec::new()
+        };
 
         Self{
             config,
-            tickets: persistence.jira.unwrap().tickets,
+            tickets,
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false
         }
