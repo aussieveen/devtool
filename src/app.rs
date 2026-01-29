@@ -14,6 +14,7 @@ use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::Duration;
+use crate::state::app::AppFocus::PopUp;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -186,13 +187,46 @@ impl App {
                         service.tokens.insert(credentials.env.clone(), token);
                     }
                     JiraTicketListMove(direction) => {
-                        if(self.state.jira.is_some()) {
-                            let list_len = self.state.jira.clone().unwrap().tickets.len();
-                            let list_state = &mut self.state.jira.as_mut().unwrap().list_state;
-                            Self::update_noneable_list(list_state, direction, list_len);
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            let list_len = jira.tickets.len();
+                            Self::update_noneable_list(&mut jira.list_state, direction, list_len);
                         }
                     }
-                    JiraTicketMove(direction) => {}
+                    JiraTicketMove(direction) => {},
+                    NewJiraTicketPopUp => {
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            jira.new_ticket_popup = true;
+                            self.state.focus = PopUp
+                        }
+                    }
+                    AddTicketIdChar(char) => {
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            jira.new_ticket_id.get_or_insert_with(String::new).push(char.to_ascii_uppercase());
+                        }
+                    }
+                    RemoveTicketIdChar() => {
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            jira.new_ticket_id = match jira.new_ticket_id.as_mut(){
+                                None => None,
+                                Some(id) => {
+                                    if id.len() > 1 {
+                                        let mut chars = id.chars();
+                                        chars.next_back();
+                                        Some(chars.as_str().to_string())
+                                    }else{
+                                        None
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    SubmitTicketId() => {
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            jira.add_ticket().await;
+                            jira.new_ticket_popup = false;
+                            self.state.focus = AppFocus::Tool;
+                        }
+                    }
                 },
             }
         }
@@ -323,13 +357,32 @@ impl App {
             (AppFocus::Tool, Tool::Jira, KeyCode::Up, _) => {
                 self.event_sender.send(JiraTicketListMove(Direction::Up))
             }
+            (AppFocus::Tool, Tool::Jira, KeyCode::Char('a'), _) => {
+                self.event_sender.send(NewJiraTicketPopUp)
+            }
+            (AppFocus::PopUp, Tool::Jira, key_code, _) => {
+                if key_code.is_backspace() {
+                    self.event_sender.send(RemoveTicketIdChar());
+                } else if key_code.is_enter() {
+                    self.event_sender.send(SubmitTicketId());
+                } else {
+                    match key_code.as_char() {
+                        Some(char) => self.event_sender.send(AddTicketIdChar(char)),
+                        None => {}
+                    }
+                }
+            }
 
             // Fallback
-            (AppFocus::List, _, _, _) | (AppFocus::Tool, _, _, _) => {}
+            (AppFocus::List, _, _, _) | (AppFocus::Tool, _, _, _) | (AppFocus::PopUp, _, _, _)=> {}
         }
 
         // Global quit
-        if matches!(key.code, KeyCode::Esc | KeyCode::Char('q')) {
+        if matches!(key.code, KeyCode::Esc) ||
+            (matches!(key.code, KeyCode::Char('q')) && match self.state.focus {
+                AppFocus::PopUp => false,
+                _ => true
+            }) {
             self.event_sender.send(Quit);
         }
 

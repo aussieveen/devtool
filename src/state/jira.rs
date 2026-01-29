@@ -1,3 +1,4 @@
+use std::fmt::format;
 use ratatui::widgets::ListState;
 use serde::Deserialize;
 use crate::config::JiraConfig;
@@ -10,6 +11,7 @@ pub struct Jira{
     pub tickets: Vec<Ticket>,
     pub list_state: ListState,
     pub new_ticket_popup: bool,
+    pub new_ticket_id: Option<String>
 }
 
 impl Jira {
@@ -25,22 +27,42 @@ impl Jira {
             config,
             tickets,
             list_state: ListState::default().with_selected(None),
-            new_ticket_popup: false
+            new_ticket_popup: false,
+            new_ticket_id: None
         }
     }
 
-    pub async fn add_ticket(&mut self, id: String){
-        match Self::get_ticket(id, self.config.email.clone(), self.config.token.clone()).await{
-            Ok(ticket) => self.tickets.push(
-                Ticket::new(
-                    ticket.key,
-                    ticket.fields.summary,
-                    ticket.fields.status.name,
-                    ticket.fields.assignee.display_name
-                )
-            ),
-            Err(_) => todo!()
-        };
+    pub async fn add_ticket(&mut self){
+        if let Some(id) = self.new_ticket_id.clone() {
+            match Self::get_ticket(id, self.config.email.clone(), self.config.token.clone()).await {
+                Ok(ticket) => {
+                    self.tickets.push(
+                        Ticket::new(
+                            ticket.key,
+                            ticket.fields.summary,
+                            ticket.fields.status.name,
+                            match ticket.fields.assignee {
+                                Some(assignee) => assignee.display_name,
+                                None => "Unassigned".to_string()
+                            }
+                        )
+                    );
+                    self.new_ticket_id = None;
+                },
+                Err(e) => {
+                    println!("{}", e.to_string());
+                    self.tickets.push(
+                        Ticket::new(
+                            e.to_string(),
+                            "??".to_string(),
+                            "??".to_string(),
+                            "??".to_string()
+                        )
+                    );
+                    self.new_ticket_id = None;
+                }
+            };
+        }
     }
 
     async fn get_ticket(
@@ -92,7 +114,7 @@ struct TicketResponse {
 
 #[derive(Deserialize, Debug)]
 struct Fields {
-    assignee: Assignee,
+    assignee: Option<Assignee>,
     status: Status,
     summary: String
 }

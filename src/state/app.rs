@@ -11,6 +11,7 @@ use crate::state::jira::Jira;
 pub enum AppFocus {
     List,
     Tool,
+    PopUp
 }
 
 #[derive(Debug)]
