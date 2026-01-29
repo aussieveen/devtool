@@ -34,9 +34,6 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
             );
             let mut lines: Vec<Line> = Vec::new();
             lines.push(
-                Line::from(format!("{}", if(selected_ticket.is_some()){selected_ticket.unwrap()}else{0}))
-            );
-            lines.push(
                 Line::from(format!("{} - {}", ticket.id, ticket.title))
             );
             lines.push(
