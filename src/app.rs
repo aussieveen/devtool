@@ -64,7 +64,7 @@ impl App {
                     ListSelect(tool_state) => self.state.current_tool = tool_state,
                     ListMove(direction) => {
                         let tool_list = &mut self.state.tool_list;
-                        Self::update_list(&mut tool_list.list_state, direction);
+                        Self::update_list(&mut tool_list.list_state, direction, tool_list.items.len());
                         if let Some(index) = tool_list.list_state.selected(){
                             if let Some(tool) = tool_list.items.get(index).cloned(){
                                 self.event_sender.send(ListSelect(tool))
@@ -73,7 +73,7 @@ impl App {
                     }
                     ServiceStatusListMove(direction) => {
                         let list_state = &mut self.state.service_status.list_state;
-                        let list_limit = self.state.service_status.services.len() - 1;
+                        let list_limit = self.state.service_status.services.len();
                         Self::update_noneable_list(list_state, direction, list_limit);
                     }
                     ScanServices => {
@@ -150,11 +150,11 @@ impl App {
                     TokenGenEnvListMove(direction) => {
                         let list_state = &mut self.state.token_generator.env_list_state;
                         let selected_service = self.state.token_generator.service_list_state.selected().unwrap_or(0);
-                        Self::update_list(list_state, direction);
+                        Self::update_list(list_state, direction, self.state.token_generator.services[selected_service].tokens.len());
                     }
                     TokenGenServiceListMove(direction) => {
                         let list_state = &mut self.state.token_generator.service_list_state;
-                        Self::update_list(list_state, direction);
+                        Self::update_list(list_state, direction, self.state.token_generator.services.len());
                         self.state.token_generator.env_list_state.select_first();
                     }
                     SetTokenGenFocus(focus) => {
@@ -199,10 +199,10 @@ impl App {
         Ok(())
     }
 
-    fn update_list(list_state: &mut ListState, direction: Direction) {
+    fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
         match direction {
             Direction::Up => list_state.select_previous(),
-            Direction::Down => list_state.select_next(),
+            Direction::Down => Self::select_next(list_state, len)
         }
     }
 
@@ -216,13 +216,17 @@ impl App {
                     list_state.select(None);
                 }
             }
-            Direction::Down => {
-                if selected.unwrap_or(0) == len {
-                    list_state.select(Some(len));
-                } else {
-                    list_state.select_next();
-                }
-            }
+            Direction::Down => Self::select_next(list_state, len)
+        }
+    }
+
+    fn select_next(list_state: &mut ListState, len: usize){
+        let selected = list_state.selected().unwrap_or(0);
+        let n = len.saturating_sub(1);
+        if selected == n {
+            list_state.select(Some(n));
+        } else {
+            list_state.select_next();
         }
     }
 
