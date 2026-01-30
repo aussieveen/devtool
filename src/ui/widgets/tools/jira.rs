@@ -30,10 +30,6 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
         .iter()
         .enumerate()
         .map(|(index, ticket)| {
-            let line_style = list_style(
-                (selected_ticket.is_some() && selected_ticket.unwrap() == index)
-                    || selected_ticket.is_none(),
-            );
             let mut lines: Vec<Line> = Vec::new();
             lines.push(
                 Line::from(format!("{} - {}", ticket.id, ticket.title))
@@ -42,7 +38,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
                 Line::from(format!("{} {}", ticket.assignee, ticket.status))
             );
             lines.push(Line::from(""));
-            ListItem::from(lines).style(line_style)
+            ListItem::from(lines).style(list_style(
+                (selected_ticket.is_some() && selected_ticket.unwrap() == index)
+                    || selected_ticket.is_none(),
+            ))
         })
         .collect();
 
@@ -53,7 +52,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
     );
 
     let action_area = vertical[1];
-    let ticket_action_text = ""; // WILL BE ADDED TO LATER AS STATES ARE MANAGED
+    let ticket_action_text = match(selected_ticket){
+        Some(_) => "[x] to remove ticket [shift + ↕] to move tickets",
+        None => ""
+    };
 
     let action_text = format!("{} {}", "[a] to add ticket", ticket_action_text);
     frame.render_widget(

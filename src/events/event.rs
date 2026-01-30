@@ -49,8 +49,9 @@ pub enum AppEvent {
     JiraTicketMove(Direction),
     NewJiraTicketPopUp,
     AddTicketIdChar(char),
-    RemoveTicketIdChar(),
-    SubmitTicketId(),
+    RemoveTicketIdChar,
+    SubmitTicketId,
+    RemoveTicket,
 
     // Generic Events
     SetFocus(AppFocus),

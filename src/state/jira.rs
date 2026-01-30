@@ -1,12 +1,14 @@
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 use crate::config::JiraConfig;
+use crate::events::sender::EventSender;
 use crate::persistence::{read_jira_persistence, write_jira_tickets, Jira as persistence_jira};
 
 #[derive(Debug)]
 #[derive(Clone)]
 pub struct Jira{
     pub config: JiraConfig,
+    pub event_sender: EventSender,
     pub tickets: Vec<Ticket>,
     pub list_state: ListState,
     pub new_ticket_popup: bool,
@@ -16,9 +18,10 @@ pub struct Jira{
 impl Jira {
     const JIRA_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
 
-    pub fn new(config: JiraConfig) -> Jira{
+    pub fn new(config: JiraConfig, event_sender: EventSender) -> Jira{
         Self{
             config,
+            event_sender,
             tickets: read_jira_persistence().tickets,
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false,
@@ -57,6 +60,13 @@ impl Jira {
                 }
             };
             self.new_ticket_id = None;
+        }
+    }
+
+    pub fn remove_ticket(&mut self){
+        if let Some(ticket_index) = self.list_state.selected() {
+            self.tickets.remove(ticket_index);
+            write_jira_tickets(&self.tickets).expect("TODO: panic message");
         }
     }
 

@@ -14,6 +14,7 @@ use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::Duration;
+use crate::persistence::write_jira_tickets;
 use crate::state::app::AppFocus::PopUp;
 
 /// The main application which holds the state and logic of the application.
@@ -204,7 +205,7 @@ impl App {
                             jira.new_ticket_id.get_or_insert_with(String::new).push(char.to_ascii_uppercase());
                         }
                     }
-                    RemoveTicketIdChar() => {
+                    RemoveTicketIdChar => {
                         if let Some(jira) = self.state.jira.as_mut() {
                             jira.new_ticket_id = match jira.new_ticket_id.as_mut(){
                                 None => None,
@@ -220,11 +221,24 @@ impl App {
                             }
                         }
                     }
-                    SubmitTicketId() => {
+                    SubmitTicketId => {
                         if let Some(jira) = self.state.jira.as_mut() {
                             jira.add_ticket().await;
                             jira.new_ticket_popup = false;
                             self.state.focus = AppFocus::Tool;
+                        }
+                    },
+                    RemoveTicket => {
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            jira.remove_ticket();
+                            let max_select = match jira.tickets.len() {
+                                0|1 => 0,
+                                value => value.saturating_sub(1)
+                            };
+
+                            if jira.list_state.selected().unwrap() > max_select {
+                                Self::update_list(&mut jira.list_state, Direction::Up, jira.tickets.len())
+                            }
                         }
                     }
                 },
@@ -242,6 +256,11 @@ impl App {
 
     fn update_noneable_list(list_state: &mut ListState, direction: Direction, len: usize) {
         let selected = list_state.selected();
+        if len == 0 {
+            list_state.select(None);
+            return
+        }
+
         match direction {
             Direction::Up => {
                 if selected.unwrap_or(0) > 0 {
@@ -250,7 +269,7 @@ impl App {
                     list_state.select(None);
                 }
             }
-            Direction::Down => Self::select_next(list_state, len)
+            Direction::Down =>  Self::select_next(list_state, len),
         }
     }
 
@@ -360,11 +379,14 @@ impl App {
             (AppFocus::Tool, Tool::Jira, KeyCode::Char('a'), _) => {
                 self.event_sender.send(NewJiraTicketPopUp)
             }
+            (AppFocus::Tool, Tool::Jira, KeyCode::Char('x'), _) => {
+                self.event_sender.send(RemoveTicket)
+            }
             (AppFocus::PopUp, Tool::Jira, key_code, _) => {
                 if key_code.is_backspace() {
-                    self.event_sender.send(RemoveTicketIdChar());
+                    self.event_sender.send(RemoveTicketIdChar);
                 } else if key_code.is_enter() {
-                    self.event_sender.send(SubmitTicketId());
+                    self.event_sender.send(SubmitTicketId);
                 } else {
                     match key_code.as_char() {
                         Some(char) => self.event_sender.send(AddTicketIdChar(char)),

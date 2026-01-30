@@ -44,7 +44,7 @@ impl AppState {
             current_tool: Tool::Home,
             service_status: ServiceStatus::new(config.servicestatus, event_sender.clone()),
             token_generator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
-            jira: config.jira.map(Jira::new),
+            jira: config.jira.map(|jira_config| Jira::new(jira_config, event_sender.clone())),
             focus: AppFocus::List,
         }
     }
