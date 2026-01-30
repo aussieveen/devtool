@@ -38,12 +38,12 @@ pub fn read_jira_persistence() -> Jira
     persistence_state.jira
 }
 
-// pub fn write_jira_tickets(tickets: Vec<Ticket>) -> Result<Jira, Box<dyn Error>>
-// {
-//     let mut persistence = read_persistence()?;
-//     // persistence.jira.tickets = Some(jiraUpdate);
-//     // write_persistence(persistence)
-// }
+pub fn write_jira_tickets(tickets: &Vec<Ticket>) -> Result<Jira, Box<dyn Error>>
+{
+    let mut persistence: Persistence = read_persistence()?;
+    persistence.jira.tickets = tickets.clone();
+    Ok(write_persistence(persistence)?.jira)
+}
 
 fn write_jira_persistence(jira_update: Jira) -> Result<Persistence, Box<dyn Error>>
 {

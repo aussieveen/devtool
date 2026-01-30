@@ -1,7 +1,7 @@
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 use crate::config::JiraConfig;
-use crate::persistence::{read_jira_persistence, Jira as persistence_jira};
+use crate::persistence::{read_jira_persistence, write_jira_tickets, Jira as persistence_jira};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -41,6 +41,7 @@ impl Jira {
                             }
                         )
                     );
+                    write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
                 },
                 Err(e) => {
                     println!("{}", e.to_string());
