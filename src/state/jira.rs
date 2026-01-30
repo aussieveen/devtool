@@ -1,6 +1,5 @@
-use std::fmt::format;
 use ratatui::widgets::ListState;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use crate::config::JiraConfig;
 use crate::persistence::{read_jira_persistence, Jira as persistence_jira};
 
@@ -18,14 +17,9 @@ impl Jira {
     const JIRA_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
 
     pub fn new(config: JiraConfig) -> Jira{
-        let tickets = match read_jira_persistence(){
-            Some(jira) => jira.tickets,
-            None => Vec::new()
-        };
-
         Self{
             config,
-            tickets,
+            tickets: read_jira_persistence().tickets,
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false,
             new_ticket_id: None
@@ -47,7 +41,6 @@ impl Jira {
                             }
                         )
                     );
-                    self.new_ticket_id = None;
                 },
                 Err(e) => {
                     println!("{}", e.to_string());
@@ -59,9 +52,10 @@ impl Jira {
                             "??".to_string()
                         )
                     );
-                    self.new_ticket_id = None;
+
                 }
             };
+            self.new_ticket_id = None;
         }
     }
 
@@ -85,7 +79,7 @@ impl Jira {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Ticket{
     pub id: String,
     pub title: String,

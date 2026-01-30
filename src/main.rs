@@ -8,8 +8,6 @@ mod persistence;
 
 use crate::app::App;
 use crate::config::Config;
-use std::fs;
-use std::path::PathBuf;
 
 const CONFIG_FILE: &str = ".devtool/config.yaml";
 
