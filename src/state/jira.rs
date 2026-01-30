@@ -1,6 +1,7 @@
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 use crate::config::JiraConfig;
+use crate::events::event::Direction;
 use crate::events::sender::EventSender;
 use crate::persistence::{read_jira_persistence, write_jira_tickets, Jira as persistence_jira};
 
@@ -44,7 +45,7 @@ impl Jira {
                             }
                         )
                     );
-                    write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
+                    self.persist_tickets();
                 },
                 Err(e) => {
                     println!("{}", e.to_string());
@@ -66,8 +67,35 @@ impl Jira {
     pub fn remove_ticket(&mut self){
         if let Some(ticket_index) = self.list_state.selected() {
             self.tickets.remove(ticket_index);
-            write_jira_tickets(&self.tickets).expect("TODO: panic message");
+            self.persist_tickets()
         }
+    }
+
+    pub fn swap_tickets(&mut self, direction: Direction){
+        let mut selected_ticket: Option<Ticket> = None;
+        let mut new_index: Option<usize> = None;
+
+        if let Some(ticket_index) = self.list_state.selected() {
+            if Direction::Up == direction && ticket_index > 0{
+                selected_ticket = Some(self.tickets.remove(ticket_index));
+                new_index = Some(ticket_index.saturating_sub(1));
+
+            }
+            if Direction::Down == direction && ticket_index < self.tickets.len() - 1 {
+                selected_ticket = Some(self.tickets.remove(ticket_index));
+                new_index = Some(ticket_index.saturating_add(1));
+            }
+        }
+
+        if let Some(index) = new_index && let Some(ticket) = selected_ticket {
+            self.tickets.insert(index, ticket);
+            self.list_state.select(Some(index));
+            self.persist_tickets()
+        }
+    }
+
+    fn persist_tickets(&mut self){
+        write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
     }
 
     async fn get_ticket(

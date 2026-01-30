@@ -193,7 +193,11 @@ impl App {
                             Self::update_noneable_list(&mut jira.list_state, direction, list_len);
                         }
                     }
-                    JiraTicketMove(direction) => {},
+                    JiraTicketMove(direction) => {
+                        if let Some(jira) = self.state.jira.as_mut() {
+                            jira.swap_tickets(direction);
+                        }
+                    },
                     NewJiraTicketPopUp => {
                         if let Some(jira) = self.state.jira.as_mut() {
                             jira.new_ticket_popup = true;
@@ -369,6 +373,15 @@ impl App {
                     .token_generator
                     .get_token_for_selected_service_env();
                 Self::copy_to_clipboard(token).unwrap();
+            }
+            (AppFocus::Tool, Tool::Jira, key, KeyModifiers::SHIFT) => {
+                if let Some(direction) = match key {
+                    KeyCode::Down => Some(Direction::Down),
+                    KeyCode::Up => Some(Direction::Up),
+                    _ => None
+                } {
+                    self.event_sender.send(JiraTicketMove(direction));
+                }
             }
             (AppFocus::Tool, Tool::Jira, KeyCode::Down, _) => {
                 self.event_sender.send(JiraTicketListMove(Direction::Down))

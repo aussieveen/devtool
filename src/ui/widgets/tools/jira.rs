@@ -1,6 +1,6 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
-use ratatui::text::Line;
+use ratatui::text::{Line};
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 use crate::state::jira::Jira;
 use crate::ui::styles::list_style;
@@ -48,12 +48,13 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
     frame.render_stateful_widget(
         List::new(list_items).block(Block::default()),
         ticket_area,
-        &mut jira_state.list_state
+        &mut jira_state.list_state,
     );
+
 
     let action_area = vertical[1];
     let ticket_action_text = match(selected_ticket){
-        Some(_) => "[x] to remove ticket [shift + ↕] to move tickets",
+        Some(_) => "[x] to remove ticket [shift + ↑ ↓] to move tickets",
         None => ""
     };
 

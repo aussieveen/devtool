@@ -58,7 +58,7 @@ pub enum AppEvent {
     Quit,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Direction {
     Up,
     Down,
