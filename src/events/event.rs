@@ -25,12 +25,12 @@ pub enum Event {
 #[derive(Debug)]
 pub enum AppEvent {
     // List events
-    ListMove(ListDir), // Move up and down tool List
-    ListSelect(Tool),  // Select item on tool list
+    ListMove(Direction), // Move up and down tool List
+    ListSelect(Tool),    // Select item on tool list
 
     // Tool events
     // ServiceStatus
-    ServiceStatusListMove(ListDir), // Move up and down on service list
+    ServiceStatusListMove(Direction), // Move up and down on service list
     // Commit reference received for service on env
     // usize is the index of the service in the ListState
     CommitRefRetrieved(Commit, usize, Environment),
@@ -38,19 +38,28 @@ pub enum AppEvent {
     ScanServices, // Scan all services
 
     // TokenGenerator
-    TokenGenServiceListMove(ListDir),
-    TokenGenEnvListMove(ListDir),
+    TokenGenServiceListMove(Direction),
+    TokenGenEnvListMove(Direction),
     SetTokenGenFocus(Focus),
     GenerateToken,
     TokenGenerated(Token, usize, usize),
+
+    // Jira
+    JiraTicketListMove(Direction),
+    JiraTicketMove(Direction),
+    NewJiraTicketPopUp,
+    AddTicketIdChar(char),
+    RemoveTicketIdChar,
+    SubmitTicketId,
+    RemoveTicket,
 
     // Generic Events
     SetFocus(AppFocus),
     Quit,
 }
 
-#[derive(Debug)]
-pub enum ListDir {
+#[derive(Debug, PartialEq)]
+pub enum Direction {
     Up,
     Down,
 }

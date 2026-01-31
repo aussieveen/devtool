@@ -27,5 +27,6 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
         inner,
         &mut state.service_status,
         &mut state.token_generator,
+        &mut state.jira,
     );
 }
