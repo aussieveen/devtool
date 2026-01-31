@@ -2,7 +2,7 @@ use crate::state::jira::Jira;
 use crate::ui::styles::list_style;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
-use ratatui::text::{Line};
+use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {

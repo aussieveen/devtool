@@ -70,8 +70,9 @@ impl App {
                             direction,
                             tool_list.items.len(),
                         );
-                        if let Some(index) = tool_list.list_state.selected() &&
-                            let Some(tool) = tool_list.items.get(index).cloned() {
+                        if let Some(index) = tool_list.list_state.selected()
+                            && let Some(tool) = tool_list.items.get(index).cloned()
+                        {
                             self.event_sender.send(ListSelect(tool))
                         }
                     }

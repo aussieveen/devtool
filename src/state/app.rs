@@ -33,7 +33,7 @@ impl AppState {
                     items.push(Tool::Home);
                     items.push(Tool::ServiceStatus);
                     items.push(Tool::TokenGenerator);
-                    if config.jira.is_some(){
+                    if config.jira.is_some() {
                         items.push(Tool::Jira);
                     }
 
@@ -44,9 +44,7 @@ impl AppState {
             current_tool: Tool::Home,
             service_status: ServiceStatus::new(config.servicestatus, event_sender.clone()),
             token_generator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
-            jira: config
-                .jira
-                .map(Jira::new),
+            jira: config.jira.map(Jira::new),
             focus: AppFocus::List,
         }
     }
