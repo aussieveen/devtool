@@ -432,10 +432,8 @@ impl App {
                     self.event_sender.send(RemoveTicketIdChar);
                 } else if key_code.is_enter() {
                     self.event_sender.send(SubmitTicketId);
-                } else {
-                    if let Some(char) = key_code.as_char() {
-                        self.event_sender.send(AddTicketIdChar(char))
-                    }
+                } else if let Some(char) = key_code.as_char() {
+                    self.event_sender.send(AddTicketIdChar(char))
                 }
             }
 

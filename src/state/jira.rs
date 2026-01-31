@@ -42,7 +42,7 @@ impl Jira {
                     self.persist_tickets();
                 }
                 Err(e) => {
-                    println!("{}", e.to_string());
+                    println!("{}", e);
                     self.tickets.push(Ticket::new(
                         e.to_string(),
                         "??".to_string(),

@@ -13,7 +13,7 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
             .tool_list
             .items
             .iter()
-            .map(|i| ListItem::new(&*i.menu_entry())),
+            .map(|i| ListItem::new(i.menu_entry())),
     )
     .block(Block::default().borders(Borders::ALL).title(" Tools "))
     .highlight_style(ratatui::style::Style::default().reversed())

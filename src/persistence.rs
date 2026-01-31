@@ -65,10 +65,9 @@ pub fn read_persistence() -> Result<Persistence, Box<dyn Error>> {
         Ok(contents) => contents,
         Err(e) if e.kind() == ErrorKind::NotFound => {
             let default = Persistence { jira: Jira::new() };
-            if let Ok(_) = write_persistence(default.clone()) {}
+            write_persistence(default.clone()).expect("Failed to write persistence");
 
-            let yaml = serde_yaml::to_string(&default)?;
-            yaml
+            serde_yaml::to_string(&default)?
         }
         Err(e) => return Err(Box::new(e)),
     };

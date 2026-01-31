@@ -46,7 +46,7 @@ impl AppState {
             token_generator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
             jira: config
                 .jira
-                .map(|jira_config| Jira::new(jira_config)),
+                .map(Jira::new),
             focus: AppFocus::List,
         }
     }
