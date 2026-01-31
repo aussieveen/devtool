@@ -1,17 +1,17 @@
 use crate::config::Config;
 use crate::events::sender::EventSender;
+use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
 pub(crate) use crate::state::tools::Tool;
 use crate::state::tools::ToolList;
 use ratatui::widgets::ListState;
-use crate::state::jira::Jira;
 
 #[derive(Debug, Copy, Clone)]
 pub enum AppFocus {
     List,
     Tool,
-    PopUp
+    PopUp,
 }
 
 #[derive(Debug)]
@@ -33,7 +33,7 @@ impl AppState {
                     items.push(Tool::Home);
                     items.push(Tool::ServiceStatus);
                     items.push(Tool::TokenGenerator);
-                    if let Some(_) = config.jira {
+                    if config.jira.is_some(){
                         items.push(Tool::Jira);
                     }
 
@@ -44,7 +44,9 @@ impl AppState {
             current_tool: Tool::Home,
             service_status: ServiceStatus::new(config.servicestatus, event_sender.clone()),
             token_generator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
-            jira: config.jira.map(|jira_config| Jira::new(jira_config, event_sender.clone())),
+            jira: config
+                .jira
+                .map(|jira_config| Jira::new(jira_config)),
             focus: AppFocus::List,
         }
     }

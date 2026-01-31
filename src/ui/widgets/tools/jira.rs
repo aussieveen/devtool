@@ -1,13 +1,12 @@
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 use crate::state::jira::Jira;
 use crate::ui::styles::list_style;
+use ratatui::Frame;
+use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
+use ratatui::text::{Line};
+use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
-    if state.is_none(){
+    if state.is_none() {
         return;
     }
 
@@ -27,17 +26,14 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
 
     let ticket_area = vertical[0];
 
-    let list_items:Vec<ListItem> = jira_state.tickets
+    let list_items: Vec<ListItem> = jira_state
+        .tickets
         .iter()
         .enumerate()
         .map(|(index, ticket)| {
             let mut lines: Vec<Line> = Vec::new();
-            lines.push(
-                Line::from(format!("{} - {}", ticket.id, ticket.title))
-            );
-            lines.push(
-                Line::from(format!("{} {}", ticket.assignee, ticket.status))
-            );
+            lines.push(Line::from(format!("{} - {}", ticket.id, ticket.title)));
+            lines.push(Line::from(format!("{} {}", ticket.assignee, ticket.status)));
             lines.push(Line::from(""));
             ListItem::from(lines).style(list_style(
                 (selected_ticket.is_some() && selected_ticket.unwrap() == index)
@@ -52,17 +48,16 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
         &mut jira_state.list_state,
     );
 
-
     let action_area = vertical[1];
-    let ticket_action_text = match(selected_ticket){
+    let ticket_action_text = match selected_ticket {
         Some(_) => "[x] to remove ticket [shift + ↑ ↓] to move tickets",
-        None => ""
+        None => "",
     };
 
     let action_text = format!("{} {}", "[a] to add ticket", ticket_action_text);
     frame.render_widget(
         Paragraph::new(action_text).wrap(Wrap { trim: false }),
-        action_area
+        action_area,
     );
 
     if new_ticket_pop_up {

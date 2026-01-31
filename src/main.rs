@@ -2,14 +2,12 @@ mod app;
 mod config;
 mod environment;
 mod events;
+mod persistence;
 mod state;
 mod ui;
-mod persistence;
 
 use crate::app::App;
 use crate::config::Config;
-
-const CONFIG_FILE: &str = ".devtool/config.yaml";
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {

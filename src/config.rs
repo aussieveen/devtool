@@ -1,13 +1,13 @@
-use std::fs;
-use std::path::PathBuf;
 use crate::environment::Environment;
 use serde::Deserialize;
+use std::fs;
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Config {
     pub servicestatus: Vec<ServiceStatus>,
     pub tokengenerator: TokenGenerator,
-    pub jira: Option<JiraConfig>
+    pub jira: Option<JiraConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -58,17 +58,16 @@ pub struct Credentials {
     pub client_secret: String,
 }
 
-#[derive(Debug, Deserialize)]
-#[derive(Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct JiraConfig {
     pub email: String,
-    pub token: String
+    pub token: String,
 }
 
 const FOLDER: &str = ".devtool";
 const CONFIG_FILE: &str = "config.yaml";
 
-pub fn read_config() -> Config{
+pub fn read_config() -> Config {
     let home_dir = dirs::home_dir().expect("Could not find home directory");
 
     // Append your file path

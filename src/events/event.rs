@@ -26,7 +26,7 @@ pub enum Event {
 pub enum AppEvent {
     // List events
     ListMove(Direction), // Move up and down tool List
-    ListSelect(Tool),  // Select item on tool list
+    ListSelect(Tool),    // Select item on tool list
 
     // Tool events
     // ServiceStatus
@@ -43,7 +43,7 @@ pub enum AppEvent {
     SetTokenGenFocus(Focus),
     GenerateToken,
     TokenGenerated(Token, usize, usize),
-    
+
     // Jira
     JiraTicketListMove(Direction),
     JiraTicketMove(Direction),

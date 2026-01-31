@@ -1,24 +1,24 @@
+use crate::state::jira::Ticket;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
-use std::{fs};
+use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use crate::state::jira::Ticket;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub (crate) struct Persistence {
-    pub jira: Jira
+pub(crate) struct Persistence {
+    pub jira: Jira,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub (crate) struct Jira {
-    pub tickets: Vec<Ticket>
+pub(crate) struct Jira {
+    pub tickets: Vec<Ticket>,
 }
 
 impl Jira {
     pub fn new() -> Jira {
-        Jira{
-            tickets: Vec::new()
+        Jira {
+            tickets: Vec::new(),
         }
     }
 }
@@ -26,34 +26,24 @@ impl Jira {
 const FOLDER: &str = ".devtool";
 const PERSISTENCE_FILE: &str = "persistence.yaml";
 
-pub fn read_jira_persistence() -> Jira
-{
+pub fn read_jira_persistence() -> Jira {
     let persistence = read_persistence();
 
     let persistence_state = match persistence {
         Ok(state) => state,
-        Err(e) => panic!("Unexpected read error {}", e)
+        Err(e) => panic!("Unexpected read error {}", e),
     };
 
     persistence_state.jira
 }
 
-pub fn write_jira_tickets(tickets: &Vec<Ticket>) -> Result<Jira, Box<dyn Error>>
-{
+pub fn write_jira_tickets(tickets: &[Ticket]) -> Result<Jira, Box<dyn Error>> {
     let mut persistence: Persistence = read_persistence()?;
-    persistence.jira.tickets = tickets.clone();
+    persistence.jira.tickets = tickets.to_owned();
     Ok(write_persistence(persistence)?.jira)
 }
 
-fn write_jira_persistence(jira_update: Jira) -> Result<Persistence, Box<dyn Error>>
-{
-    let mut persistence = read_persistence()?;
-    persistence.jira = jira_update;
-    write_persistence(persistence)
-}
-
-pub fn write_persistence(persistence: Persistence) -> Result<Persistence, Box<dyn Error>>
-{
+pub fn write_persistence(persistence: Persistence) -> Result<Persistence, Box<dyn Error>> {
     let home_dir = dirs::home_dir().expect("Could not find home directory");
 
     // Append your file path
@@ -66,7 +56,7 @@ pub fn write_persistence(persistence: Persistence) -> Result<Persistence, Box<dy
     Ok(persistence)
 }
 
-pub fn read_persistence() -> Result<Persistence, Box<dyn Error>>{
+pub fn read_persistence() -> Result<Persistence, Box<dyn Error>> {
     let home_dir = dirs::home_dir().expect("Could not find home directory");
 
     let file_path: PathBuf = home_dir.join(FOLDER).join(PERSISTENCE_FILE);
@@ -75,19 +65,15 @@ pub fn read_persistence() -> Result<Persistence, Box<dyn Error>>{
         Ok(contents) => contents,
         Err(e) if e.kind() == ErrorKind::NotFound => {
             let default = Persistence { jira: Jira::new() };
-            match write_persistence(default.clone()) {
-                Ok(_) => {}
-                Err(_) => {}
-            };
+            if let Ok(_) = write_persistence(default.clone()) {}
 
             let yaml = serde_yaml::to_string(&default)?;
             yaml
         }
-        Err(e) => return Err(Box::new(e))
+        Err(e) => return Err(Box::new(e)),
     };
 
     // Parse YAML into Persistence struct
     let parsed: Persistence = serde_yaml::from_str(&persistence_yaml)?;
     Ok(parsed)
 }
-
