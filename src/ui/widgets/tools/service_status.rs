@@ -155,7 +155,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut ServiceStatus) {
         ""
     };
 
-    let action_text = format!("{} {} {}", "[s] to scan the services", service_action_text, if(selected_service_idx.is_some()){selected_service_idx.unwrap()}else{0});
+    let action_text = format!("{} {}", "[s] to scan the services", service_action_text);
     frame.render_widget(
         Paragraph::new(action_text).wrap(Wrap { trim: false }),
         action_area,
