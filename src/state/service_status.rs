@@ -56,11 +56,10 @@ pub struct ServiceStatus {
 }
 
 impl ServiceStatus {
-    pub fn new(config: Vec<ServiceStatusConfig>, event_sender: EventSender) -> Self {
+    pub fn new(config: &Vec<ServiceStatusConfig>) -> Self {
         Self {
             services: config.into_iter().map(Service::new).collect(),
             list_state: ListState::default().with_selected(None),
-            event_sender,
         }
     }
 

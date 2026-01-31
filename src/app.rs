@@ -1,13 +1,16 @@
+use std::collections::HashMap;
+use std::error::Error;
 use crate::config::Config;
+use crate::config::TokenGenerator;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent::*;
-use crate::events::event::{Direction, Event};
+use crate::events::event::{AppEvent, Direction, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::state::app::AppFocus::PopUp;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::service_status::Commit;
-use crate::state::token_generator::Focus;
+use crate::state::token_generator::{Focus};
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::widgets::ListState;
@@ -15,6 +18,8 @@ use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::Duration;
+use serde::Deserialize;
+use crate::client::auth_zero_client;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -24,6 +29,7 @@ pub struct App {
     state: AppState,
     event_handler: EventHandler,
     event_sender: EventSender,
+    config: Config
 }
 
 impl App {
@@ -33,9 +39,10 @@ impl App {
         let event_sender = event_handler.sender();
         Self {
             running: true,
-            state: AppState::new(config, event_handler.sender()),
+            state: AppState::new(&config, event_handler.sender()),
             event_handler,
             event_sender,
+            config
         }
     }
 
@@ -153,19 +160,17 @@ impl App {
                         _ => {}
                     },
                     TokenGenEnvListMove(direction) => {
-                        let list_state = &mut self.state.token_generator.env_list_state;
-                        let selected_service = self
-                            .state
-                            .token_generator
-                            .service_list_state
-                            .selected()
-                            .unwrap_or(0);
+                        let (selected_service, _) =
+                            self.state.token_generator.get_selected_service_env();
+
+                        let env_count = self.config.tokengenerator.services[selected_service]
+                            .credentials
+                            .len();
+                        
                         Self::update_list(
-                            list_state,
+                            &mut self.state.token_generator.env_list_state,
                             direction,
-                            self.state.token_generator.services[selected_service]
-                                .tokens
-                                .len(),
+                            env_count,
                         );
                     }
                     TokenGenServiceListMove(direction) => {
@@ -173,7 +178,7 @@ impl App {
                         Self::update_list(
                             list_state,
                             direction,
-                            self.state.token_generator.services.len(),
+                            self.config.tokengenerator.services.len(),
                         );
                         self.state.token_generator.env_list_state.select_first();
                     }
@@ -181,29 +186,29 @@ impl App {
                         self.state.token_generator.focus = focus;
                     }
                     GenerateToken => {
-                        let service_idx = self
-                            .state
-                            .token_generator
-                            .service_list_state
-                            .selected()
-                            .unwrap();
-                        let env_idx = self
-                            .state
-                            .token_generator
-                            .env_list_state
-                            .selected()
-                            .unwrap();
+                        let (service_idx, env_idx) = self.state.token_generator.get_selected_service_env();
 
-                        self.state
-                            .token_generator
-                            .set_token(service_idx, env_idx)
-                            .await;
+                        self.state.token_generator.start_token_request(service_idx, env_idx);
+
+                        let sender = self.event_sender.clone();
+                        let config = self.config.tokengenerator.clone();
+
+                        tokio::spawn(async move {
+                            match Self::get_token(service_idx, env_idx, config).await {
+                                Ok(token) => {
+                                    sender.send(TokenGenerated(token, service_idx, env_idx));
+                                }
+                                Err(err) => {
+                                    sender.send(TokenFailed(err.to_string(), service_idx, env_idx));
+                                }
+                            }
+                        });
                     }
                     TokenGenerated(token, service_idx, env_idx) => {
-                        let service = &mut self.state.token_generator.services[service_idx];
-                        let credentials = &service.credentials[env_idx];
-
-                        service.tokens.insert(credentials.env.clone(), token);
+                        self.state.token_generator.set_token_ready(service_idx, env_idx, token);
+                    }
+                    TokenFailed(error, service_idx, env_idx) => {
+                        self.state.token_generator.set_token_error(service_idx, env_idx, error);
                     }
                     JiraTicketListMove(direction) => {
                         if let Some(jira) = self.state.jira.as_mut() {
@@ -275,6 +280,22 @@ impl App {
         Ok(())
     }
 
+    async fn get_token(
+        service_idx: usize,
+        env_idx: usize,
+        config: TokenGenerator
+    ) -> Result<String, Box<dyn Error>> {
+        let service = &config.services[service_idx];
+        let credentials = &service.credentials[env_idx];
+
+        auth_zero_client::request_token(
+            config.auth0.get_from_env(&credentials.env),
+            &credentials.client_id,
+            &credentials.client_secret,
+            &service.audience
+        ).await
+    }
+
     fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
         match direction {
             Direction::Up => list_state.select_previous(),
@@ -316,7 +337,7 @@ impl App {
 
         list::render(frame, areas.menu, &mut self.state);
 
-        tool::render(frame, areas.content, &mut self.state);
+        tool::render(frame, areas.content, &mut self.state, &self.config);
 
         footer::render(frame, areas.footer)
     }
@@ -401,11 +422,15 @@ impl App {
                 self.event_sender.send(GenerateToken)
             }
             (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Char('c'), _) => {
-                let token = self
+                if let Some(token) = self
                     .state
                     .token_generator
-                    .get_token_for_selected_service_env();
-                Self::copy_to_clipboard(token).unwrap();
+                    .get_token_for_selected_service_env()
+                    .value()
+                {
+                    let _result = Self::copy_to_clipboard(token.to_string());
+                    todo!("Display errors as pop up somehow");
+                };
             }
             (AppFocus::Tool, Tool::Jira, key, KeyModifiers::SHIFT) => {
                 if let Some(direction) = match key {

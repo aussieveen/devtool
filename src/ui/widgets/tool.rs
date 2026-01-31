@@ -5,8 +5,9 @@ use ratatui::{
     Frame,
     widgets::{Block, Borders},
 };
+use crate::config::Config;
 
-pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState) {
+pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState, config: &Config) {
     let content_block_border_style = styles::block_style(
         styles::is_content_active(state.focus) || matches!(state.current_tool, Tool::Home),
     );
@@ -25,6 +26,7 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
     state.current_tool.render(
         frame,
         inner,
+        config,
         &mut state.service_status,
         &mut state.token_generator,
         &mut state.jira,

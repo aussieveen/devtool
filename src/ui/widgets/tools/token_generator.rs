@@ -3,8 +3,14 @@ use crate::ui::styles::list_style;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::{List, ListItem, Paragraph};
+use crate::config::ServiceConfig;
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {
+pub fn render(
+    frame: &mut Frame,
+    area: Rect,
+    state: &mut TokenGenerator,
+    service_configs: &Vec<ServiceConfig>
+) {
     let vertical_break = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(2)])
@@ -16,23 +22,26 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(vertical_break[0]);
 
-    let services = List::new(state.services.iter().map(|s| ListItem::new(s.name.clone())))
+    let services = List::new(service_configs.iter().map(|s| ListItem::new(s.name.clone())))
         .style(list_style(matches!(state.focus, Focus::Service)))
         .highlight_style(ratatui::style::Style::default().reversed())
         .highlight_symbol(">> ")
         .repeat_highlight_symbol(true);
 
-    frame.render_stateful_widget(services, inner_horizonal[0], &mut state.service_list_state);
+    frame.render_stateful_widget(
+        services,
+        inner_horizonal[0],
+        &mut state.service_list_state
+    );
 
-    let service_idx = state.service_list_state.selected().unwrap();
-    let env_idx = state.env_list_state.selected().unwrap();
+    let (service_idx, env_idx) = state.get_selected_service_env();
 
-    let service = &state.services[service_idx];
+    let service_config = &service_configs[service_idx];
 
-    let environments = List::new(service.credentials.iter().map(|c| {
-        let token = service.tokens.get(&c.env).unwrap();
-        let prefix = match *token {
-            Token::Generated(_) => "[✓]",
+    let environments = List::new(service_config.credentials.iter().enumerate().map(|(env_idx, c)| {
+        let token = &state.tokens[service_idx][env_idx];
+        let prefix = match token {
+            Token::Ready(_) => "[✓]",
             Token::Error(_) => "[x]",
             _ => "[ ]",
         };
@@ -45,18 +54,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut TokenGenerator) {
 
     frame.render_stateful_widget(environments, inner_horizonal[1], &mut state.env_list_state);
 
-    let env = &service.credentials[env_idx].env;
-
-    let token = service.tokens.get(env).unwrap();
-
-    let text = match *token {
-        Token::NotGenerated => "[Return] to generate token",
-        Token::Fetching => "Generating token",
-        Token::Generated(_) => "Token available: [c] to Copy the token value",
-        Token::Error(_) => &*format!(
-            "{}: {}",
-            "Error when attempting to get the token",
-            token.value().unwrap()
+    let text = match state.get_token_for_selected_service_env() {
+        Token::Idle => "[Return] to generate token",
+        Token::Requesting => "Generating token",
+        Token::Ready(_) => "Token available: [c] to Copy the token value",
+        Token::Error(e) => &*format!(
+            "{}: {}", "Error when attempting to get the token", e
         ),
     };
 

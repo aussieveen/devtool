@@ -5,6 +5,7 @@ use crate::ui::widgets::tools::*;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::ListState;
+use crate::config::Config;
 
 #[derive(Debug)]
 pub struct ToolList {
@@ -34,6 +35,7 @@ impl Tool {
         &self,
         frame: &mut Frame,
         area: Rect,
+        config: &Config,
         service_status_state: &mut ServiceStatus,
         token_generator_state: &mut TokenGenerator,
         jira_state: &mut Option<Jira>,
@@ -41,7 +43,7 @@ impl Tool {
         match self {
             Tool::Home => home::render(frame, area),
             Tool::ServiceStatus => service_status::render(frame, area, service_status_state),
-            Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
+            Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state, &config.tokengenerator.services),
             Tool::Jira => jira::render(frame, area, jira_state),
         }
     }

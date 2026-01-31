@@ -1,9 +1,9 @@
-use crate::config::{Auth0Config, Credentials, TokenGenerator as TokenGeneratorConfig};
+use crate::config::{Auth0Config, Credentials, ServiceConfig, TokenGenerator as TokenGeneratorConfig};
 use crate::environment::Environment;
 use crate::environment::Environment::{Local, Preproduction, Production, Staging};
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
-use crate::state::token_generator::Token::NotGenerated;
+use crate::state::token_generator::Token::{Idle};
 use ratatui::widgets::ListState;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -17,128 +17,84 @@ pub enum Focus {
 
 #[derive(Debug)]
 pub(crate) struct TokenGenerator {
-    pub auth0config: Auth0Config,
-    pub services: Vec<Service>,
+    pub tokens: Vec<Vec<Token>>,
     pub env_list_state: ListState,
     pub service_list_state: ListState,
-    pub event_sender: EventSender,
     pub focus: Focus,
 }
 
 impl TokenGenerator {
-    pub(crate) fn new(config: TokenGeneratorConfig, event_sender: EventSender) -> TokenGenerator {
+    pub(crate) fn new(services: &Vec<ServiceConfig>) -> TokenGenerator {
+        let tokens = services
+            .into_iter()
+            .map(|s|{
+               vec![Idle; s.credentials.len()]
+            }).collect();
+
         Self {
-            auth0config: config.auth0,
-            services: config
-                .services
-                .into_iter()
-                .map(|s| Service {
-                    name: s.name,
-                    audience: s.audience,
-                    credentials: s.credentials,
-                    tokens: HashMap::from([
-                        (Local, NotGenerated),
-                        (Staging, NotGenerated),
-                        (Preproduction, NotGenerated),
-                        (Production, NotGenerated),
-                    ]),
-                })
-                .collect(),
-            env_list_state: ListState::default().with_selected(Some(0)),
-            service_list_state: ListState::default().with_selected(Some(0)),
-            event_sender: event_sender.clone(),
+            tokens,
+            env_list_state: ListState::default(),
+            service_list_state: ListState::default(),
             focus: Focus::Service,
         }
     }
 
-    pub(crate) async fn set_token(&mut self, service_idx: usize, env_idx: usize) {
-        let service = &mut self.services[service_idx];
-        let credentials = &service.credentials[env_idx];
-
-        service
-            .tokens
-            .insert(credentials.env.clone(), Token::Fetching);
-
-        let sender = self.event_sender.clone();
-
-        let auth0_url = self.auth0config.get_from_env(&credentials.env).clone();
-        let client_id = credentials.client_id.clone();
-        let client_secret = credentials.client_secret.clone();
-        let audience = service.audience.clone();
-
-        tokio::spawn(async move {
-            let token = match Self::get_token(auth0_url, client_id, client_secret, audience).await {
-                Ok(token) => Token::Generated(token),
-                Err(err) => Token::Error(err.to_string()),
-            };
-            sender.send(AppEvent::TokenGenerated(token, service_idx, env_idx))
-        });
+    pub fn get_selected_service_env(&self) -> (usize, usize){
+        (
+            self.get_selected_service(),
+            self.get_selected_env()
+        )
     }
 
-    async fn get_token(
-        auth0_url: String,
-        client_id: String,
-        client_secret: String,
-        audience: String,
-    ) -> Result<String, Box<dyn std::error::Error>> {
-        let client = reqwest::Client::builder().build()?;
-
-        let mut params = HashMap::new();
-        params.insert("grant_type", "client_credentials");
-        params.insert("client_id", client_id.as_str());
-        params.insert("client_secret", client_secret.as_str());
-        params.insert("audience", audience.as_str());
-
-        let request = client
-            .request(reqwest::Method::POST, auth0_url)
-            .form(&params)
-            .timeout(Duration::from_secs(3));
-
-        let response = request.send().await?;
-
-        Ok(response.json::<TokenResponse>().await?.access_token)
+    fn get_selected_service(&self) -> usize {
+        self.service_list_state.selected().unwrap_or_default()
     }
 
-    pub fn get_token_for_selected_service_env(&self) -> String {
-        let service_idx = self.service_list_state.selected().unwrap();
-        let env_idx = self.env_list_state.selected().unwrap();
-        let service = &self.services[service_idx];
-        service
-            .tokens
-            .get(&service.credentials[env_idx].env)
-            .unwrap()
-            .value()
-            .unwrap()
-            .to_string()
+    fn get_selected_env(&self) -> usize {
+        self.env_list_state.selected().unwrap_or_default()
+    }
+
+    pub fn start_token_request(&mut self, service_idx: usize, env_idx: usize){
+        self.tokens[service_idx][env_idx] = Token::Requesting;
+    }
+
+    pub fn set_token_ready(&mut self, service_idx: usize, env_idx: usize, token: String )
+    {
+        self.tokens[service_idx][env_idx] = Token::Ready(token);
+    }
+
+    pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize, error: String )
+    {
+        self.tokens[service_idx][env_idx] = Token::Error(error);
+    }
+
+    pub fn get_token_string_for_selected_service_env(&self) -> Result<&str, &str> {
+        match self.get_token_for_selected_service_env() {
+            Token::Idle => Err("Token has not been requested"),
+            Token::Requesting => Err("Token being requested"),
+            Token::Ready(token)=> Ok(token.as_str()),
+            Token::Error(e) => Err(e.as_str())
+        }
+    }
+
+    pub fn get_token_for_selected_service_env(&self) -> &Token {
+        &self.tokens[self.get_selected_service()][self.get_selected_env()]
     }
 }
 
-#[derive(Debug)]
-pub struct Service {
-    pub(crate) name: String,
-    audience: String,
-    pub(crate) credentials: Vec<Credentials>,
-    pub(crate) tokens: HashMap<Environment, Token>,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
-    NotGenerated,
-    Fetching,
-    Generated(String),
+    Idle,
+    Requesting,
+    Ready(String),
     Error(String),
 }
 
 impl Token {
     pub(crate) fn value(&self) -> Option<&str> {
         match self {
-            Token::Generated(s) | Token::Error(s) => Some(s.as_str()),
+            Token::Ready(s) | Token::Error(s) => Some(s.as_str()),
             _ => None,
         }
     }
-}
-
-#[derive(Deserialize, Debug)]
-struct TokenResponse {
-    access_token: String,
 }

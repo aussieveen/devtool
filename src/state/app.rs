@@ -25,7 +25,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub(crate) fn new(config: Config, event_sender: EventSender) -> AppState {
+    pub(crate) fn new(config: &Config, event_sender: EventSender) -> AppState {
         Self {
             tool_list: ToolList {
                 items: {
@@ -42,8 +42,8 @@ impl AppState {
                 list_state: ListState::default().with_selected(Some(0)),
             },
             current_tool: Tool::Home,
-            service_status: ServiceStatus::new(config.servicestatus, event_sender.clone()),
-            token_generator: TokenGenerator::new(config.tokengenerator, event_sender.clone()),
+            service_status: ServiceStatus::new(&config.servicestatus),
+            token_generator: TokenGenerator::new(&config.tokengenerator.services),
             jira: config.jira.map(Jira::new),
             focus: AppFocus::List,
         }

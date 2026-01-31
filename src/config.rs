@@ -3,14 +3,14 @@ use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub(crate) struct Config {
     pub servicestatus: Vec<ServiceStatus>,
     pub tokengenerator: TokenGenerator,
     pub jira: Option<JiraConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub(crate) struct ServiceStatus {
     pub name: String,
     pub staging: String,
@@ -19,13 +19,13 @@ pub(crate) struct ServiceStatus {
     pub repo: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub(crate) struct TokenGenerator {
     pub auth0: Auth0Config,
     pub services: Vec<ServiceConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Auth0Config {
     pub local: String,
     pub staging: String,
@@ -44,14 +44,14 @@ impl Auth0Config {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct ServiceConfig {
     pub name: String,
     pub audience: String,
     pub credentials: Vec<Credentials>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Credentials {
     pub env: Environment,
     pub client_id: String,

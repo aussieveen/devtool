@@ -5,6 +5,7 @@ mod events;
 mod persistence;
 mod state;
 mod ui;
+mod client;
 
 use crate::app::App;
 use crate::config::Config;

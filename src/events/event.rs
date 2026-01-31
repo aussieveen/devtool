@@ -42,7 +42,8 @@ pub enum AppEvent {
     TokenGenEnvListMove(Direction),
     SetTokenGenFocus(Focus),
     GenerateToken,
-    TokenGenerated(Token, usize, usize),
+    TokenGenerated(String, usize, usize),
+    TokenFailed(String, usize, usize),
 
     // Jira
     JiraTicketListMove(Direction),
