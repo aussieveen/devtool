@@ -1,3 +1,4 @@
+use crate::client::jira_client::TicketResponse;
 use crate::config::JiraConfig;
 use crate::events::event::Direction;
 use crate::persistence::{read_jira_persistence, write_jira_tickets};
@@ -13,8 +14,6 @@ pub struct Jira {
 }
 
 impl Jira {
-    const JIRA_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
-
     pub fn new() -> Jira {
         Self {
             tickets: read_jira_persistence().tickets,
@@ -24,33 +23,45 @@ impl Jira {
         }
     }
 
-    pub async fn add_ticket(&mut self) {
-        if let Some(id) = self.new_ticket_id.clone() {
-            match Self::get_ticket(id, self.config.email.clone(), self.config.token.clone()).await {
-                Ok(ticket) => {
-                    self.tickets.push(Ticket::new(
-                        ticket.key,
-                        ticket.fields.summary,
-                        ticket.fields.status.name,
-                        match ticket.fields.assignee {
-                            Some(assignee) => assignee.display_name,
-                            None => "Unassigned".to_string(),
-                        },
-                    ));
-                    self.persist_tickets();
+    pub fn add_char_to_ticket_id(&mut self, c: char) {
+        self.new_ticket_id
+            .get_or_insert_with(String::new)
+            .push(c.to_ascii_uppercase());
+    }
+
+    pub fn remove_char_from_ticket_id(&mut self) {
+        self.new_ticket_id = match &self.new_ticket_id {
+            None => None,
+            Some(id) => {
+                if id.len() > 1 {
+                    let mut chars = id.chars();
+                    chars.next_back();
+                    Some(chars.as_str().to_string())
+                } else {
+                    None
                 }
-                Err(e) => {
-                    println!("{}", e);
-                    self.tickets.push(Ticket::new(
-                        e.to_string(),
-                        "??".to_string(),
-                        "??".to_string(),
-                        "??".to_string(),
-                    ));
-                }
-            };
-            self.new_ticket_id = None;
+            }
         }
+    }
+
+    pub fn set_new_ticket_id(&mut self, id: Option<String>) {
+        self.new_ticket_id = id;
+    }
+
+    pub fn set_new_ticket_popup(&mut self, visible: bool) {
+        self.new_ticket_popup = visible;
+    }
+
+    pub fn add_ticket(&mut self, ticket: TicketResponse) {
+        self.tickets.push(Ticket::new(
+            ticket.key,
+            ticket.fields.summary,
+            ticket.fields.status.name,
+            match ticket.fields.assignee {
+                Some(assignee) => assignee.display_name,
+                None => "Unassigned".to_string(),
+            },
+        ));
     }
 
     pub fn remove_ticket(&mut self) {
@@ -87,23 +98,6 @@ impl Jira {
     fn persist_tickets(&mut self) {
         write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
     }
-
-    async fn get_ticket(
-        id: String,
-        username: String,
-        password: String,
-    ) -> Result<TicketResponse, Box<dyn std::error::Error>> {
-        let mut url = Self::JIRA_URL.to_owned();
-        url.push_str(id.as_str());
-
-        let client = reqwest::Client::builder().build()?;
-
-        let request = client.get(url).basic_auth(username, Some(password));
-
-        let response = request.send().await?;
-
-        Ok(response.json::<TicketResponse>().await?)
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -123,29 +117,4 @@ impl Ticket {
             assignee,
         }
     }
-}
-
-#[derive(Deserialize, Debug)]
-struct TicketResponse {
-    key: String,
-    fields: Fields,
-}
-
-#[derive(Deserialize, Debug)]
-struct Fields {
-    assignee: Option<Assignee>,
-    status: Status,
-    summary: String,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Assignee {
-    display_name: String,
-}
-
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct Status {
-    name: String,
 }

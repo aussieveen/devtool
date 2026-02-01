@@ -1,12 +1,14 @@
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
-use serde::Deserialize;
 
 pub async fn request_token(
-    auth0_url: &String, client_id: &String, client_secret: &String, audience: &String
-) -> Result<String, Box<dyn Error>>{
-
+    auth0_url: &String,
+    client_id: &String,
+    client_secret: &String,
+    audience: &String,
+) -> Result<String, Box<dyn Error>> {
     let client = reqwest::Client::builder().build()?;
 
     let mut params = HashMap::new();

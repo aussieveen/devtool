@@ -1,7 +1,7 @@
+use crate::client::jira_client::TicketResponse;
 use crate::environment::Environment;
 use crate::state::app::{AppFocus, Tool};
-use crate::state::service_status::Commit;
-use crate::state::token_generator::{Focus, Token};
+use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
 #[derive(Debug)]
@@ -47,13 +47,14 @@ pub enum AppEvent {
     TokenFailed(String, usize, usize),
 
     // Jira
-    JiraTicketListMove(Direction),
-    JiraTicketMove(Direction),
+    JiraTicketListMove(Direction), // Move down ticket list
     NewJiraTicketPopUp,
     AddTicketIdChar(char),
     RemoveTicketIdChar,
     SubmitTicketId,
     RemoveTicket,
+    JiraTicketMove(Direction), // Move selected ticket up and down list
+    TicketRetrieved(TicketResponse),
 
     // Generic Events
     SetFocus(AppFocus),

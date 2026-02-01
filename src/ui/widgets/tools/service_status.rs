@@ -1,3 +1,4 @@
+use crate::config::ServiceStatus as ServiceStatusConfig;
 use crate::state::service_status::{CommitRefStatus, ServiceStatus};
 use crate::ui::styles::list_style;
 use ratatui::Frame;
@@ -5,9 +6,13 @@ use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
-use crate::config::ServiceStatus as ServiceStatusConfig;
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut ServiceStatus, config: &Vec<ServiceStatusConfig>) {
+pub fn render(
+    frame: &mut Frame,
+    area: Rect,
+    state: &mut ServiceStatus,
+    config: &Vec<ServiceStatusConfig>,
+) {
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;
     const PREPROD_PROD_MATCH: Color = Color::Blue;

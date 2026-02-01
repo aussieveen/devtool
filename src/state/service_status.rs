@@ -22,19 +22,19 @@ impl ServiceStatus {
         }
     }
 
-    pub fn set_commit_fetching(&mut self, service_idx: usize, env: &Environment){
+    pub fn set_commit_fetching(&mut self, service_idx: usize, env: &Environment) {
         self.update_commit(service_idx, env, Commit::Fetching);
     }
 
-    pub fn set_commit_ok(&mut self, service_idx: usize, env: &Environment, commit: String){
+    pub fn set_commit_ok(&mut self, service_idx: usize, env: &Environment, commit: String) {
         self.update_commit(service_idx, env, Commit::Ok(commit));
     }
 
-    pub fn set_commit_error(&mut self, service_idx: usize, env: &Environment, error: String){
+    pub fn set_commit_error(&mut self, service_idx: usize, env: &Environment, error: String) {
         self.update_commit(service_idx, env, Commit::Error(error));
     }
 
-    fn update_commit(&mut self, service_idx: usize, env: &Environment, commit: Commit){
+    fn update_commit(&mut self, service_idx: usize, env: &Environment, commit: Commit) {
         let service = &mut self.services[service_idx];
 
         match env {
@@ -44,8 +44,8 @@ impl ServiceStatus {
             _ => {}
         }
     }
-    
-    pub fn get_selected_service_idx(&self) -> Option<usize>{
+
+    pub fn get_selected_service_idx(&self) -> Option<usize> {
         self.list_state.selected()
     }
 
@@ -120,7 +120,6 @@ pub enum CommitRefStatus {
     PreprodProdMatch,
     CommitMissing,
 }
-
 
 impl Service {
     pub fn new() -> Self {

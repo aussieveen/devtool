@@ -1,9 +1,11 @@
-use crate::config::{Auth0Config, Credentials, ServiceConfig, TokenGenerator as TokenGeneratorConfig};
+use crate::config::{
+    Auth0Config, Credentials, ServiceConfig, TokenGenerator as TokenGeneratorConfig,
+};
 use crate::environment::Environment;
 use crate::environment::Environment::{Local, Preproduction, Production, Staging};
 use crate::events::event::AppEvent;
 use crate::events::sender::EventSender;
-use crate::state::token_generator::Token::{Idle};
+use crate::state::token_generator::Token::Idle;
 use ratatui::widgets::ListState;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -27,23 +29,19 @@ impl TokenGenerator {
     pub(crate) fn new(services: &Vec<ServiceConfig>) -> TokenGenerator {
         let tokens = services
             .into_iter()
-            .map(|s|{
-               vec![Idle; s.credentials.len()]
-            }).collect();
+            .map(|s| vec![Idle; s.credentials.len()])
+            .collect();
 
         Self {
             tokens,
-            env_list_state: ListState::default(),
-            service_list_state: ListState::default(),
+            env_list_state: ListState::default().with_selected(Some(0)),
+            service_list_state: ListState::default().with_selected(Some(0)),
             focus: Focus::Service,
         }
     }
 
-    pub fn get_selected_service_env(&self) -> (usize, usize){
-        (
-            self.get_selected_service(),
-            self.get_selected_env()
-        )
+    pub fn get_selected_service_env(&self) -> (usize, usize) {
+        (self.get_selected_service(), self.get_selected_env())
     }
 
     fn get_selected_service(&self) -> usize {
@@ -54,17 +52,15 @@ impl TokenGenerator {
         self.env_list_state.selected().unwrap_or_default()
     }
 
-    pub fn start_token_request(&mut self, service_idx: usize, env_idx: usize){
+    pub fn start_token_request(&mut self, service_idx: usize, env_idx: usize) {
         self.tokens[service_idx][env_idx] = Token::Requesting;
     }
 
-    pub fn set_token_ready(&mut self, service_idx: usize, env_idx: usize, token: String )
-    {
+    pub fn set_token_ready(&mut self, service_idx: usize, env_idx: usize, token: String) {
         self.tokens[service_idx][env_idx] = Token::Ready(token);
     }
 
-    pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize, error: String )
-    {
+    pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize, error: String) {
         self.tokens[service_idx][env_idx] = Token::Error(error);
     }
 
@@ -72,8 +68,8 @@ impl TokenGenerator {
         match self.get_token_for_selected_service_env() {
             Token::Idle => Err("Token has not been requested"),
             Token::Requesting => Err("Token being requested"),
-            Token::Ready(token)=> Ok(token.as_str()),
-            Token::Error(e) => Err(e.as_str())
+            Token::Ready(token) => Ok(token.as_str()),
+            Token::Error(e) => Err(e.as_str()),
         }
     }
 

@@ -1,25 +1,25 @@
-use std::error::Error;
-use crate::config::{Config, ServiceStatus};
+use crate::client::healthcheck_client::get;
+use crate::client::jira_client::TicketResponse;
+use crate::client::{auth_zero_client, jira_client};
 use crate::config::TokenGenerator;
+use crate::config::{Config, JiraConfig, ServiceStatus};
+use crate::environment::Environment;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent::*;
 use crate::events::event::{Direction, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
-use crate::state::app::AppFocus::PopUp;
+use crate::persistence::write_jira_tickets;
 use crate::state::app::{AppFocus, Tool};
-use crate::state::service_status::Commit;
-use crate::state::token_generator::{Focus};
+use crate::state::token_generator::Focus;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::widgets::ListState;
 use ratatui::{DefaultTerminal, Frame};
+use std::error::Error;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use crate::client::auth_zero_client;
-use crate::client::healthcheck_client::get;
-use crate::environment::Environment;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub struct App {
     state: AppState,
     event_handler: EventHandler,
     event_sender: EventSender,
-    config: Config
+    config: Config,
 }
 
 impl App {
@@ -42,7 +42,7 @@ impl App {
             state: AppState::new(&config, event_handler.sender()),
             event_handler,
             event_sender,
-            config
+            config,
         }
     }
 
@@ -99,7 +99,9 @@ impl App {
                         }
                     }
                     ScanServiceEnv(service_idx, env) => {
-                        self.state.service_status.set_commit_fetching(service_idx, &env);
+                        self.state
+                            .service_status
+                            .set_commit_fetching(service_idx, &env);
                         let sender = self.event_sender.clone();
                         let config = self.config.servicestatus.clone();
 
@@ -109,16 +111,24 @@ impl App {
                                     sender.send(GetCommitRefOk(commit, service_idx, env));
                                 }
                                 Err(err) => {
-                                    sender.send(GetCommitRefErrored(err.to_string(), service_idx, env));
+                                    sender.send(GetCommitRefErrored(
+                                        err.to_string(),
+                                        service_idx,
+                                        env,
+                                    ));
                                 }
                             }
                         });
                     }
                     GetCommitRefOk(commit, service_idx, env) => {
-                        self.state.service_status.set_commit_ok(service_idx, &env, commit);
+                        self.state
+                            .service_status
+                            .set_commit_ok(service_idx, &env, commit);
                     }
                     GetCommitRefErrored(error, service_idx, env) => {
-                        self.state.service_status.set_commit_error(service_idx, &env, error);
+                        self.state
+                            .service_status
+                            .set_commit_error(service_idx, &env, error);
                     }
                     TokenGenEnvListMove(direction) => {
                         let (selected_service, _) =
@@ -127,7 +137,7 @@ impl App {
                         let env_count = self.config.tokengenerator.services[selected_service]
                             .credentials
                             .len();
-                        
+
                         Self::update_list(
                             &mut self.state.token_generator.env_list_state,
                             direction,
@@ -147,9 +157,12 @@ impl App {
                         self.state.token_generator.focus = focus;
                     }
                     GenerateToken => {
-                        let (service_idx, env_idx) = self.state.token_generator.get_selected_service_env();
+                        let (service_idx, env_idx) =
+                            self.state.token_generator.get_selected_service_env();
 
-                        self.state.token_generator.start_token_request(service_idx, env_idx);
+                        self.state
+                            .token_generator
+                            .start_token_request(service_idx, env_idx);
 
                         let sender = self.event_sender.clone();
                         let config = self.config.tokengenerator.clone();
@@ -166,74 +179,75 @@ impl App {
                         });
                     }
                     TokenGenerated(token, service_idx, env_idx) => {
-                        self.state.token_generator.set_token_ready(service_idx, env_idx, token);
+                        self.state
+                            .token_generator
+                            .set_token_ready(service_idx, env_idx, token);
                     }
                     TokenFailed(error, service_idx, env_idx) => {
-                        self.state.token_generator.set_token_error(service_idx, env_idx, error);
+                        self.state
+                            .token_generator
+                            .set_token_error(service_idx, env_idx, error);
                     }
                     JiraTicketListMove(direction) => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            let list_len = jira.tickets.len();
-                            Self::update_noneable_list(&mut jira.list_state, direction, list_len);
-                        }
-                    }
-                    JiraTicketMove(direction) => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            jira.swap_tickets(direction);
-                        }
+                        let list_len = self.state.jira.tickets.len();
+                        Self::update_noneable_list(&mut self.state.jira.list_state, direction, list_len);
                     }
                     NewJiraTicketPopUp => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            jira.new_ticket_popup = true;
-                            self.state.focus = PopUp
-                        }
+                        self.state.jira.set_new_ticket_popup(true);
+                        self.state.focus = AppFocus::PopUp
                     }
                     AddTicketIdChar(char) => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            jira.new_ticket_id
-                                .get_or_insert_with(String::new)
-                                .push(char.to_ascii_uppercase());
-                        }
+                    self.state.jira.add_char_to_ticket_id(char)
                     }
                     RemoveTicketIdChar => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            jira.new_ticket_id = match jira.new_ticket_id.as_mut() {
-                                None => None,
-                                Some(id) => {
-                                    if id.len() > 1 {
-                                        let mut chars = id.chars();
-                                        chars.next_back();
-                                        Some(chars.as_str().to_string())
-                                    } else {
-                                        None
-                                    }
-                                }
-                            }
-                        }
+                    self.state.jira.remove_char_from_ticket_id();
                     }
                     SubmitTicketId => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            jira.add_ticket().await;
-                            jira.new_ticket_popup = false;
+                        if let Some(config) = self.config.jira.clone()
+                            && let Some(new_ticket_id) = self.state.jira.new_ticket_id.clone()
+                        {
+                            self.state.jira.set_new_ticket_popup(false);
                             self.state.focus = AppFocus::Tool;
+
+                            let sender = self.event_sender.clone();
+
+                            tokio::spawn(async move {
+                                match Self::get_ticket(&new_ticket_id, &config).await {
+                                    Ok(ticket) => {
+                                        sender.send(TicketRetrieved(ticket));
+                                    }
+                                    Err(_err) => {
+                                        todo!()
+                                    }
+                                }
+                            });
                         }
                     }
+                    TicketRetrieved(ticket_response) => {
+                        self.state.jira.add_ticket(ticket_response);
+                        write_jira_tickets(&self.state.jira.tickets).expect("Failed to persist tickets");
+                    }
                     RemoveTicket => {
-                        if let Some(jira) = self.state.jira.as_mut() {
-                            jira.remove_ticket();
-                            let max_select = match jira.tickets.len() {
-                                0 | 1 => 0,
-                                value => value.saturating_sub(1),
-                            };
+                        self.state.jira.remove_ticket();
+                        let max_select = match self.state.jira.tickets.len() {
+                            0 | 1 => 0,
+                            value => value.saturating_sub(1),
+                        };
 
-                            if jira.list_state.selected().unwrap() > max_select {
-                                Self::update_list(
-                                    &mut jira.list_state,
-                                    Direction::Up,
-                                    jira.tickets.len(),
-                                )
-                            }
+                        if let Some(ticket_idx) = self.state.jira.list_state.selected()
+                            && ticket_idx > max_select
+                        {
+                            Self::update_list(
+                                &mut self.state.jira.list_state,
+                                Direction::Up,
+                                self.state.jira.tickets.len(),
+                            )
                         }
+                        write_jira_tickets(&self.state.jira.tickets).expect("Failed to persist tickets");
+                    }
+                    JiraTicketMove(direction) => {
+                        self.state.jira.swap_tickets(direction);
+                        write_jira_tickets(&self.state.jira.tickets).expect("Failed to persist tickets");
                     }
                 },
             }
@@ -244,7 +258,7 @@ impl App {
     async fn get_token(
         service_idx: usize,
         env_idx: usize,
-        config: TokenGenerator
+        config: TokenGenerator,
     ) -> Result<String, Box<dyn Error>> {
         let service = &config.services[service_idx];
         let credentials = &service.credentials[env_idx];
@@ -253,14 +267,26 @@ impl App {
             config.auth0.get_from_env(&credentials.env),
             &credentials.client_id,
             &credentials.client_secret,
-            &service.audience
-        ).await
+            &service.audience,
+        )
+        .await
     }
 
-    async fn get_commit_ref(service_idx: usize, env: &Environment, config: Vec<ServiceStatus>) -> Result<String, Box<dyn Error>>{
-        let url = format!("{}healthcheck",config[service_idx].get_from_env(&env));
+    async fn get_commit_ref(
+        service_idx: usize,
+        env: &Environment,
+        config: Vec<ServiceStatus>,
+    ) -> Result<String, Box<dyn Error>> {
+        let url = format!("{}healthcheck", config[service_idx].get_from_env(&env));
 
         get(url).await
+    }
+
+    async fn get_ticket(
+        ticket_id: &String,
+        config: &JiraConfig,
+    ) -> Result<TicketResponse, Box<dyn Error>> {
+        jira_client::get(ticket_id, &config.email, &config.token).await
     }
 
     fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
@@ -342,22 +368,24 @@ impl App {
                 self.event_sender.send(ServiceStatusListMove(Direction::Up))
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o'), _) => {
-                if self.state.service_status.has_link() &&
-                    let Some(service_idx) = self.state.service_status.get_selected_service_idx()
-                    {
-                    let link = self.state.service_status.get_link(
-                        &self.config.servicestatus[service_idx].repo
-                    );
+                if self.state.service_status.has_link()
+                    && let Some(service_idx) = self.state.service_status.get_selected_service_idx()
+                {
+                    let link = self
+                        .state
+                        .service_status
+                        .get_link(&self.config.servicestatus[service_idx].repo);
                     webbrowser::open(link.as_str()).expect("Failed to open link");
                 }
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c'), _) => {
-                if self.state.service_status.has_link() &&
-                    let Some(service_idx) = self.state.service_status.get_selected_service_idx()
+                if self.state.service_status.has_link()
+                    && let Some(service_idx) = self.state.service_status.get_selected_service_idx()
                 {
-                    let link = self.state.service_status.get_link(
-                        &self.config.servicestatus[service_idx].repo
-                    );
+                    let link = self
+                        .state
+                        .service_status
+                        .get_link(&self.config.servicestatus[service_idx].repo);
                     Self::copy_to_clipboard(link).unwrap();
                 }
             }

@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::state::app::{AppState, Tool};
 use crate::ui::styles;
 use ratatui::prelude::Alignment;
@@ -5,9 +6,13 @@ use ratatui::{
     Frame,
     widgets::{Block, Borders},
 };
-use crate::config::Config;
 
-pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState, config: &Config) {
+pub fn render(
+    frame: &mut Frame,
+    area: ratatui::layout::Rect,
+    state: &mut AppState,
+    config: &Config,
+) {
     let content_block_border_style = styles::block_style(
         styles::is_content_active(state.focus) || matches!(state.current_tool, Tool::Home),
     );

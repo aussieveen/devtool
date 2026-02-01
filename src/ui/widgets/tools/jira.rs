@@ -5,15 +5,10 @@ use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
-    if state.is_none() {
-        return;
-    }
-
-    let jira_state = state.as_mut().unwrap();
-    let selected_ticket = jira_state.list_state.selected();
-    let new_ticket_pop_up = jira_state.new_ticket_popup;
-    let new_ticket_id = jira_state.new_ticket_id.clone().unwrap_or_default();
+pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
+    let selected_ticket = state.list_state.selected();
+    let new_ticket_pop_up = state.new_ticket_popup;
+    let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
 
     // ── 1. Split into header row + grid ─────────────────────────────────────────────
     let vertical = Layout::default()
@@ -26,7 +21,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
 
     let ticket_area = vertical[0];
 
-    let list_items: Vec<ListItem> = jira_state
+    let list_items: Vec<ListItem> = state
         .tickets
         .iter()
         .enumerate()
@@ -45,7 +40,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Option<Jira>) {
     frame.render_stateful_widget(
         List::new(list_items).block(Block::default()),
         ticket_area,
-        &mut jira_state.list_state,
+        &mut state.list_state,
     );
 
     let action_area = vertical[1];

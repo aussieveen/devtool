@@ -20,7 +20,7 @@ pub struct AppState {
     pub current_tool: Tool,
     pub service_status: ServiceStatus,
     pub token_generator: TokenGenerator,
-    pub jira: Option<Jira>,
+    pub jira: Jira,
     pub focus: AppFocus,
 }
 
