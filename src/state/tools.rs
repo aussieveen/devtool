@@ -42,7 +42,7 @@ impl Tool {
     ) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::ServiceStatus => service_status::render(frame, area, service_status_state),
+            Tool::ServiceStatus => service_status::render(frame, area, service_status_state, &config.servicestatus),
             Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state, &config.tokengenerator.services),
             Tool::Jira => jira::render(frame, area, jira_state),
         }

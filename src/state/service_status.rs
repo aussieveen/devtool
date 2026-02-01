@@ -8,18 +8,75 @@ use serde::Deserialize;
 use std::error::Error;
 use std::time::Duration;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
+pub struct ServiceStatus {
+    pub services: Vec<Service>,
+    pub list_state: ListState,
+}
+
+impl ServiceStatus {
+    pub fn new(num_services: usize) -> Self {
+        Self {
+            services: vec![Service::new(); num_services],
+            list_state: ListState::default().with_selected(None),
+        }
+    }
+
+    pub fn set_commit_fetching(&mut self, service_idx: usize, env: &Environment){
+        self.update_commit(service_idx, env, Commit::Fetching);
+    }
+
+    pub fn set_commit_ok(&mut self, service_idx: usize, env: &Environment, commit: String){
+        self.update_commit(service_idx, env, Commit::Ok(commit));
+    }
+
+    pub fn set_commit_error(&mut self, service_idx: usize, env: &Environment, error: String){
+        self.update_commit(service_idx, env, Commit::Error(error));
+    }
+
+    fn update_commit(&mut self, service_idx: usize, env: &Environment, commit: Commit){
+        let service = &mut self.services[service_idx];
+
+        match env {
+            Environment::Staging => service.staging = commit,
+            Environment::Preproduction => service.preprod = commit,
+            Environment::Production => service.prod = commit,
+            _ => {}
+        }
+    }
+    
+    pub fn get_selected_service_idx(&self) -> Option<usize>{
+        self.list_state.selected()
+    }
+
+    pub(crate) fn has_link(&self) -> bool {
+        let service = &self.services[self.list_state.selected().unwrap()];
+        service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
+    }
+
+    pub(crate) fn get_link(&self, repo_url: &String) -> String {
+        let service = &self.services[self.list_state.selected().unwrap()];
+        format!(
+            "{}compare/{}...{}",
+            repo_url,
+            service.prod.value().unwrap(),
+            service.preprod.value().unwrap(),
+        )
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Commit {
-    NotFetched,
+    Empty,
     Fetching,
-    Fetched(String),
+    Ok(String),
     Error(String),
 }
 
 impl Commit {
     pub fn value(&self) -> Option<&str> {
         match self {
-            Commit::Fetched(s) => Some(s.as_str()),
+            Commit::Ok(s) => Some(s.as_str()),
             _ => None,
         }
     }
@@ -27,7 +84,7 @@ impl Commit {
     pub fn short_value(&self) -> Option<String> {
         let char_display_count = 6;
         match self {
-            Commit::Fetched(s) => {
+            Commit::Ok(s) => {
                 let first: String = s.chars().take(char_display_count).collect();
                 let last: String = s
                     .chars()
@@ -48,101 +105,8 @@ impl Commit {
     }
 }
 
-#[derive(Debug)]
-pub struct ServiceStatus {
-    pub services: Vec<Service>,
-    pub list_state: ListState,
-    pub event_sender: EventSender,
-}
-
-impl ServiceStatus {
-    pub fn new(config: &Vec<ServiceStatusConfig>) -> Self {
-        Self {
-            services: config.into_iter().map(Service::new).collect(),
-            list_state: ListState::default().with_selected(None),
-        }
-    }
-
-    pub(crate) async fn set_commit(&mut self, service_idx: usize, env: Environment) {
-        let url = match env {
-            Environment::Staging => {
-                self.services[service_idx].staging = Commit::Fetching;
-                self.services[service_idx].staging_url.clone()
-            }
-            Environment::Preproduction => {
-                self.services[service_idx].preprod = Commit::Fetching;
-                self.services[service_idx].preprod_url.clone()
-            }
-            Environment::Production => {
-                self.services[service_idx].prod = Commit::Fetching;
-                self.services[service_idx].prod_url.clone()
-            }
-            _ => String::from(""),
-        };
-
-        let sender = self.event_sender.clone();
-
-        tokio::spawn(async move {
-            let commit = match Self::get_commit_from_healthcheck(&url).await {
-                Ok(commit) => Commit::Fetched(commit),
-                Err(err) => Commit::Error(err.to_string()),
-            };
-
-            sender.send(AppEvent::CommitRefRetrieved(commit, service_idx, env))
-        });
-    }
-
-    pub(crate) fn has_link(&self) -> bool {
-        let service = &self.services[self.list_state.selected().unwrap()];
-        service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
-    }
-
-    pub(crate) fn get_link(&self) -> String {
-        let service = &self.services[self.list_state.selected().unwrap()];
-        format!(
-            "{}compare/{}...{}",
-            service.repo_url,
-            service.prod.value().unwrap(),
-            service.preprod.value().unwrap(),
-        )
-    }
-
-    async fn get_commit_from_healthcheck(base_url: &str) -> Result<String, Box<dyn Error>> {
-        let mut url = base_url.to_owned();
-        url.push_str("healthcheck");
-
-        let client = reqwest::Client::new();
-        let resp = client
-            .get(url)
-            .header(USER_AGENT, "chrome")
-            .header(ACCEPT, "application/json")
-            .timeout(Duration::from_secs(3))
-            .send()
-            .await?;
-
-        Ok(resp
-            .json::<Healthcheck>()
-            .await?
-            .version
-            .split("_")
-            .next()
-            .unwrap()
-            .to_string())
-    }
-}
-
-#[derive(Deserialize, Debug)]
-struct Healthcheck {
-    version: String,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Service {
-    pub name: String,
-    pub staging_url: String,
-    pub preprod_url: String,
-    pub prod_url: String,
-    pub repo_url: String,
     pub staging: Commit,
     pub preprod: Commit,
     pub prod: Commit,
@@ -157,17 +121,13 @@ pub enum CommitRefStatus {
     CommitMissing,
 }
 
+
 impl Service {
-    pub fn new(config: ServiceStatusConfig) -> Self {
+    pub fn new() -> Self {
         Self {
-            name: config.name,
-            staging_url: config.staging,
-            preprod_url: config.preprod,
-            prod_url: config.prod,
-            repo_url: config.repo,
-            staging: Commit::NotFetched,
-            preprod: Commit::NotFetched,
-            prod: Commit::NotFetched,
+            staging: Commit::Empty,
+            preprod: Commit::Empty,
+            prod: Commit::Empty,
         }
     }
 

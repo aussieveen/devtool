@@ -33,9 +33,10 @@ pub enum AppEvent {
     ServiceStatusListMove(Direction), // Move up and down on service list
     // Commit reference received for service on env
     // usize is the index of the service in the ListState
-    CommitRefRetrieved(Commit, usize, Environment),
-    GenerateDiff, // Generate diff url
+    GetCommitRefOk(String, usize, Environment),
+    GetCommitRefErrored(String, usize, Environment),
     ScanServices, // Scan all services
+    ScanServiceEnv(usize, Environment),
 
     // TokenGenerator
     TokenGenServiceListMove(Direction),

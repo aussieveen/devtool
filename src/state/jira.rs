@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct Jira {
-    pub config: JiraConfig,
     pub tickets: Vec<Ticket>,
     pub list_state: ListState,
     pub new_ticket_popup: bool,
@@ -16,9 +15,8 @@ pub struct Jira {
 impl Jira {
     const JIRA_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
 
-    pub fn new(config: JiraConfig) -> Jira {
+    pub fn new() -> Jira {
         Self {
-            config,
             tickets: read_jira_persistence().tickets,
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false,

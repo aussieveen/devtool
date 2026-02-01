@@ -1,10 +1,9 @@
-use std::collections::HashMap;
 use std::error::Error;
-use crate::config::Config;
+use crate::config::{Config, ServiceStatus};
 use crate::config::TokenGenerator;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent::*;
-use crate::events::event::{AppEvent, Direction, Event};
+use crate::events::event::{Direction, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::state::app::AppFocus::PopUp;
@@ -18,8 +17,9 @@ use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::Duration;
-use serde::Deserialize;
 use crate::client::auth_zero_client;
+use crate::client::healthcheck_client::get;
+use crate::environment::Environment;
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -90,75 +90,36 @@ impl App {
                     }
                     ScanServices => {
                         let len = self.state.service_status.services.len();
+                        let sender = self.event_sender.clone();
 
                         for service_idx in 0..len {
-                            if !matches!(
-                                self.state.service_status.services[service_idx].staging,
-                                Commit::Fetching
-                            ) {
-                                self.state
-                                    .service_status
-                                    .set_commit(service_idx, Staging)
-                                    .await
-                            }
-                            if !matches!(
-                                self.state.service_status.services[service_idx].preprod,
-                                Commit::Fetching
-                            ) {
-                                self.state
-                                    .service_status
-                                    .set_commit(service_idx, Preproduction)
-                                    .await
-                            }
-                            if !matches!(
-                                self.state.service_status.services[service_idx].prod,
-                                Commit::Fetching
-                            ) {
-                                self.state
-                                    .service_status
-                                    .set_commit(service_idx, Production)
-                                    .await
-                            }
+                            sender.send(ScanServiceEnv(service_idx, Staging));
+                            sender.send(ScanServiceEnv(service_idx, Preproduction));
+                            sender.send(ScanServiceEnv(service_idx, Production));
                         }
                     }
-                    GenerateDiff => {
-                        let service_idx = self.state.service_status.list_state.selected().unwrap();
-                        if !matches!(
-                            self.state.service_status.services[service_idx].staging,
-                            Commit::Fetching
-                        ) {
-                            self.state
-                                .service_status
-                                .set_commit(service_idx, Staging)
-                                .await
-                        }
-                        if !matches!(
-                            self.state.service_status.services[service_idx].preprod,
-                            Commit::Fetching
-                        ) {
-                            self.state
-                                .service_status
-                                .set_commit(service_idx, Preproduction)
-                                .await
-                        }
-                        if !matches!(
-                            self.state.service_status.services[service_idx].prod,
-                            Commit::Fetching
-                        ) {
-                            self.state
-                                .service_status
-                                .set_commit(service_idx, Production)
-                                .await
-                        }
+                    ScanServiceEnv(service_idx, env) => {
+                        self.state.service_status.set_commit_fetching(service_idx, &env);
+                        let sender = self.event_sender.clone();
+                        let config = self.config.servicestatus.clone();
+
+                        tokio::spawn(async move {
+                            match Self::get_commit_ref(service_idx, &env, config).await {
+                                Ok(commit) => {
+                                    sender.send(GetCommitRefOk(commit, service_idx, env));
+                                }
+                                Err(err) => {
+                                    sender.send(GetCommitRefErrored(err.to_string(), service_idx, env));
+                                }
+                            }
+                        });
                     }
-                    CommitRefRetrieved(commit, service_idx, env) => match env {
-                        Staging => self.state.service_status.services[service_idx].staging = commit,
-                        Preproduction => {
-                            self.state.service_status.services[service_idx].preprod = commit
-                        }
-                        Production => self.state.service_status.services[service_idx].prod = commit,
-                        _ => {}
-                    },
+                    GetCommitRefOk(commit, service_idx, env) => {
+                        self.state.service_status.set_commit_ok(service_idx, &env, commit);
+                    }
+                    GetCommitRefErrored(error, service_idx, env) => {
+                        self.state.service_status.set_commit_error(service_idx, &env, error);
+                    }
                     TokenGenEnvListMove(direction) => {
                         let (selected_service, _) =
                             self.state.token_generator.get_selected_service_env();
@@ -296,6 +257,12 @@ impl App {
         ).await
     }
 
+    async fn get_commit_ref(service_idx: usize, env: &Environment, config: Vec<ServiceStatus>) -> Result<String, Box<dyn Error>>{
+        let url = format!("{}healthcheck",config[service_idx].get_from_env(&env));
+
+        get(url).await
+    }
+
     fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
         match direction {
             Direction::Up => list_state.select_previous(),
@@ -374,18 +341,23 @@ impl App {
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Up, _) => {
                 self.event_sender.send(ServiceStatusListMove(Direction::Up))
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Enter, _) => {
-                self.event_sender.send(GenerateDiff)
-            }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o'), _) => {
-                if self.state.service_status.has_link() {
-                    let link = self.state.service_status.get_link();
+                if self.state.service_status.has_link() &&
+                    let Some(service_idx) = self.state.service_status.get_selected_service_idx()
+                    {
+                    let link = self.state.service_status.get_link(
+                        &self.config.servicestatus[service_idx].repo
+                    );
                     webbrowser::open(link.as_str()).expect("Failed to open link");
                 }
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c'), _) => {
-                if self.state.service_status.has_link() {
-                    let link = self.state.service_status.get_link();
+                if self.state.service_status.has_link() &&
+                    let Some(service_idx) = self.state.service_status.get_selected_service_idx()
+                {
+                    let link = self.state.service_status.get_link(
+                        &self.config.servicestatus[service_idx].repo
+                    );
                     Self::copy_to_clipboard(link).unwrap();
                 }
             }

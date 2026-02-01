@@ -42,9 +42,9 @@ impl AppState {
                 list_state: ListState::default().with_selected(Some(0)),
             },
             current_tool: Tool::Home,
-            service_status: ServiceStatus::new(&config.servicestatus),
+            service_status: ServiceStatus::new(config.servicestatus.len()),
             token_generator: TokenGenerator::new(&config.tokengenerator.services),
-            jira: config.jira.map(Jira::new),
+            jira: Jira::new(),
             focus: AppFocus::List,
         }
     }

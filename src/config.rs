@@ -14,9 +14,21 @@ pub(crate) struct Config {
 pub(crate) struct ServiceStatus {
     pub name: String,
     pub staging: String,
-    pub preprod: String,
-    pub prod: String,
+    pub preproduction: String,
+    pub production: String,
     pub repo: String,
+}
+
+impl ServiceStatus {
+    pub fn get_from_env(&self, env: &Environment) -> &String {
+        if let Environment::Staging = env {
+            &self.staging
+        } else if let Environment::Preproduction = env {
+            &self.preproduction
+        } else {
+            &self.production
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
