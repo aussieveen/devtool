@@ -1,15 +1,6 @@
-use crate::config::{
-    Auth0Config, Credentials, ServiceConfig, TokenGenerator as TokenGeneratorConfig,
-};
-use crate::environment::Environment;
-use crate::environment::Environment::{Local, Preproduction, Production, Staging};
-use crate::events::event::AppEvent;
-use crate::events::sender::EventSender;
+use crate::config::ServiceConfig;
 use crate::state::token_generator::Token::Idle;
 use ratatui::widgets::ListState;
-use serde::Deserialize;
-use std::collections::HashMap;
-use std::time::Duration;
 
 #[derive(Debug)]
 pub enum Focus {
@@ -26,9 +17,9 @@ pub(crate) struct TokenGenerator {
 }
 
 impl TokenGenerator {
-    pub(crate) fn new(services: &Vec<ServiceConfig>) -> TokenGenerator {
+    pub(crate) fn new(services: &[ServiceConfig]) -> TokenGenerator {
         let tokens = services
-            .into_iter()
+            .iter()
             .map(|s| vec![Idle; s.credentials.len()])
             .collect();
 
@@ -62,15 +53,6 @@ impl TokenGenerator {
 
     pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize, error: String) {
         self.tokens[service_idx][env_idx] = Token::Error(error);
-    }
-
-    pub fn get_token_string_for_selected_service_env(&self) -> Result<&str, &str> {
-        match self.get_token_for_selected_service_env() {
-            Token::Idle => Err("Token has not been requested"),
-            Token::Requesting => Err("Token being requested"),
-            Token::Ready(token) => Ok(token.as_str()),
-            Token::Error(e) => Err(e.as_str()),
-        }
     }
 
     pub fn get_token_for_selected_service_env(&self) -> &Token {

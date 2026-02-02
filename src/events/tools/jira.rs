@@ -13,7 +13,7 @@ use crate::utils::update_list_state;
 use std::error::Error;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
-    match (app_event) {
+    match app_event {
         JiraTicketListMove(direction) => {
             let list_len = app.state.jira.tickets.len();
             update_list_state::update_noneable_list(
@@ -53,6 +53,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         TicketRetrieved(ticket_response) => {
             app.state.jira.add_ticket(ticket_response);
+            app.state.jira.set_new_ticket_id(None);
             write_jira_tickets(&app.state.jira.tickets).expect("Failed to persist tickets");
         }
         RemoveTicket => {
@@ -82,7 +83,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
 }
 
 async fn get_ticket(
-    ticket_id: &String,
+    ticket_id: &str,
     config: &JiraConfig,
 ) -> Result<TicketResponse, Box<dyn Error>> {
     jira_client::get(ticket_id, &config.email, &config.token).await

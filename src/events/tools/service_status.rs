@@ -11,7 +11,7 @@ use crate::utils::update_list_state;
 use std::error::Error;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
-    match (app_event) {
+    match app_event {
         ServiceStatusListMove(direction) => {
             let list_state = &mut app.state.service_status.list_state;
             let list_limit = app.state.service_status.services.len();
@@ -64,7 +64,7 @@ async fn get_commit_ref(
     env: &Environment,
     config: Vec<ServiceStatus>,
 ) -> Result<String, Box<dyn Error>> {
-    let url = format!("{}healthcheck", config[service_idx].get_from_env(&env));
+    let url = format!("{}healthcheck", config[service_idx].get_from_env(env));
 
     healthcheck_client::get(url).await
 }

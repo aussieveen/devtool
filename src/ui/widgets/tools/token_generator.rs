@@ -9,7 +9,7 @@ pub fn render(
     frame: &mut Frame,
     area: Rect,
     state: &mut TokenGenerator,
-    service_configs: &Vec<ServiceConfig>,
+    service_configs: &[ServiceConfig],
 ) {
     let vertical_break = Layout::default()
         .direction(Direction::Vertical)
@@ -34,7 +34,7 @@ pub fn render(
 
     frame.render_stateful_widget(services, inner_horizonal[0], &mut state.service_list_state);
 
-    let (service_idx, env_idx) = state.get_selected_service_env();
+    let (service_idx, _env_idx) = state.get_selected_service_env();
 
     let service_config = &service_configs[service_idx];
 

@@ -10,7 +10,7 @@ use crate::utils::update_list_state;
 use std::error::Error;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
-    match (app_event) {
+    match app_event {
         TokenGenEnvListMove(direction) => {
             let (selected_service, _) = app.state.token_generator.get_selected_service_env();
 

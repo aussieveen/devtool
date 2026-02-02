@@ -1,5 +1,4 @@
 use crate::client::jira_client::TicketResponse;
-use crate::config::JiraConfig;
 use crate::events::event::Direction;
 use crate::persistence::{read_jira_persistence, write_jira_tickets};
 use ratatui::widgets::ListState;

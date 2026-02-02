@@ -10,8 +10,6 @@ use crate::utils::{browser, string_copy, update_list_state};
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
-use std::io::Write;
-use std::process::{Command, Stdio, Termination};
 use std::time::Duration;
 
 /// The main application which holds the state and logic of the application.
@@ -32,7 +30,7 @@ impl App {
         let event_sender = event_handler.sender();
         Self {
             running: true,
-            state: AppState::new(&config, event_handler.sender()),
+            state: AppState::new(&config),
             event_handler,
             event_sender,
             config,
@@ -127,7 +125,7 @@ impl App {
             AppFocus::Tool => self.handle_tool_events(&self.state.current_tool, key),
         }
 
-        self.handle_global_events(self.state.focus, key);
+        self.handle_global_events(key);
 
         Ok(())
     }
@@ -168,7 +166,7 @@ impl App {
             self.event_sender.send(SetFocus(AppFocus::List))
         }
 
-        match (current_tool) {
+        match current_tool {
             Tool::Home => {}
             Tool::ServiceStatus => self.handle_service_status_key_events(key),
             Tool::TokenGenerator => self.handle_token_generator_key_events(key),
@@ -264,7 +262,7 @@ impl App {
         }
     }
 
-    fn handle_global_events(&self, focus: AppFocus, key: KeyEvent) {
+    fn handle_global_events(&self, key: KeyEvent) {
         // Global quit
         if (matches!(key.code, KeyCode::Char('q')) && !matches!(self.state.focus, AppFocus::PopUp))
             || matches!(key.code, KeyCode::Esc)

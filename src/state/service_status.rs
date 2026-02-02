@@ -1,12 +1,5 @@
-use crate::config::ServiceStatus as ServiceStatusConfig;
 use crate::environment::Environment;
-use crate::events::event::AppEvent;
-use crate::events::sender::EventSender;
 use ratatui::widgets::ListState;
-use reqwest::header::{ACCEPT, USER_AGENT};
-use serde::Deserialize;
-use std::error::Error;
-use std::time::Duration;
 
 #[derive(Debug)]
 pub struct ServiceStatus {

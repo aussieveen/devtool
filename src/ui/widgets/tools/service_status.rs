@@ -11,7 +11,7 @@ pub fn render(
     frame: &mut Frame,
     area: Rect,
     state: &mut ServiceStatus,
-    config: &Vec<ServiceStatusConfig>,
+    config: &[ServiceStatusConfig],
 ) {
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;

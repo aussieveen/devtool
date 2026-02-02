@@ -1,5 +1,4 @@
 use crate::config::Config;
-use crate::events::sender::EventSender;
 use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
@@ -25,7 +24,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub(crate) fn new(config: &Config, event_sender: EventSender) -> AppState {
+    pub(crate) fn new(config: &Config) -> AppState {
         Self {
             tool_list: ToolList {
                 items: {
