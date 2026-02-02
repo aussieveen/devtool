@@ -1,14 +1,16 @@
-use std::error::Error;
 use crate::app::App;
 use crate::client::healthcheck_client;
 use crate::config::ServiceStatus;
 use crate::environment::Environment;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent;
-use crate::events::event::AppEvent::{ScanServices, GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ServiceStatusListMove};
+use crate::events::event::AppEvent::{
+    GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ScanServices, ServiceStatusListMove,
+};
 use crate::utils::update_list_state;
+use std::error::Error;
 
-pub fn handle_event(app: &mut App, app_event: AppEvent){
+pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match (app_event) {
         ServiceStatusListMove(direction) => {
             let list_state = &mut app.state.service_status.list_state;
@@ -38,11 +40,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent){
                         sender.send(GetCommitRefOk(commit, service_idx, env));
                     }
                     Err(err) => {
-                        sender.send(GetCommitRefErrored(
-                            err.to_string(),
-                            service_idx,
-                            env,
-                        ));
+                        sender.send(GetCommitRefErrored(err.to_string(), service_idx, env));
                     }
                 }
             });

@@ -1,5 +1,5 @@
-use ratatui::widgets::ListState;
 use crate::events::event::Direction;
+use ratatui::widgets::ListState;
 
 pub fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
     match direction {

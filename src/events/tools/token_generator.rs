@@ -1,16 +1,18 @@
-use std::error::Error;
 use crate::app::App;
 use crate::client::auth_zero_client;
 use crate::config::TokenGenerator;
 use crate::events::event::AppEvent;
-use crate::events::event::AppEvent::{GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove, TokenGenServiceListMove, TokenGenerated};
+use crate::events::event::AppEvent::{
+    GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove, TokenGenServiceListMove,
+    TokenGenerated,
+};
 use crate::utils::update_list_state;
+use std::error::Error;
 
-pub fn handle_event(app: &mut App, app_event: AppEvent){
+pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match (app_event) {
         TokenGenEnvListMove(direction) => {
-            let (selected_service, _) =
-                app.state.token_generator.get_selected_service_env();
+            let (selected_service, _) = app.state.token_generator.get_selected_service_env();
 
             let env_count = app.config.tokengenerator.services[selected_service]
                 .credentials
@@ -35,8 +37,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent){
             app.state.token_generator.focus = focus;
         }
         GenerateToken => {
-            let (service_idx, env_idx) =
-                app.state.token_generator.get_selected_service_env();
+            let (service_idx, env_idx) = app.state.token_generator.get_selected_service_env();
 
             app.state
                 .token_generator
@@ -84,5 +85,5 @@ async fn get_token(
         &credentials.client_secret,
         &service.audience,
     )
-        .await
+    .await
 }

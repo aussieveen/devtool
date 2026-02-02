@@ -1,27 +1,32 @@
-use std::error::Error;
 use crate::app::App;
 use crate::client::jira_client;
 use crate::client::jira_client::TicketResponse;
 use crate::config::JiraConfig;
+use crate::events::event::AppEvent::{
+    AddTicketIdChar, JiraTicketListMove, JiraTicketMove, NewJiraTicketPopUp, RemoveTicket,
+    RemoveTicketIdChar, SubmitTicketId, TicketRetrieved,
+};
 use crate::events::event::{AppEvent, Direction};
-use crate::events::event::AppEvent::{AddTicketIdChar, NewJiraTicketPopUp, JiraTicketListMove, RemoveTicketIdChar, SubmitTicketId, TicketRetrieved, RemoveTicket, JiraTicketMove};
 use crate::persistence::write_jira_tickets;
 use crate::state::app::AppFocus;
 use crate::utils::update_list_state;
+use std::error::Error;
 
-pub fn handle_event(app: &mut App, app_event: AppEvent){
+pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match (app_event) {
         JiraTicketListMove(direction) => {
             let list_len = app.state.jira.tickets.len();
-            update_list_state::update_noneable_list(&mut app.state.jira.list_state, direction, list_len);
+            update_list_state::update_noneable_list(
+                &mut app.state.jira.list_state,
+                direction,
+                list_len,
+            );
         }
         NewJiraTicketPopUp => {
             app.state.jira.set_new_ticket_popup(true);
             app.state.focus = AppFocus::PopUp
         }
-        AddTicketIdChar(char) => {
-            app.state.jira.add_char_to_ticket_id(char)
-        }
+        AddTicketIdChar(char) => app.state.jira.add_char_to_ticket_id(char),
         RemoveTicketIdChar => {
             app.state.jira.remove_char_from_ticket_id();
         }

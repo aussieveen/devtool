@@ -1,18 +1,18 @@
-use crate::config::{Config};
+use crate::config::Config;
 use crate::events::event::AppEvent::*;
 use crate::events::event::{AppEvent, Direction, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
+use crate::events::tools::{jira, service_status, token_generator};
 use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
+use crate::utils::{browser, string_copy, update_list_state};
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
 use std::process::{Command, Stdio, Termination};
 use std::time::Duration;
-use crate::events::tools::{service_status, token_generator, jira};
-use crate::utils::{browser, update_list_state, string_copy};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
@@ -65,7 +65,7 @@ impl App {
         Ok(())
     }
 
-    fn handle_app_event(&mut self, app_event: AppEvent){
+    fn handle_app_event(&mut self, app_event: AppEvent) {
         match app_event {
             // global
             Quit => self.running = false,
@@ -89,18 +89,14 @@ impl App {
             | e @ ScanServices
             | e @ ScanServiceEnv(..)
             | e @ GetCommitRefOk(..)
-            | e @ GetCommitRefErrored(..) => {
-                service_status::handle_event(self, e)
-            }
+            | e @ GetCommitRefErrored(..) => service_status::handle_event(self, e),
             // token generator events
             e @ TokenGenEnvListMove(..)
             | e @ TokenGenServiceListMove(..)
             | e @ SetTokenGenFocus(..)
             | e @ GenerateToken
             | e @ TokenGenerated(..)
-            | e @ TokenFailed(..) => {
-                token_generator::handle_event(self, e)
-            }
+            | e @ TokenFailed(..) => token_generator::handle_event(self, e),
             // jira ticket events
             e @ JiraTicketListMove(..)
             | e @ NewJiraTicketPopUp
@@ -109,9 +105,7 @@ impl App {
             | e @ SubmitTicketId
             | e @ TicketRetrieved(..)
             | e @ RemoveTicket
-            | e @ JiraTicketMove(..) => {
-                jira::handle_event(self, e)
-            }
+            | e @ JiraTicketMove(..) => jira::handle_event(self, e),
         }
     }
 
@@ -130,7 +124,7 @@ impl App {
         match &self.state.focus {
             AppFocus::PopUp => self.handle_popup_events(&self.state.current_tool, key),
             AppFocus::List => self.handle_list_events(&self.state.current_tool, key),
-            AppFocus::Tool => self.handle_tool_events(&self.state.current_tool, key)
+            AppFocus::Tool => self.handle_tool_events(&self.state.current_tool, key),
         }
 
         self.handle_global_events(self.state.focus, key);
@@ -139,7 +133,7 @@ impl App {
     }
 
     fn handle_popup_events(&self, current_tool: &Tool, key: KeyEvent) {
-        if Tool::Jira != *current_tool{
+        if Tool::Jira != *current_tool {
             return;
         }
 
@@ -155,36 +149,38 @@ impl App {
     }
 
     fn handle_list_events(&self, current_tool: &Tool, key: KeyEvent) {
-        if Tool::Home == *current_tool && key.code == KeyCode::Right{
-            return
+        if Tool::Home == *current_tool && key.code == KeyCode::Right {
+            return;
         }
 
-        match key.code{
+        match key.code {
             KeyCode::Right => self.event_sender.send(SetFocus(AppFocus::Tool)),
             KeyCode::Down => self.event_sender.send(ListMove(Direction::Down)),
-            KeyCode::Up=> self.event_sender.send(ListMove(Direction::Up)),
+            KeyCode::Up => self.event_sender.send(ListMove(Direction::Up)),
             _ => {}
         }
     }
 
     fn handle_tool_events(&self, current_tool: &Tool, key: KeyEvent) {
         if matches![current_tool, Tool::Home | Tool::ServiceStatus | Tool::Jira]
-            && key.code == KeyCode::Left {
+            && key.code == KeyCode::Left
+        {
             self.event_sender.send(SetFocus(AppFocus::List))
         }
 
         match (current_tool) {
-            Tool::Home => {},
+            Tool::Home => {}
             Tool::ServiceStatus => self.handle_service_status_key_events(key),
             Tool::TokenGenerator => self.handle_token_generator_key_events(key),
-            Tool::Jira => self.handle_jira_key_events(key)
+            Tool::Jira => self.handle_jira_key_events(key),
         }
     }
 
-
     fn handle_service_status_key_events(&self, key: KeyEvent) {
         match key.code {
-            KeyCode::Down => self.event_sender.send(ServiceStatusListMove(Direction::Down)),
+            KeyCode::Down => self
+                .event_sender
+                .send(ServiceStatusListMove(Direction::Down)),
             KeyCode::Up => self.event_sender.send(ServiceStatusListMove(Direction::Up)),
             KeyCode::Char('o') => {
                 if self.state.service_status.has_link()
@@ -208,9 +204,7 @@ impl App {
                     string_copy::copy_to_clipboard(link).unwrap();
                 }
             }
-            KeyCode::Char('s') => {
-                self.event_sender.send(ScanServices)
-            }
+            KeyCode::Char('s') => self.event_sender.send(ScanServices),
             _ => {}
         }
     }
@@ -229,7 +223,7 @@ impl App {
             };
 
             self.event_sender.send(event);
-            return
+            return;
         }
 
         match key.code {
@@ -249,15 +243,19 @@ impl App {
                     let _result = string_copy::copy_to_clipboard(token.to_string());
                     todo!("Display errors as pop up somehow");
                 };
-            },
+            }
             _ => {}
         }
     }
 
     fn handle_jira_key_events(&self, key: KeyEvent) {
         match (key.modifiers, key.code) {
-            (KeyModifiers::SHIFT, KeyCode::Down) => self.event_sender.send(JiraTicketMove(Direction::Down)),
-            (KeyModifiers::SHIFT, KeyCode::Up) => self.event_sender.send(JiraTicketMove(Direction::Up)),
+            (KeyModifiers::SHIFT, KeyCode::Down) => {
+                self.event_sender.send(JiraTicketMove(Direction::Down))
+            }
+            (KeyModifiers::SHIFT, KeyCode::Up) => {
+                self.event_sender.send(JiraTicketMove(Direction::Up))
+            }
             (_, KeyCode::Down) => self.event_sender.send(JiraTicketListMove(Direction::Down)),
             (_, KeyCode::Up) => self.event_sender.send(JiraTicketListMove(Direction::Up)),
             (_, KeyCode::Char('a')) => self.event_sender.send(NewJiraTicketPopUp),
