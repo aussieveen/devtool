@@ -1,35 +1,28 @@
-use crate::client::healthcheck_client::get;
-use crate::client::jira_client::TicketResponse;
-use crate::client::{auth_zero_client, jira_client};
-use crate::config::TokenGenerator;
-use crate::config::{Config, JiraConfig, ServiceStatus};
-use crate::environment::Environment;
-use crate::environment::Environment::{Preproduction, Production, Staging};
+use crate::config::{Config};
 use crate::events::event::AppEvent::*;
-use crate::events::event::{Direction, Event};
+use crate::events::event::{AppEvent, Direction, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
-use crate::persistence::write_jira_tickets;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
-use ratatui::widgets::ListState;
 use ratatui::{DefaultTerminal, Frame};
-use std::error::Error;
 use std::io::Write;
 use std::process::{Command, Stdio};
 use std::time::Duration;
+use crate::events::tools::{service_status, token_generator, jira};
+use crate::utils::{browser, update_list_state, string_copy};
 
 /// The main application which holds the state and logic of the application.
 #[derive(Debug)]
 pub struct App {
     /// Is the application running?
     running: bool,
-    state: AppState,
+    pub state: AppState,
     event_handler: EventHandler,
-    event_sender: EventSender,
-    config: Config,
+    pub event_sender: EventSender,
+    pub config: Config,
 }
 
 impl App {
@@ -66,262 +59,59 @@ impl App {
                     }
                     _ => {}
                 },
-                Event::App(app_event) => match app_event {
-                    Quit => self.running = false,
-                    SetFocus(focus) => self.state.focus = focus,
-                    ListSelect(tool_state) => self.state.current_tool = tool_state,
-                    ListMove(direction) => {
-                        let tool_list = &mut self.state.tool_list;
-                        Self::update_list(
-                            &mut tool_list.list_state,
-                            direction,
-                            tool_list.items.len(),
-                        );
-                        if let Some(index) = tool_list.list_state.selected()
-                            && let Some(tool) = tool_list.items.get(index).cloned()
-                        {
-                            self.event_sender.send(ListSelect(tool))
-                        }
-                    }
-                    ServiceStatusListMove(direction) => {
-                        let list_state = &mut self.state.service_status.list_state;
-                        let list_limit = self.state.service_status.services.len();
-                        Self::update_noneable_list(list_state, direction, list_limit);
-                    }
-                    ScanServices => {
-                        let len = self.state.service_status.services.len();
-                        let sender = self.event_sender.clone();
-
-                        for service_idx in 0..len {
-                            sender.send(ScanServiceEnv(service_idx, Staging));
-                            sender.send(ScanServiceEnv(service_idx, Preproduction));
-                            sender.send(ScanServiceEnv(service_idx, Production));
-                        }
-                    }
-                    ScanServiceEnv(service_idx, env) => {
-                        self.state
-                            .service_status
-                            .set_commit_fetching(service_idx, &env);
-                        let sender = self.event_sender.clone();
-                        let config = self.config.servicestatus.clone();
-
-                        tokio::spawn(async move {
-                            match Self::get_commit_ref(service_idx, &env, config).await {
-                                Ok(commit) => {
-                                    sender.send(GetCommitRefOk(commit, service_idx, env));
-                                }
-                                Err(err) => {
-                                    sender.send(GetCommitRefErrored(
-                                        err.to_string(),
-                                        service_idx,
-                                        env,
-                                    ));
-                                }
-                            }
-                        });
-                    }
-                    GetCommitRefOk(commit, service_idx, env) => {
-                        self.state
-                            .service_status
-                            .set_commit_ok(service_idx, &env, commit);
-                    }
-                    GetCommitRefErrored(error, service_idx, env) => {
-                        self.state
-                            .service_status
-                            .set_commit_error(service_idx, &env, error);
-                    }
-                    TokenGenEnvListMove(direction) => {
-                        let (selected_service, _) =
-                            self.state.token_generator.get_selected_service_env();
-
-                        let env_count = self.config.tokengenerator.services[selected_service]
-                            .credentials
-                            .len();
-
-                        Self::update_list(
-                            &mut self.state.token_generator.env_list_state,
-                            direction,
-                            env_count,
-                        );
-                    }
-                    TokenGenServiceListMove(direction) => {
-                        let list_state = &mut self.state.token_generator.service_list_state;
-                        Self::update_list(
-                            list_state,
-                            direction,
-                            self.config.tokengenerator.services.len(),
-                        );
-                        self.state.token_generator.env_list_state.select_first();
-                    }
-                    SetTokenGenFocus(focus) => {
-                        self.state.token_generator.focus = focus;
-                    }
-                    GenerateToken => {
-                        let (service_idx, env_idx) =
-                            self.state.token_generator.get_selected_service_env();
-
-                        self.state
-                            .token_generator
-                            .start_token_request(service_idx, env_idx);
-
-                        let sender = self.event_sender.clone();
-                        let config = self.config.tokengenerator.clone();
-
-                        tokio::spawn(async move {
-                            match Self::get_token(service_idx, env_idx, config).await {
-                                Ok(token) => {
-                                    sender.send(TokenGenerated(token, service_idx, env_idx));
-                                }
-                                Err(err) => {
-                                    sender.send(TokenFailed(err.to_string(), service_idx, env_idx));
-                                }
-                            }
-                        });
-                    }
-                    TokenGenerated(token, service_idx, env_idx) => {
-                        self.state
-                            .token_generator
-                            .set_token_ready(service_idx, env_idx, token);
-                    }
-                    TokenFailed(error, service_idx, env_idx) => {
-                        self.state
-                            .token_generator
-                            .set_token_error(service_idx, env_idx, error);
-                    }
-                    JiraTicketListMove(direction) => {
-                        let list_len = self.state.jira.tickets.len();
-                        Self::update_noneable_list(&mut self.state.jira.list_state, direction, list_len);
-                    }
-                    NewJiraTicketPopUp => {
-                        self.state.jira.set_new_ticket_popup(true);
-                        self.state.focus = AppFocus::PopUp
-                    }
-                    AddTicketIdChar(char) => {
-                    self.state.jira.add_char_to_ticket_id(char)
-                    }
-                    RemoveTicketIdChar => {
-                    self.state.jira.remove_char_from_ticket_id();
-                    }
-                    SubmitTicketId => {
-                        if let Some(config) = self.config.jira.clone()
-                            && let Some(new_ticket_id) = self.state.jira.new_ticket_id.clone()
-                        {
-                            self.state.jira.set_new_ticket_popup(false);
-                            self.state.focus = AppFocus::Tool;
-
-                            let sender = self.event_sender.clone();
-
-                            tokio::spawn(async move {
-                                match Self::get_ticket(&new_ticket_id, &config).await {
-                                    Ok(ticket) => {
-                                        sender.send(TicketRetrieved(ticket));
-                                    }
-                                    Err(_err) => {
-                                        todo!()
-                                    }
-                                }
-                            });
-                        }
-                    }
-                    TicketRetrieved(ticket_response) => {
-                        self.state.jira.add_ticket(ticket_response);
-                        write_jira_tickets(&self.state.jira.tickets).expect("Failed to persist tickets");
-                    }
-                    RemoveTicket => {
-                        self.state.jira.remove_ticket();
-                        let max_select = match self.state.jira.tickets.len() {
-                            0 | 1 => 0,
-                            value => value.saturating_sub(1),
-                        };
-
-                        if let Some(ticket_idx) = self.state.jira.list_state.selected()
-                            && ticket_idx > max_select
-                        {
-                            Self::update_list(
-                                &mut self.state.jira.list_state,
-                                Direction::Up,
-                                self.state.jira.tickets.len(),
-                            )
-                        }
-                        write_jira_tickets(&self.state.jira.tickets).expect("Failed to persist tickets");
-                    }
-                    JiraTicketMove(direction) => {
-                        self.state.jira.swap_tickets(direction);
-                        write_jira_tickets(&self.state.jira.tickets).expect("Failed to persist tickets");
-                    }
-                },
+                Event::App(app_event) => self.handle_app_event(app_event),
             }
         }
         Ok(())
     }
 
-    async fn get_token(
-        service_idx: usize,
-        env_idx: usize,
-        config: TokenGenerator,
-    ) -> Result<String, Box<dyn Error>> {
-        let service = &config.services[service_idx];
-        let credentials = &service.credentials[env_idx];
-
-        auth_zero_client::request_token(
-            config.auth0.get_from_env(&credentials.env),
-            &credentials.client_id,
-            &credentials.client_secret,
-            &service.audience,
-        )
-        .await
-    }
-
-    async fn get_commit_ref(
-        service_idx: usize,
-        env: &Environment,
-        config: Vec<ServiceStatus>,
-    ) -> Result<String, Box<dyn Error>> {
-        let url = format!("{}healthcheck", config[service_idx].get_from_env(&env));
-
-        get(url).await
-    }
-
-    async fn get_ticket(
-        ticket_id: &String,
-        config: &JiraConfig,
-    ) -> Result<TicketResponse, Box<dyn Error>> {
-        jira_client::get(ticket_id, &config.email, &config.token).await
-    }
-
-    fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
-        match direction {
-            Direction::Up => list_state.select_previous(),
-            Direction::Down => Self::select_next(list_state, len),
-        }
-    }
-
-    fn update_noneable_list(list_state: &mut ListState, direction: Direction, len: usize) {
-        let selected = list_state.selected();
-        if len == 0 {
-            list_state.select(None);
-            return;
-        }
-
-        match direction {
-            Direction::Up => {
-                if selected.unwrap_or(0) > 0 {
-                    list_state.select_previous();
-                } else {
-                    list_state.select(None);
+    fn handle_app_event(&mut self, app_event: AppEvent){
+        match app_event {
+            // global
+            Quit => self.running = false,
+            SetFocus(focus) => self.state.focus = focus,
+            ListSelect(tool_state) => self.state.current_tool = tool_state,
+            ListMove(direction) => {
+                let tool_list = &mut self.state.tool_list;
+                update_list_state::update_list(
+                    &mut tool_list.list_state,
+                    direction,
+                    tool_list.items.len(),
+                );
+                if let Some(index) = tool_list.list_state.selected()
+                    && let Some(tool) = tool_list.items.get(index).cloned()
+                {
+                    self.event_sender.send(ListSelect(tool))
                 }
             }
-            Direction::Down => Self::select_next(list_state, len),
-        }
-    }
-
-    fn select_next(list_state: &mut ListState, len: usize) {
-        let selected = list_state.selected().unwrap_or(0);
-        let n = len.saturating_sub(1);
-        if selected == n {
-            list_state.select(Some(n));
-        } else {
-            list_state.select_next();
+            // service status events
+            e @ ServiceStatusListMove(..)
+            | e @ ScanServices
+            | e @ ScanServiceEnv(..)
+            | e @ GetCommitRefOk(..)
+            | e @ GetCommitRefErrored(..) => {
+                service_status::handle_event(self, e)
+            }
+            // token generator events
+            e @ TokenGenEnvListMove(..)
+            | e @ TokenGenServiceListMove(..)
+            | e @ SetTokenGenFocus(..)
+            | e @ GenerateToken
+            | e @ TokenGenerated(..)
+            | e @ TokenFailed(..) => {
+                token_generator::handle_event(self, e)
+            }
+            // jira ticket events
+            e @ JiraTicketListMove(..)
+            | e @ NewJiraTicketPopUp
+            | e @ AddTicketIdChar(..)
+            | e @ RemoveTicketIdChar
+            | e @ SubmitTicketId
+            | e @ TicketRetrieved(..)
+            | e @ RemoveTicket
+            | e @ JiraTicketMove(..) => {
+                jira::handle_event(self, e)
+            }
         }
     }
 
@@ -375,7 +165,7 @@ impl App {
                         .state
                         .service_status
                         .get_link(&self.config.servicestatus[service_idx].repo);
-                    webbrowser::open(link.as_str()).expect("Failed to open link");
+                    browser::open_link_in_browser(link)
                 }
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c'), _) => {
@@ -386,7 +176,7 @@ impl App {
                         .state
                         .service_status
                         .get_link(&self.config.servicestatus[service_idx].repo);
-                    Self::copy_to_clipboard(link).unwrap();
+                    string_copy::copy_to_clipboard(link).unwrap();
                 }
             }
             (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('s'), _) => {
@@ -428,7 +218,7 @@ impl App {
                     .get_token_for_selected_service_env()
                     .value()
                 {
-                    let _result = Self::copy_to_clipboard(token.to_string());
+                    let _result = string_copy::copy_to_clipboard(token.to_string());
                     todo!("Display errors as pop up somehow");
                 };
             }
@@ -475,35 +265,6 @@ impl App {
             self.event_sender.send(Quit);
         }
 
-        Ok(())
-    }
-
-    fn copy_to_clipboard(text: String) -> Result<(), String> {
-        let str = text.as_str();
-        if which::which("wl-copy").is_ok() {
-            return Self::pipe_to("wl-copy", &[], str);
-        }
-
-        if cfg!(target_os = "macos") {
-            return Self::pipe_to("pbcopy", &[], str);
-        }
-
-        Ok(())
-    }
-
-    fn pipe_to(cmd: &str, args: &[&str], text: &str) -> Result<(), String> {
-        let mut child = Command::new(cmd)
-            .args(args)
-            .stdin(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("Failed to run {cmd}: {e}"))?;
-
-        if let Some(mut stdin) = child.stdin.take() {
-            // Ignore broken pipe — clipboard tool may exit early
-            let _ = stdin.write_all(text.as_bytes());
-        }
-
-        let _ = child.wait();
         Ok(())
     }
 }
