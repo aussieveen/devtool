@@ -9,7 +9,7 @@ use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, Termination};
 use std::time::Duration;
 use crate::events::tools::{service_status, token_generator, jira};
 use crate::utils::{browser, update_list_state, string_copy};
@@ -127,37 +127,66 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
-        match (
-            &self.state.focus,
-            &self.state.current_tool,
-            key.code,
-            key.modifiers,
-        ) {
-            // List navigation
-            (AppFocus::List, _, KeyCode::Down, _) => {
-                self.event_sender.send(ListMove(Direction::Down))
-            }
-            (AppFocus::List, _, KeyCode::Up, _) => self.event_sender.send(ListMove(Direction::Up)),
+        match &self.state.focus {
+            AppFocus::PopUp => self.handle_popup_events(&self.state.current_tool, key),
+            AppFocus::List => self.handle_list_events(&self.state.current_tool, key),
+            AppFocus::Tool => self.handle_tool_events(&self.state.current_tool, key)
+        }
 
-            // List → Tool focus
-            (AppFocus::List, Tool::Home, KeyCode::Right, _) => {} // no-op
-            (AppFocus::List, _, KeyCode::Right, _) => {
-                self.event_sender.send(SetFocus(AppFocus::Tool))
-            }
+        self.handle_global_events(self.state.focus, key);
 
-            // Tool → List focus
-            (AppFocus::Tool, Tool::Home | Tool::ServiceStatus | Tool::Jira, KeyCode::Left, _) => {
-                self.event_sender.send(SetFocus(AppFocus::List))
-            }
+        Ok(())
+    }
 
-            // ServiceStatus key events
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Down, _) => self
-                .event_sender
-                .send(ServiceStatusListMove(Direction::Down)),
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Up, _) => {
-                self.event_sender.send(ServiceStatusListMove(Direction::Up))
+    fn handle_popup_events(&self, current_tool: &Tool, key: KeyEvent) {
+        if Tool::Jira != *current_tool{
+            return;
+        }
+
+        match key.code {
+            k if k.is_backspace() => self.event_sender.send(RemoveTicketIdChar),
+            k if k.is_enter() => self.event_sender.send(SubmitTicketId),
+            k => {
+                if let Some(char) = k.as_char() {
+                    self.event_sender.send(AddTicketIdChar(char))
+                }
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('o'), _) => {
+        }
+    }
+
+    fn handle_list_events(&self, current_tool: &Tool, key: KeyEvent) {
+        if Tool::Home == *current_tool && key.code == KeyCode::Right{
+            return
+        }
+
+        match key.code{
+            KeyCode::Right => self.event_sender.send(SetFocus(AppFocus::Tool)),
+            KeyCode::Down => self.event_sender.send(ListMove(Direction::Down)),
+            KeyCode::Up=> self.event_sender.send(ListMove(Direction::Up)),
+            _ => {}
+        }
+    }
+
+    fn handle_tool_events(&self, current_tool: &Tool, key: KeyEvent) {
+        if matches![current_tool, Tool::Home | Tool::ServiceStatus | Tool::Jira]
+            && key.code == KeyCode::Left {
+            self.event_sender.send(SetFocus(AppFocus::List))
+        }
+
+        match (current_tool) {
+            Tool::Home => {},
+            Tool::ServiceStatus => self.handle_service_status_key_events(key),
+            Tool::TokenGenerator => self.handle_token_generator_key_events(key),
+            Tool::Jira => self.handle_jira_key_events(key)
+        }
+    }
+
+
+    fn handle_service_status_key_events(&self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Down => self.event_sender.send(ServiceStatusListMove(Direction::Down)),
+            KeyCode::Up => self.event_sender.send(ServiceStatusListMove(Direction::Up)),
+            KeyCode::Char('o') => {
                 if self.state.service_status.has_link()
                     && let Some(service_idx) = self.state.service_status.get_selected_service_idx()
                 {
@@ -168,7 +197,7 @@ impl App {
                     browser::open_link_in_browser(link)
                 }
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('c'), _) => {
+            KeyCode::Char('c') => {
                 if self.state.service_status.has_link()
                     && let Some(service_idx) = self.state.service_status.get_selected_service_idx()
                 {
@@ -179,39 +208,38 @@ impl App {
                     string_copy::copy_to_clipboard(link).unwrap();
                 }
             }
-            (AppFocus::Tool, Tool::ServiceStatus, KeyCode::Char('s'), _) => {
+            KeyCode::Char('s') => {
                 self.event_sender.send(ScanServices)
             }
-            // TokenGenerator key events
-            (AppFocus::Tool, Tool::TokenGenerator, key, _)
-                if matches!(key, KeyCode::Up | KeyCode::Down) =>
-            {
-                let dir = match key {
-                    KeyCode::Up => Direction::Up,
-                    KeyCode::Down => Direction::Down,
-                    _ => unreachable!(),
-                };
+            _ => {}
+        }
+    }
 
-                let event = match self.state.token_generator.focus {
-                    Focus::Service => TokenGenServiceListMove(dir),
-                    Focus::Env => TokenGenEnvListMove(dir),
-                };
+    fn handle_token_generator_key_events(&self, key: KeyEvent) {
+        if matches!(key.code, KeyCode::Up | KeyCode::Down) {
+            let dir = match key.code {
+                KeyCode::Up => Direction::Up,
+                KeyCode::Down => Direction::Down,
+                _ => unreachable!(),
+            };
 
-                self.event_sender.send(event);
-            }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Right, _) => {
-                self.event_sender.send(SetTokenGenFocus(Focus::Env));
-            }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Left, _) => {
-                match &self.state.token_generator.focus {
-                    Focus::Service => self.event_sender.send(SetFocus(AppFocus::List)),
-                    Focus::Env => self.event_sender.send(SetTokenGenFocus(Focus::Service)),
-                }
-            }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Enter, _) => {
-                self.event_sender.send(GenerateToken)
-            }
-            (AppFocus::Tool, Tool::TokenGenerator, KeyCode::Char('c'), _) => {
+            let event = match self.state.token_generator.focus {
+                Focus::Service => TokenGenServiceListMove(dir),
+                Focus::Env => TokenGenEnvListMove(dir),
+            };
+
+            self.event_sender.send(event);
+            return
+        }
+
+        match key.code {
+            KeyCode::Right => self.event_sender.send(SetTokenGenFocus(Focus::Env)),
+            KeyCode::Left => match self.state.token_generator.focus {
+                Focus::Service => self.event_sender.send(SetFocus(AppFocus::List)),
+                Focus::Env => self.event_sender.send(SetTokenGenFocus(Focus::Service)),
+            },
+            KeyCode::Enter => self.event_sender.send(GenerateToken),
+            KeyCode::Char('c') => {
                 if let Some(token) = self
                     .state
                     .token_generator
@@ -221,50 +249,29 @@ impl App {
                     let _result = string_copy::copy_to_clipboard(token.to_string());
                     todo!("Display errors as pop up somehow");
                 };
-            }
-            (AppFocus::Tool, Tool::Jira, key, KeyModifiers::SHIFT) => {
-                if let Some(direction) = match key {
-                    KeyCode::Down => Some(Direction::Down),
-                    KeyCode::Up => Some(Direction::Up),
-                    _ => None,
-                } {
-                    self.event_sender.send(JiraTicketMove(direction));
-                }
-            }
-            (AppFocus::Tool, Tool::Jira, KeyCode::Down, _) => {
-                self.event_sender.send(JiraTicketListMove(Direction::Down))
-            }
-            (AppFocus::Tool, Tool::Jira, KeyCode::Up, _) => {
-                self.event_sender.send(JiraTicketListMove(Direction::Up))
-            }
-            (AppFocus::Tool, Tool::Jira, KeyCode::Char('a'), _) => {
-                self.event_sender.send(NewJiraTicketPopUp)
-            }
-            (AppFocus::Tool, Tool::Jira, KeyCode::Char('x'), _) => {
-                self.event_sender.send(RemoveTicket)
-            }
-            (AppFocus::PopUp, Tool::Jira, key_code, _) => {
-                if key_code.is_backspace() {
-                    self.event_sender.send(RemoveTicketIdChar);
-                } else if key_code.is_enter() {
-                    self.event_sender.send(SubmitTicketId);
-                } else if let Some(char) = key_code.as_char() {
-                    self.event_sender.send(AddTicketIdChar(char))
-                }
-            }
-
-            // Fallback
-            (AppFocus::List, _, _, _) | (AppFocus::Tool, _, _, _) | (AppFocus::PopUp, _, _, _) => {}
+            },
+            _ => {}
         }
+    }
 
+    fn handle_jira_key_events(&self, key: KeyEvent) {
+        match (key.modifiers, key.code) {
+            (KeyModifiers::SHIFT, KeyCode::Down) => self.event_sender.send(JiraTicketMove(Direction::Down)),
+            (KeyModifiers::SHIFT, KeyCode::Up) => self.event_sender.send(JiraTicketMove(Direction::Up)),
+            (_, KeyCode::Down) => self.event_sender.send(JiraTicketListMove(Direction::Down)),
+            (_, KeyCode::Up) => self.event_sender.send(JiraTicketListMove(Direction::Up)),
+            (_, KeyCode::Char('a')) => self.event_sender.send(NewJiraTicketPopUp),
+            (_, KeyCode::Char('x')) => self.event_sender.send(RemoveTicket),
+            _ => {}
+        }
+    }
+
+    fn handle_global_events(&self, focus: AppFocus, key: KeyEvent) {
         // Global quit
-        if matches!(key.code, KeyCode::Esc)
-            || (matches!(key.code, KeyCode::Char('q'))
-                && !matches!(self.state.focus, AppFocus::PopUp))
+        if (matches!(key.code, KeyCode::Char('q')) && !matches!(self.state.focus, AppFocus::PopUp))
+            || matches!(key.code, KeyCode::Esc)
         {
             self.event_sender.send(Quit);
         }
-
-        Ok(())
     }
 }
