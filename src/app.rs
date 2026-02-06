@@ -1,13 +1,21 @@
+use crate::app::Tool::{Home, Jira, ServiceStatus, TokenGenerator};
 use crate::config::Config;
 use crate::events::event::AppEvent::*;
 use crate::events::event::{AppEvent, Direction, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::events::tools::{jira, service_status, token_generator};
-use crate::state::app::{AppFocus, Tool};
+use crate::input::key_bindings::register_bindings;
+use crate::input::key_context::KeyContext;
+use crate::input::key_context::KeyContext::{
+    Global, List, ListIgnore, ListSpecific, Popup, TokenGen, ToolIgnore,
+};
+use crate::input::key_event_map::KeyEventMap;
+pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
 use crate::utils::{browser, string_copy, update_list_state};
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
+use crossterm::event::Event::Key;
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use std::time::Duration;
@@ -21,6 +29,7 @@ pub struct App {
     event_handler: EventHandler,
     pub event_sender: EventSender,
     pub config: Config,
+    key_event_map: KeyEventMap,
 }
 
 impl App {
@@ -34,6 +43,7 @@ impl App {
             event_handler,
             event_sender,
             config,
+            key_event_map: KeyEventMap::new(),
         }
     }
 
@@ -46,6 +56,9 @@ impl App {
                 async_sender.send(ScanServices);
             }
         });
+
+        // Register bindings
+        register_bindings(&mut self.key_event_map);
 
         while self.running {
             terminal.draw(|frame| self.render(frame))?;
@@ -82,6 +95,17 @@ impl App {
                     self.event_sender.send(ListSelect(tool))
                 }
             }
+
+            e @ CopyToClipboard => match self.state.current_tool {
+                Tool::ServiceStatus => service_status::handle_event(self, e),
+                Tool::TokenGenerator => token_generator::handle_event(self, e),
+                _ => {}
+            },
+            e @ OpenInBrowser => match self.state.current_tool {
+                Tool::ServiceStatus => service_status::handle_event(self, e),
+                _ => {}
+            },
+
             // service status events
             e @ ServiceStatusListMove(..)
             | e @ ScanServices
@@ -119,155 +143,35 @@ impl App {
 
     /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
-        match &self.state.focus {
-            AppFocus::PopUp => self.handle_popup_events(&self.state.current_tool, key),
-            AppFocus::List => self.handle_list_events(&self.state.current_tool, key),
-            AppFocus::Tool => self.handle_tool_events(&self.state.current_tool, key),
+        for context in self.get_context_stack() {
+            if let Some(event) = self.key_event_map.resolve(context, key) {
+                self.event_sender.send(event.clone());
+            }
         }
-
-        self.handle_global_events(key);
 
         Ok(())
     }
 
-    fn handle_popup_events(&self, current_tool: &Tool, key: KeyEvent) {
-        if Tool::Jira != *current_tool {
-            return;
-        }
-
-        match key.code {
-            k if k.is_backspace() => self.event_sender.send(RemoveTicketIdChar),
-            k if k.is_enter() => self.event_sender.send(SubmitTicketId),
-            k => {
-                if let Some(char) = k.as_char() {
-                    self.event_sender.send(AddTicketIdChar(char))
+    fn get_context_stack(&self) -> Vec<KeyContext> {
+        let mut stack = Vec::new();
+        match self.state.focus {
+            AppFocus::List => {
+                stack.push(List);
+                stack.push(ListIgnore(Home));
+            }
+            AppFocus::Tool => {
+                stack.push(KeyContext::Tool(self.state.current_tool));
+                if self.state.current_tool == TokenGenerator {
+                    stack.push(TokenGen(self.state.token_generator.focus))
+                } else {
+                    stack.push(ToolIgnore(TokenGenerator));
                 }
             }
-        }
-    }
-
-    fn handle_list_events(&self, current_tool: &Tool, key: KeyEvent) {
-        if Tool::Home == *current_tool && key.code == KeyCode::Right {
-            return;
-        }
-
-        match key.code {
-            KeyCode::Right => self.event_sender.send(SetFocus(AppFocus::Tool)),
-            KeyCode::Down => self.event_sender.send(ListMove(Direction::Down)),
-            KeyCode::Up => self.event_sender.send(ListMove(Direction::Up)),
-            _ => {}
-        }
-    }
-
-    fn handle_tool_events(&self, current_tool: &Tool, key: KeyEvent) {
-        if matches![current_tool, Tool::Home | Tool::ServiceStatus | Tool::Jira]
-            && key.code == KeyCode::Left
-        {
-            self.event_sender.send(SetFocus(AppFocus::List))
-        }
-
-        match current_tool {
-            Tool::Home => {}
-            Tool::ServiceStatus => self.handle_service_status_key_events(key),
-            Tool::TokenGenerator => self.handle_token_generator_key_events(key),
-            Tool::Jira => self.handle_jira_key_events(key),
-        }
-    }
-
-    fn handle_service_status_key_events(&self, key: KeyEvent) {
-        match key.code {
-            KeyCode::Down => self
-                .event_sender
-                .send(ServiceStatusListMove(Direction::Down)),
-            KeyCode::Up => self.event_sender.send(ServiceStatusListMove(Direction::Up)),
-            KeyCode::Char('o') => {
-                if self.state.service_status.has_link()
-                    && let Some(service_idx) = self.state.service_status.get_selected_service_idx()
-                {
-                    let link = self
-                        .state
-                        .service_status
-                        .get_link(&self.config.servicestatus[service_idx].repo);
-                    browser::open_link_in_browser(link)
-                }
+            AppFocus::PopUp => {
+                stack.push(Popup(Jira));
             }
-            KeyCode::Char('c') => {
-                if self.state.service_status.has_link()
-                    && let Some(service_idx) = self.state.service_status.get_selected_service_idx()
-                {
-                    let link = self
-                        .state
-                        .service_status
-                        .get_link(&self.config.servicestatus[service_idx].repo);
-                    string_copy::copy_to_clipboard(link).unwrap();
-                }
-            }
-            KeyCode::Char('s') => self.event_sender.send(ScanServices),
-            _ => {}
         }
-    }
-
-    fn handle_token_generator_key_events(&self, key: KeyEvent) {
-        if matches!(key.code, KeyCode::Up | KeyCode::Down) {
-            let dir = match key.code {
-                KeyCode::Up => Direction::Up,
-                KeyCode::Down => Direction::Down,
-                _ => unreachable!(),
-            };
-
-            let event = match self.state.token_generator.focus {
-                Focus::Service => TokenGenServiceListMove(dir),
-                Focus::Env => TokenGenEnvListMove(dir),
-            };
-
-            self.event_sender.send(event);
-            return;
-        }
-
-        match key.code {
-            KeyCode::Right => self.event_sender.send(SetTokenGenFocus(Focus::Env)),
-            KeyCode::Left => match self.state.token_generator.focus {
-                Focus::Service => self.event_sender.send(SetFocus(AppFocus::List)),
-                Focus::Env => self.event_sender.send(SetTokenGenFocus(Focus::Service)),
-            },
-            KeyCode::Enter => self.event_sender.send(GenerateToken),
-            KeyCode::Char('c') => {
-                if let Some(token) = self
-                    .state
-                    .token_generator
-                    .get_token_for_selected_service_env()
-                    .value()
-                {
-                    let _result = string_copy::copy_to_clipboard(token.to_string());
-                    todo!("Display errors as pop up somehow");
-                };
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_jira_key_events(&self, key: KeyEvent) {
-        match (key.modifiers, key.code) {
-            (KeyModifiers::SHIFT, KeyCode::Down) => {
-                self.event_sender.send(JiraTicketMove(Direction::Down))
-            }
-            (KeyModifiers::SHIFT, KeyCode::Up) => {
-                self.event_sender.send(JiraTicketMove(Direction::Up))
-            }
-            (_, KeyCode::Down) => self.event_sender.send(JiraTicketListMove(Direction::Down)),
-            (_, KeyCode::Up) => self.event_sender.send(JiraTicketListMove(Direction::Up)),
-            (_, KeyCode::Char('a')) => self.event_sender.send(NewJiraTicketPopUp),
-            (_, KeyCode::Char('x')) => self.event_sender.send(RemoveTicket),
-            _ => {}
-        }
-    }
-
-    fn handle_global_events(&self, key: KeyEvent) {
-        // Global quit
-        if (matches!(key.code, KeyCode::Char('q')) && !matches!(self.state.focus, AppFocus::PopUp))
-            || matches!(key.code, KeyCode::Esc)
-        {
-            self.event_sender.send(Quit);
-        }
+        stack.push(Global);
+        stack
     }
 }

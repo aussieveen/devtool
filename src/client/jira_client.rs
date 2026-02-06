@@ -15,26 +15,26 @@ pub async fn get(
     Ok(request.send().await?.json::<TicketResponse>().await?)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct TicketResponse {
     pub key: String,
     pub fields: Fields,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Fields {
     pub assignee: Option<Assignee>,
     pub status: Status,
     pub summary: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Assignee {
     pub display_name: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     pub name: String,

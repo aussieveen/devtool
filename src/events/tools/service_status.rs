@@ -7,6 +7,9 @@ use crate::events::event::AppEvent;
 use crate::events::event::AppEvent::{
     GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ScanServices, ServiceStatusListMove,
 };
+use crate::state::app::AppState;
+use crate::utils::browser::open_link_in_browser;
+use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 use std::error::Error;
 
@@ -55,8 +58,32 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .service_status
                 .set_commit_error(service_idx, &env, error);
         }
+        AppEvent::CopyToClipboard => {
+            if let Some(link) = get_link_url(app) {
+                copy_to_clipboard(link).expect("TODO: panic message");
+            }
+        }
+        AppEvent::OpenInBrowser => {
+            if let Some(link) = get_link_url(app) {
+                open_link_in_browser(link);
+            }
+        }
         _ => {}
     }
+}
+
+fn get_link_url(app: &App) -> Option<String> {
+    if !app.state.service_status.has_link() {
+        return None;
+    }
+    if let Some(service_idx) = app.state.service_status.get_selected_service_idx() {
+        return Some(
+            app.state
+                .service_status
+                .get_link(&app.config.servicestatus[service_idx].repo),
+        );
+    }
+    None
 }
 
 async fn get_commit_ref(

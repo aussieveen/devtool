@@ -13,7 +13,7 @@ pub struct ToolList {
     pub list_state: ListState,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy, Eq, Hash)]
 pub enum Tool {
     Home,
     ServiceStatus,

@@ -22,7 +22,7 @@ pub enum Event {
     App(AppEvent),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AppEvent {
     // List events
     ListMove(Direction), // Move up and down tool List
@@ -30,9 +30,7 @@ pub enum AppEvent {
 
     // Tool events
     // ServiceStatus
-    ServiceStatusListMove(Direction), // Move up and down on service list
-    // Commit reference received for service on env
-    // usize is the index of the service in the ListState
+    ServiceStatusListMove(Direction),
     GetCommitRefOk(String, usize, Environment),
     GetCommitRefErrored(String, usize, Environment),
     ScanServices, // Scan all services
@@ -59,9 +57,11 @@ pub enum AppEvent {
     // Generic Events
     SetFocus(AppFocus),
     Quit,
+    OpenInBrowser,
+    CopyToClipboard,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Direction {
     Up,
     Down,
