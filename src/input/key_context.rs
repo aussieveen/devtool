@@ -5,7 +5,6 @@ use crate::state::token_generator::Focus as TokenFocus;
 pub enum KeyContext {
     Global,
     List,
-    ListSpecific(Tool),
     ListIgnore(Tool),
     Tool(Tool),
     ToolIgnore(Tool),

@@ -188,9 +188,5 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
 }
 
 fn add_ticket_id_char(key_event: KeyEvent) -> Option<AppEvent> {
-    if let Some(char) = key_event.code.as_char() {
-        Some(AddTicketIdChar(char))
-    } else {
-        None
-    }
+    key_event.code.as_char().map(AddTicketIdChar)
 }

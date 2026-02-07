@@ -3,9 +3,11 @@ use crate::client::auth_zero_client;
 use crate::config::TokenGenerator;
 use crate::events::event::AppEvent;
 use crate::events::event::AppEvent::{
-    GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove, TokenGenServiceListMove,
-    TokenGenerated,
+    CopyToClipboard, GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove,
+    TokenGenServiceListMove, TokenGenerated,
 };
+use crate::state::token_generator::Token;
+use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 use std::error::Error;
 
@@ -66,6 +68,18 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             app.state
                 .token_generator
                 .set_token_error(service_idx, env_idx, error);
+        }
+        CopyToClipboard => {
+            let token = app
+                .state
+                .token_generator
+                .get_token_for_selected_service_env();
+            if matches!(token, Token::Ready(_))
+                && let Some(value) = token.value()
+            {
+                // @TODO - Error handle failure to copy
+                let _ = copy_to_clipboard(value.to_string());
+            }
         }
         _ => {}
     }

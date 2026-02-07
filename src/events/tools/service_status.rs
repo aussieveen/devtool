@@ -7,7 +7,6 @@ use crate::events::event::AppEvent;
 use crate::events::event::AppEvent::{
     GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ScanServices, ServiceStatusListMove,
 };
-use crate::state::app::AppState;
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;

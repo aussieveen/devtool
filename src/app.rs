@@ -1,22 +1,20 @@
-use crate::app::Tool::{Home, Jira, ServiceStatus, TokenGenerator};
+use crate::app::Tool::{Home, Jira, TokenGenerator};
 use crate::config::Config;
 use crate::events::event::AppEvent::*;
-use crate::events::event::{AppEvent, Direction, Event};
+use crate::events::event::{AppEvent, Event};
 use crate::events::handler::EventHandler;
 use crate::events::sender::EventSender;
 use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    Global, List, ListIgnore, ListSpecific, Popup, TokenGen, ToolIgnore,
+    Global, List, ListIgnore, Popup, TokenGen, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
-use crate::state::token_generator::Focus;
-use crate::utils::{browser, string_copy, update_list_state};
+use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
-use crossterm::event::Event::Key;
-use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::event::{self, KeyEvent, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
 use std::time::Duration;
 
@@ -101,10 +99,11 @@ impl App {
                 Tool::TokenGenerator => token_generator::handle_event(self, e),
                 _ => {}
             },
-            e @ OpenInBrowser => match self.state.current_tool {
-                Tool::ServiceStatus => service_status::handle_event(self, e),
-                _ => {}
-            },
+            e @ OpenInBrowser => {
+                if self.state.current_tool == Tool::ServiceStatus {
+                    service_status::handle_event(self, e)
+                }
+            }
 
             // service status events
             e @ ServiceStatusListMove(..)
