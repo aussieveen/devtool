@@ -1,5 +1,8 @@
 use crate::app::App;
-use crate::events::event::AppEvent::{AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp, RemoveTicket, RemoveTicketIdChar, SubmitTicketId, TicketRetrieved};
+use crate::events::event::AppEvent::{
+    AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp,
+    RemoveTicket, RemoveTicketIdChar, SubmitTicketId, TicketRetrieved,
+};
 use crate::events::event::{AppEvent, Direction};
 use crate::persistence::{JiraFile, JiraPersistence};
 use crate::state::app::AppFocus;
@@ -63,7 +66,8 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             app.event_sender.send(JiraTicketListUpdate);
         }
         JiraTicketListUpdate => {
-            JiraFile::write_jira_tickets(&app.state.jira.tickets).expect("Failed to persist tickets");
+            JiraFile::write_jira_tickets(&app.state.jira.tickets)
+                .expect("Failed to persist tickets");
         }
         _ => {}
     }

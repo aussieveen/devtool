@@ -1,8 +1,8 @@
 use crate::client::jira::models::TicketResponse;
 use crate::events::event::Direction;
+use crate::persistence::{JiraFile, JiraPersistence};
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
-use crate::persistence::{JiraFile, JiraPersistence};
 
 #[derive(Clone)]
 pub struct Jira {

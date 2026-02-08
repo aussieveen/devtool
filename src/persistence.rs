@@ -5,16 +5,16 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
-pub trait FilePersistence{
+pub trait FilePersistence {
     const FOLDER: &str;
     const PERSISTENCE_FILE: &str;
     fn write_persistence(persistence: Persistence) -> Result<Persistence, Box<dyn Error>>;
     fn read_persistence() -> Result<Persistence, Box<dyn Error>>;
 }
 
-pub trait JiraPersistence{
+pub trait JiraPersistence {
     fn read_jira_persistence() -> Jira;
-    fn write_jira_tickets(tickets:&[Ticket]) -> Result<Jira, Box<dyn Error>>;
+    fn write_jira_tickets(tickets: &[Ticket]) -> Result<Jira, Box<dyn Error>>;
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -35,7 +35,7 @@ impl Jira {
     }
 }
 
-pub struct JiraFile{}
+pub struct JiraFile {}
 
 impl JiraPersistence for JiraFile {
     fn read_jira_persistence() -> Jira {
@@ -56,9 +56,9 @@ impl JiraPersistence for JiraFile {
     }
 }
 
-pub struct File{}
+pub struct File {}
 
-impl FilePersistence for File{
+impl FilePersistence for File {
     const FOLDER: &str = ".devtool";
     const PERSISTENCE_FILE: &str = "persistence.yaml";
 
@@ -96,9 +96,3 @@ impl FilePersistence for File{
         Ok(parsed)
     }
 }
-
-
-
-
-
-
