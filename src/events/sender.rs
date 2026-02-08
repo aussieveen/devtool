@@ -1,7 +1,7 @@
 use crate::events::event::{AppEvent, Event};
 use tokio::sync::mpsc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct EventSender {
     pub(crate) sender: mpsc::UnboundedSender<Event>,
 }

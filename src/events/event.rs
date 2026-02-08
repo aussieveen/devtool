@@ -1,10 +1,9 @@
+use crate::client::jira::models::TicketResponse;
 use crate::environment::Environment;
 use crate::state::app::{AppFocus, Tool};
-use crate::state::service_status::Commit;
-use crate::state::token_generator::{Focus, Token};
+use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
-#[derive(Debug)]
 pub enum Event {
     /// An event that is emitted on a regular schedule.
     ///
@@ -22,7 +21,7 @@ pub enum Event {
     App(AppEvent),
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub enum AppEvent {
     // List events
     ListMove(Direction), // Move up and down tool List
@@ -30,35 +29,39 @@ pub enum AppEvent {
 
     // Tool events
     // ServiceStatus
-    ServiceStatusListMove(Direction), // Move up and down on service list
-    // Commit reference received for service on env
-    // usize is the index of the service in the ListState
-    CommitRefRetrieved(Commit, usize, Environment),
-    GenerateDiff, // Generate diff url
+    ServiceStatusListMove(Direction),
+    GetCommitRefOk(String, usize, Environment),
+    GetCommitRefErrored(String, usize, Environment),
     ScanServices, // Scan all services
+    ScanServiceEnv(usize, Environment),
 
     // TokenGenerator
     TokenGenServiceListMove(Direction),
     TokenGenEnvListMove(Direction),
     SetTokenGenFocus(Focus),
     GenerateToken,
-    TokenGenerated(Token, usize, usize),
+    TokenGenerated(String, usize, usize),
+    TokenFailed(String, usize, usize),
 
     // Jira
-    JiraTicketListMove(Direction),
-    JiraTicketMove(Direction),
+    JiraTicketListMove(Direction), // Move down ticket list
     NewJiraTicketPopUp,
     AddTicketIdChar(char),
     RemoveTicketIdChar,
     SubmitTicketId,
     RemoveTicket,
+    JiraTicketMove(Direction), // Move selected ticket up and down list
+    TicketRetrieved(TicketResponse),
+    JiraTicketListUpdate,
 
     // Generic Events
     SetFocus(AppFocus),
     Quit,
+    OpenInBrowser,
+    CopyToClipboard,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum Direction {
     Up,
     Down,

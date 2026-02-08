@@ -4,7 +4,6 @@ use crate::events::task::EventTask;
 use color_eyre::eyre::OptionExt;
 use tokio::sync::mpsc;
 
-#[derive(Debug)]
 pub struct EventHandler {
     sender: EventSender,
     receiver: mpsc::UnboundedReceiver<Event>,

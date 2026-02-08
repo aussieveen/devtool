@@ -1,10 +1,13 @@
 mod app;
+mod client;
 mod config;
 mod environment;
 mod events;
+mod input;
 mod persistence;
 mod state;
 mod ui;
+mod utils;
 
 use crate::app::App;
 use crate::config::Config;

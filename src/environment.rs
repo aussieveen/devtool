@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use strum_macros::EnumCount;
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, EnumCount)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, EnumCount)]
 pub enum Environment {
     Local,
     Staging,

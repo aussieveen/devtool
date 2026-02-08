@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
@@ -6,13 +7,12 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::ListState;
 
-#[derive(Debug)]
 pub struct ToolList {
     pub items: Vec<Tool>,
     pub list_state: ListState,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, PartialEq, Copy, Eq, Hash)]
 pub enum Tool {
     Home,
     ServiceStatus,
@@ -34,14 +34,22 @@ impl Tool {
         &self,
         frame: &mut Frame,
         area: Rect,
+        config: &Config,
         service_status_state: &mut ServiceStatus,
         token_generator_state: &mut TokenGenerator,
-        jira_state: &mut Option<Jira>,
+        jira_state: &mut Jira,
     ) {
         match self {
             Tool::Home => home::render(frame, area),
-            Tool::ServiceStatus => service_status::render(frame, area, service_status_state),
-            Tool::TokenGenerator => token_generator::render(frame, area, token_generator_state),
+            Tool::ServiceStatus => {
+                service_status::render(frame, area, service_status_state, &config.servicestatus)
+            }
+            Tool::TokenGenerator => token_generator::render(
+                frame,
+                area,
+                token_generator_state,
+                &config.tokengenerator.services,
+            ),
             Tool::Jira => jira::render(frame, area, jira_state),
         }
     }

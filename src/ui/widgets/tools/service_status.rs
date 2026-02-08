@@ -1,3 +1,4 @@
+use crate::config::ServiceStatus as ServiceStatusConfig;
 use crate::state::service_status::{CommitRefStatus, ServiceStatus};
 use crate::ui::styles::list_style;
 use ratatui::Frame;
@@ -6,7 +7,12 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut ServiceStatus) {
+pub fn render(
+    frame: &mut Frame,
+    area: Rect,
+    state: &mut ServiceStatus,
+    config: &[ServiceStatusConfig],
+) {
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;
     const PREPROD_PROD_MATCH: Color = Color::Blue;
@@ -67,7 +73,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut ServiceStatus) {
         Vec::new(), // Prod
     ];
 
-    for service in state.services.iter() {
+    for (service_idx, service) in state.services.iter().enumerate() {
         let (service_color, staging_color, preprod_color, prod_color) = match service
             .commit_ref_status()
         {
@@ -90,7 +96,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut ServiceStatus) {
 
         let no_commit: &str = "Unable to get commit";
 
-        columns[0].push((service.name.clone(), service_color));
+        columns[0].push((config[service_idx].name.clone(), service_color));
         columns[1].push((
             service
                 .staging
