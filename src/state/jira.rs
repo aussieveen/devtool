@@ -1,8 +1,8 @@
 use crate::client::jira::models::TicketResponse;
 use crate::events::event::Direction;
-use crate::persistence::{read_jira_persistence, write_jira_tickets};
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
+use crate::persistence::{JiraFile, JiraPersistence};
 
 #[derive(Clone)]
 pub struct Jira {
@@ -15,7 +15,7 @@ pub struct Jira {
 impl Jira {
     pub fn new() -> Jira {
         Self {
-            tickets: read_jira_persistence().tickets,
+            tickets: JiraFile::read_jira_persistence().tickets,
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false,
             new_ticket_id: None,
@@ -95,7 +95,7 @@ impl Jira {
     }
 
     fn persist_tickets(&mut self) {
-        write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
+        JiraFile::write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
     }
 }
 

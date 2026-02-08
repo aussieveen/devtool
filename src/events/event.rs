@@ -52,6 +52,7 @@ pub enum AppEvent {
     RemoveTicket,
     JiraTicketMove(Direction), // Move selected ticket up and down list
     TicketRetrieved(TicketResponse),
+    JiraTicketListUpdate,
 
     // Generic Events
     SetFocus(AppFocus),

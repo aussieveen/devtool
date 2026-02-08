@@ -30,7 +30,7 @@ pub struct App {
     pub config: Config,
     key_event_map: KeyEventMap,
 
-    // NEW — external systems
+    // External Services
     pub jira_api: Arc<dyn JiraApi>,
 }
 
@@ -133,7 +133,8 @@ impl App {
             | e @ SubmitTicketId
             | e @ TicketRetrieved(..)
             | e @ RemoveTicket
-            | e @ JiraTicketMove(..) => jira::handle_event(self, e),
+            | e @ JiraTicketMove(..)
+            | e @ JiraTicketListUpdate => jira::handle_event(self, e),
         }
     }
 
