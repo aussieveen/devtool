@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 type Key = (KeyCode, KeyModifiers);
 type KeyHandler = fn(KeyEvent) -> Option<AppEvent>;
-#[derive(Debug)]
+
 pub struct KeyEventMap {
     static_events: HashMap<(KeyContext, Key), AppEvent>,
     dynamic_events: HashMap<KeyContext, KeyHandler>,

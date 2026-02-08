@@ -1,10 +1,10 @@
-use crate::client::jira_client::TicketResponse;
+use crate::client::jira::models::TicketResponse;
 use crate::events::event::Direction;
 use crate::persistence::{read_jira_persistence, write_jira_tickets};
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Jira {
     pub tickets: Vec<Ticket>,
     pub list_state: ListState,
@@ -99,7 +99,7 @@ impl Jira {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Ticket {
     pub id: String,
     pub title: String,

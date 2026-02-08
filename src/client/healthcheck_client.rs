@@ -23,7 +23,7 @@ pub async fn get(url: String) -> Result<String, Box<dyn Error>> {
         .to_string())
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct Healthcheck {
     version: String,
 }

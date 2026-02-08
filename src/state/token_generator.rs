@@ -2,13 +2,12 @@ use crate::config::ServiceConfig;
 use crate::state::token_generator::Token::Idle;
 use ratatui::widgets::ListState;
 
-#[derive(Debug, Eq, Hash, PartialEq, Copy, Clone)]
+#[derive(Eq, Hash, PartialEq, Copy, Clone)]
 pub enum Focus {
     Service,
     Env,
 }
 
-#[derive(Debug)]
 pub(crate) struct TokenGenerator {
     pub tokens: Vec<Vec<Token>>,
     pub env_list_state: ListState,
@@ -60,7 +59,7 @@ impl TokenGenerator {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum Token {
     Idle,
     Requesting,

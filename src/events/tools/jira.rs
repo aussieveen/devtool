@@ -1,7 +1,4 @@
 use crate::app::App;
-use crate::client::jira_client;
-use crate::client::jira_client::TicketResponse;
-use crate::config::JiraConfig;
 use crate::events::event::AppEvent::{
     AddTicketIdChar, JiraTicketListMove, JiraTicketMove, NewJiraTicketPopUp, RemoveTicket,
     RemoveTicketIdChar, SubmitTicketId, TicketRetrieved,
@@ -10,7 +7,6 @@ use crate::events::event::{AppEvent, Direction};
 use crate::persistence::write_jira_tickets;
 use crate::state::app::AppFocus;
 use crate::utils::update_list_state;
-use std::error::Error;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match app_event {
@@ -39,16 +35,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
 
                 let sender = app.event_sender.clone();
 
-                tokio::spawn(async move {
-                    match get_ticket(&new_ticket_id, &config).await {
-                        Ok(ticket) => {
-                            sender.send(TicketRetrieved(ticket));
-                        }
-                        Err(_err) => {
-                            todo!()
-                        }
-                    }
-                });
+                app.jira_api.fetch_ticket(new_ticket_id, config, sender);
             }
         }
         TicketRetrieved(ticket_response) => {
@@ -80,11 +67,4 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         _ => {}
     }
-}
-
-async fn get_ticket(
-    ticket_id: &str,
-    config: &JiraConfig,
-) -> Result<TicketResponse, Box<dyn Error>> {
-    jira_client::get(ticket_id, &config.email, &config.token).await
 }

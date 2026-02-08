@@ -27,7 +27,7 @@ pub async fn request_token(
     Ok(response.json::<TokenResponse>().await?.access_token)
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct TokenResponse {
     access_token: String,
 }

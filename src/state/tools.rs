@@ -7,13 +7,12 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::ListState;
 
-#[derive(Debug)]
 pub struct ToolList {
     pub items: Vec<Tool>,
     pub list_state: ListState,
 }
 
-#[derive(Debug, Clone, PartialEq, Copy, Eq, Hash)]
+#[derive(Clone, PartialEq, Copy, Eq, Hash)]
 pub enum Tool {
     Home,
     ServiceStatus,

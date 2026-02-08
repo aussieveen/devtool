@@ -1,7 +1,7 @@
 use crate::app::Tool;
 use crate::state::token_generator::Focus as TokenFocus;
 
-#[derive(Eq, Hash, PartialEq, Debug, Clone)]
+#[derive(Eq, Hash, PartialEq, Clone)]
 pub enum KeyContext {
     Global,
     List,

@@ -5,12 +5,12 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub(crate) struct Persistence {
     pub jira: Jira,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub(crate) struct Jira {
     pub tickets: Vec<Ticket>,
 }

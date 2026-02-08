@@ -1,7 +1,6 @@
 use crate::environment::Environment;
 use ratatui::widgets::ListState;
 
-#[derive(Debug)]
 pub struct ServiceStatus {
     pub services: Vec<Service>,
     pub list_state: ListState,
@@ -58,7 +57,7 @@ impl ServiceStatus {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum Commit {
     Empty,
     Fetching,
@@ -98,7 +97,7 @@ impl Commit {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Service {
     pub staging: Commit,
     pub preprod: Commit,

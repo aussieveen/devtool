@@ -1,10 +1,9 @@
-use crate::client::jira_client::TicketResponse;
+use crate::client::jira::models::TicketResponse;
 use crate::environment::Environment;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
-#[derive(Debug)]
 pub enum Event {
     /// An event that is emitted on a regular schedule.
     ///
@@ -22,7 +21,7 @@ pub enum Event {
     App(AppEvent),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum AppEvent {
     // List events
     ListMove(Direction), // Move up and down tool List
@@ -61,7 +60,7 @@ pub enum AppEvent {
     CopyToClipboard,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub enum Direction {
     Up,
     Down,

@@ -1,4 +1,5 @@
 use crate::app::Tool::{Home, Jira, TokenGenerator};
+use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
 use crate::config::Config;
 use crate::events::event::AppEvent::*;
 use crate::events::event::{AppEvent, Event};
@@ -16,10 +17,10 @@ use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
+use std::sync::Arc;
 use std::time::Duration;
 
 /// The main application which holds the state and logic of the application.
-#[derive(Debug)]
 pub struct App {
     /// Is the application running?
     running: bool,
@@ -28,6 +29,9 @@ pub struct App {
     pub event_sender: EventSender,
     pub config: Config,
     key_event_map: KeyEventMap,
+
+    // NEW — external systems
+    pub jira_api: Arc<dyn JiraApi>,
 }
 
 impl App {
@@ -42,6 +46,9 @@ impl App {
             event_sender,
             config,
             key_event_map: KeyEventMap::new(),
+
+            // wire real infra
+            jira_api: Arc::new(ImmediateJiraApi {}),
         }
     }
 

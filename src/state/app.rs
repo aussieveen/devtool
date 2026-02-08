@@ -6,14 +6,13 @@ pub(crate) use crate::state::tools::Tool;
 use crate::state::tools::ToolList;
 use ratatui::widgets::ListState;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub enum AppFocus {
     List,
     Tool,
     PopUp,
 }
 
-#[derive(Debug)]
 pub struct AppState {
     pub tool_list: ToolList,
     pub current_tool: Tool,
