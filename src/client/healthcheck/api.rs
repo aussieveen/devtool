@@ -46,10 +46,25 @@ async fn get_commit_ref(
     let healthcheck_response =
         healthcheck_client::get(config[service_idx].get_from_env(env).to_string()).await?;
 
-    Ok(healthcheck_response
-        .version
+    Ok(parse_version(healthcheck_response.version))
+}
+
+fn parse_version(version: String) -> String{
+    version
         .split("_")
         .next()
         .unwrap()
-        .to_string())
+        .to_string()
+}
+
+#[cfg(test)]
+mod tests{
+    use test_case::test_case;
+    use crate::client::healthcheck::api::parse_version;
+
+    #[test_case("a_b".to_string(), "a".to_string())]
+    #[test_case("ab".to_string(), "ab".to_string())]
+    fn api_parse_version(version: String, expected: String){
+        assert_eq!(parse_version(version), expected);
+    }
 }

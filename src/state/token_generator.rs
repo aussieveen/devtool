@@ -2,7 +2,7 @@ use crate::config::model::ServiceConfig;
 use crate::state::token_generator::Token::Idle;
 use ratatui::widgets::ListState;
 
-#[derive(Eq, Hash, PartialEq, Copy, Clone)]
+#[derive(Eq, Hash, PartialEq, Copy, Clone, Debug)]
 pub enum Focus {
     Service,
     Env,

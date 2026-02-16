@@ -190,3 +190,77 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
 fn add_ticket_id_char(key_event: KeyEvent) -> Option<AppEvent> {
     key_event.code.as_char().map(AddTicketIdChar)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
+    use crate::events::event::Direction::{Down, Up};
+    use crate::input::key_context::KeyContext;
+    use crate::input::key_context::KeyContext::{
+        Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
+    };
+    use crate::state::token_generator::Focus;
+    use test_case::test_case;
+
+    fn registered_map() -> KeyEventMap {
+        let mut map = KeyEventMap::new();
+        register_bindings(&mut map);
+        map
+    }
+
+    #[test_case(Global, KeyCode::Char('q'), KeyModifiers::NONE, Quit; "q quits")]
+    #[test_case(Global, KeyCode::Esc, KeyModifiers::NONE, Quit; "esc quits")]
+    #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
+    #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
+    #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
+    #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
+    #[test_case(ListIgnore(Home), KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]
+    #[test_case(Tool(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusListMove(Down); "service status down")]
+    #[test_case(Tool(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusListMove(Up); "service status up")]
+    #[test_case(Tool(ServiceStatus), KeyCode::Char('s'), KeyModifiers::NONE, ScanServices; "s scans services")]
+    #[test_case(ToolIgnore(TokenGenerator), KeyCode::Left, KeyModifiers::NONE, SetFocus(AppFocus::List); "tool left focuses list")]
+    #[test_case(TokenGen(Focus::Service), KeyCode::Down, KeyModifiers::NONE, TokenGenServiceListMove(Down); "token service down")]
+    #[test_case(TokenGen(Focus::Service), KeyCode::Up, KeyModifiers::NONE, TokenGenServiceListMove(Up); "token service up")]
+    #[test_case(TokenGen(Focus::Env), KeyCode::Down, KeyModifiers::NONE, TokenGenEnvListMove(Down); "token env down")]
+    #[test_case(TokenGen(Focus::Env), KeyCode::Up, KeyModifiers::NONE, TokenGenEnvListMove(Up); "token env up")]
+    #[test_case(Tool(TokenGenerator), KeyCode::Right, KeyModifiers::NONE, SetTokenGenFocus(Focus::Env); "token right focuses env")]
+    #[test_case(TokenGen(Focus::Service), KeyCode::Left, KeyModifiers::NONE, SetFocus(AppFocus::List); "token service left focuses list")]
+    #[test_case(TokenGen(Focus::Env), KeyCode::Left, KeyModifiers::NONE, SetTokenGenFocus(Focus::Service); "token env left focuses service")]
+    #[test_case(Tool(TokenGenerator), KeyCode::Enter, KeyModifiers::NONE, GenerateToken; "token enter generates")]
+    #[test_case(Tool(Jira), KeyCode::Up, KeyModifiers::NONE, JiraTicketListMove(Up); "jira up")]
+    #[test_case(Tool(Jira), KeyCode::Down, KeyModifiers::NONE, JiraTicketListMove(Down); "jira down")]
+    #[test_case(Tool(Jira), KeyCode::Up, KeyModifiers::SHIFT, JiraTicketMove(Up); "jira shift up moves ticket")]
+    #[test_case(Tool(Jira), KeyCode::Down, KeyModifiers::SHIFT, JiraTicketMove(Down); "jira shift down moves ticket")]
+    #[test_case(Tool(Jira), KeyCode::Char('a'), KeyModifiers::NONE, NewJiraTicketPopUp; "jira a adds ticket")]
+    #[test_case(Tool(Jira), KeyCode::Char('x'), KeyModifiers::NONE, RemoveTicket; "jira x removes ticket")]
+    #[test_case(Popup(Jira), KeyCode::Backspace, KeyModifiers::NONE, RemoveTicketIdChar; "popup backspace removes char")]
+    #[test_case(Popup(Jira), KeyCode::Enter, KeyModifiers::NONE, SubmitTicketId; "popup enter submits")]
+    fn binding_resolves_to_expected_event(
+        context: KeyContext,
+        code: KeyCode,
+        modifiers: KeyModifiers,
+        expected: AppEvent,
+    ) {
+        let mut map = registered_map();
+        let result = map.resolve(context, KeyEvent::new(code, modifiers));
+        assert_eq!(result, Some(expected));
+    }
+
+    #[test]
+    fn popup_dynamic_handler_maps_char_to_add_ticket_id_char() {
+        let mut map = registered_map();
+        let result = map.resolve(
+            Popup(Jira),
+            KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE),
+        );
+        assert_eq!(result, Some(AddTicketIdChar('A')));
+    }
+
+    #[test]
+    fn popup_dynamic_handler_returns_none_for_non_char() {
+        let mut map = registered_map();
+        let result = map.resolve(Popup(Jira), KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        assert_eq!(result, None);
+    }
+}

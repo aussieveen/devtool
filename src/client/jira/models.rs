@@ -1,26 +1,25 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug, PartialEq)]
 pub struct TicketResponse {
     pub key: String,
     pub fields: Fields,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq)]
 pub struct Fields {
     pub assignee: Option<Assignee>,
     pub status: Status,
     pub summary: String,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
-#[derive(PartialEq)]
 pub struct Assignee {
     pub display_name: String,
 }
 
-#[derive(Deserialize, Clone, Debug)]
+#[derive(Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     pub name: String,

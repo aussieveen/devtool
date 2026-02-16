@@ -13,6 +13,7 @@ impl Jira {
     }
 }
 
+#[derive(Clone)]
 pub struct JiraFile {
     file: PersistenceFile,
 }
@@ -25,7 +26,7 @@ impl JiraFile {
     }
 
     #[cfg(test)]
-    fn new_from_path(file_path: PathBuf) -> JiraFile {
+    pub(crate) fn new_from_path(file_path: PathBuf) -> JiraFile {
         JiraFile {
             file: PersistenceFile::new_from_path(file_path),
         }
@@ -49,6 +50,7 @@ impl JiraFile {
     }
 }
 
+#[derive(Clone)]
 pub struct PersistenceFile {
     file_path: PathBuf,
 }

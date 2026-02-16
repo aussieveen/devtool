@@ -6,7 +6,7 @@ pub(crate) use crate::state::tools::Tool;
 use crate::state::tools::ToolList;
 use ratatui::widgets::ListState;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AppFocus {
     List,
     Tool,
@@ -45,5 +45,47 @@ impl AppState {
             jira: Jira::new(),
             focus: AppFocus::List,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests{
+    use crate::config::model::{Auth0Config, Config, JiraConfig, TokenGenerator};
+    use crate::state::app::AppState;
+
+    #[test]
+    fn new_adds_jira_item_when_jira_config_is_some(){
+        let config = Config{
+            servicestatus: vec![],
+            tokengenerator: TokenGenerator { auth0: Auth0Config {
+                local: "".to_string(),
+                staging: "".to_string(),
+                preproduction: "".to_string(),
+                production: "".to_string(),
+            }, services: vec![] },
+            jira: Some(JiraConfig { email: "".to_string(), token: "".to_string() }),
+        };
+
+        let app_state = AppState::new(&config);
+
+        assert_eq!(app_state.tool_list.items.len(), 4);
+    }
+
+    #[test]
+    fn new_skips_jira_item_when_jira_config_is_none(){
+        let config = Config{
+            servicestatus: vec![],
+            tokengenerator: TokenGenerator { auth0: Auth0Config {
+                local: "".to_string(),
+                staging: "".to_string(),
+                preproduction: "".to_string(),
+                production: "".to_string(),
+            }, services: vec![] },
+            jira: None,
+        };
+
+        let app_state = AppState::new(&config);
+
+        assert_eq!(app_state.tool_list.items.len(), 3);
     }
 }
