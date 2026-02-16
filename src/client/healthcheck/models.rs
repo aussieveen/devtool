@@ -1,13 +1,12 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug)]
-#[derive(PartialEq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct Healthcheck {
     pub version: String,
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use crate::client::healthcheck::models::Healthcheck;
 
     #[test]

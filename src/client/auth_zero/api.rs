@@ -51,6 +51,6 @@ async fn get_token(
         &credentials.client_secret,
         &service.audience,
     )
-        .await?
-        .access_token)
+    .await?
+    .access_token)
 }

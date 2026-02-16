@@ -35,7 +35,8 @@ mod tests {
 
         let response = serde_json::json!({
             "access_token":"token"
-        }).to_string();
+        })
+        .to_string();
 
         let mock = server
             .mock("POST", "/token")
@@ -46,17 +47,15 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(
-            &base_url,
-            "id",
-            "secret",
-            "audience"
-        ).await;
+        let result = get_token(&base_url, "id", "secret", "audience").await;
         let token_response = result.unwrap();
 
-        assert_eq!(token_response, TokenResponse{
-            access_token: "token".to_string(),
-        });
+        assert_eq!(
+            token_response,
+            TokenResponse {
+                access_token: "token".to_string(),
+            }
+        );
 
         mock.assert_async().await;
     }
@@ -74,12 +73,7 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(
-            &base_url,
-            "id",
-            "secret",
-            "audience"
-        ).await;
+        let result = get_token(&base_url, "id", "secret", "audience").await;
 
         assert!(result.is_err());
 

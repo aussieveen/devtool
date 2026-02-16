@@ -1,14 +1,12 @@
 use serde::Deserialize;
 
-#[derive(Deserialize)]
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct TokenResponse {
     pub access_token: String,
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use crate::client::auth_zero::models::TokenResponse;
 
     #[test]

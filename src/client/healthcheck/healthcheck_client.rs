@@ -1,7 +1,6 @@
 use crate::client::healthcheck::models::Healthcheck;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use std::error::Error;
-use std::fmt::format;
 use std::time::Duration;
 
 pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
@@ -14,11 +13,7 @@ pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
         .header(ACCEPT, "application/json")
         .timeout(Duration::from_secs(3));
 
-    Ok(request
-        .send()
-        .await?
-        .json::<Healthcheck>()
-        .await?)
+    Ok(request.send().await?.json::<Healthcheck>().await?)
 }
 
 #[cfg(test)]
@@ -31,7 +26,8 @@ mod tests {
 
         let response = serde_json::json!({
             "version":"commitref_timestamp"
-        }).to_string();
+        })
+        .to_string();
 
         let mock = server
             .mock("GET", "/healthcheck")
@@ -45,9 +41,12 @@ mod tests {
         let result = get(base_url).await;
         let healthcheck = result.unwrap();
 
-        assert_eq!(healthcheck, Healthcheck{
-            version: "commitref_timestamp".to_string(),
-        });
+        assert_eq!(
+            healthcheck,
+            Healthcheck {
+                version: "commitref_timestamp".to_string(),
+            }
+        );
 
         mock.assert_async().await;
     }

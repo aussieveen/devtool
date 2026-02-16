@@ -43,9 +43,11 @@ async fn get_commit_ref(
     env: &Environment,
     config: Vec<ServiceStatus>,
 ) -> Result<String, Box<dyn Error>> {
-    let healthcheck_response = healthcheck_client::get(config[service_idx].get_from_env(env).to_string()).await?;
+    let healthcheck_response =
+        healthcheck_client::get(config[service_idx].get_from_env(env).to_string()).await?;
 
-    Ok(healthcheck_response.version
+    Ok(healthcheck_response
+        .version
         .split("_")
         .next()
         .unwrap()
