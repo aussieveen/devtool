@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::model::Config;
 use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
@@ -61,5 +61,27 @@ impl Tool {
             Tool::TokenGenerator => "Token Generator",
             Tool::Jira => "Jira",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::app::Tool;
+    use test_case::test_case;
+
+    #[test_case(Tool::Home, "Dev Tool")]
+    #[test_case(Tool::ServiceStatus, "Service Status")]
+    #[test_case(Tool::TokenGenerator, "M2M Auth0 Token Generator")]
+    #[test_case(Tool::Jira, "My Jira Tickets")]
+    fn title_returns_expected(tool: Tool, expected: &str) {
+        assert_eq!(tool.title(), expected);
+    }
+
+    #[test_case(Tool::Home, "Home")]
+    #[test_case(Tool::ServiceStatus, "Service Status")]
+    #[test_case(Tool::TokenGenerator, "Token Generator")]
+    #[test_case(Tool::Jira, "Jira")]
+    fn menu_entry_returns_expected(tool: Tool, expected: &str) {
+        assert_eq!(tool.menu_entry(), expected);
     }
 }

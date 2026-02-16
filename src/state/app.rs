@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::model::Config;
 use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;

@@ -1,3 +1,3 @@
-pub(crate) mod auth_zero_client;
-pub(crate) mod healthcheck_client;
+pub(crate) mod auth_zero;
+pub(crate) mod healthcheck;
 pub(crate) mod jira;

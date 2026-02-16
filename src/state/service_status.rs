@@ -31,8 +31,8 @@ impl ServiceStatus {
 
         match env {
             Environment::Staging => service.staging = commit,
-            Environment::Preproduction => service.preprod = commit,
-            Environment::Production => service.prod = commit,
+            Environment::Preproduction => service.preproduction = commit,
+            Environment::Production => service.production = commit,
             _ => {}
         }
     }
@@ -42,22 +42,25 @@ impl ServiceStatus {
     }
 
     pub(crate) fn has_link(&self) -> bool {
+        // TODO: Add robust checking that a service is selected
         let service = &self.services[self.list_state.selected().unwrap()];
         service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
     }
 
     pub(crate) fn get_link(&self, repo_url: &String) -> String {
+        // TODO: Add robust checking that a service is selected
+        // TODO: Return an option to cover bad values
         let service = &self.services[self.list_state.selected().unwrap()];
         format!(
-            "{}compare/{}...{}",
+            "{}/compare/{}...{}",
             repo_url,
-            service.prod.value().unwrap(),
-            service.preprod.value().unwrap(),
+            service.production.value().unwrap(),
+            service.preproduction.value().unwrap(),
         )
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Commit {
     Empty,
     Fetching,
@@ -74,20 +77,12 @@ impl Commit {
     }
 
     pub fn short_value(&self) -> Option<String> {
-        let char_display_count = 6;
+        let n = 6;
         match self {
-            Commit::Ok(s) => {
-                let first: String = s.chars().take(char_display_count).collect();
-                let last: String = s
-                    .chars()
-                    .rev()
-                    .take(char_display_count)
-                    .collect::<String>()
-                    .chars()
-                    .rev()
-                    .collect();
-                Some(format!("{}...{}", first, last))
+            Commit::Ok(s) if s.len() >= n * 2 => {
+                Some(format!("{}...{}", &s[..n], &s[s.len() - n..]))
             }
+            Commit::Ok(s) => Some(s.clone()),
             _ => None,
         }
     }
@@ -97,14 +92,14 @@ impl Commit {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Service {
     pub staging: Commit,
-    pub preprod: Commit,
-    pub prod: Commit,
+    pub preproduction: Commit,
+    pub production: Commit,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum CommitRefStatus {
     NothingMatches,
     AllMatches,
@@ -117,18 +112,21 @@ impl Service {
     pub fn new() -> Self {
         Self {
             staging: Commit::Empty,
-            preprod: Commit::Empty,
-            prod: Commit::Empty,
+            preproduction: Commit::Empty,
+            production: Commit::Empty,
         }
     }
 
     pub fn commit_ref_status(&self) -> CommitRefStatus {
-        if self.prod.is_errored() || self.preprod.is_errored() || self.staging.is_errored() {
+        if self.production.is_errored()
+            || self.preproduction.is_errored()
+            || self.staging.is_errored()
+        {
             return CommitRefStatus::CommitMissing;
         }
 
-        let preprod_prod_match = self.prod.value() == self.preprod.value();
-        let staging_preprod_match = self.preprod.value() == self.staging.value();
+        let preprod_prod_match = self.production.value() == self.preproduction.value();
+        let staging_preprod_match = self.preproduction.value() == self.staging.value();
 
         if preprod_prod_match && staging_preprod_match {
             return CommitRefStatus::AllMatches;
@@ -143,5 +141,174 @@ impl Service {
         }
 
         CommitRefStatus::NothingMatches
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::environment::Environment;
+    use crate::state::service_status::{Commit, CommitRefStatus, Service, ServiceStatus};
+    use test_case::test_case;
+
+    #[test]
+    fn set_commit_fetching_sets_commit_as_fetching() {
+        let mut service_status = ServiceStatus::new(2);
+        service_status.set_commit_fetching(1, &Environment::Staging);
+        assert_eq!(service_status.services[1].staging, Commit::Fetching);
+    }
+
+    #[test]
+    fn set_commit_ok_sets_commit_as_ok() {
+        let mut service_status = ServiceStatus::new(2);
+        service_status.set_commit_ok(1, &Environment::Preproduction, String::from("commit_ref"));
+        assert_eq!(
+            service_status.services[1].preproduction,
+            Commit::Ok(String::from("commit_ref"))
+        );
+    }
+
+    #[test]
+    fn set_commit_error_sets_commit_as_error() {
+        let mut service_status = ServiceStatus::new(2);
+        service_status.set_commit_error(1, &Environment::Production, String::from("error"));
+        assert_eq!(
+            service_status.services[1].production,
+            Commit::Error(String::from("error"))
+        );
+    }
+
+    #[test]
+    fn update_commit_ignores_local_env() {
+        let mut service_status = ServiceStatus::new(2);
+        let expected = service_status.services[1].clone();
+        service_status.update_commit(1, &Environment::Local, Commit::Fetching);
+        assert_eq!(service_status.services[1], expected)
+    }
+
+    #[test]
+    fn get_selected_service_idx_returns_selected() {
+        let mut service_status = ServiceStatus::new(3);
+        assert_eq!(service_status.get_selected_service_idx(), None);
+
+        service_status.list_state.select(Some(2));
+        assert_eq!(service_status.get_selected_service_idx(), Some(2));
+    }
+
+    #[test]
+    fn has_link_returns_true_when_staging_preprod_match() {
+        let mut service_status = ServiceStatus::new(2);
+        let commit_ref = String::from("commit");
+        service_status.services[1].staging = Commit::Ok(commit_ref.clone());
+        service_status.services[1].preproduction = Commit::Ok(commit_ref);
+        service_status.list_state.select(Some(1));
+
+        assert!(service_status.has_link());
+    }
+
+    #[test]
+    fn has_link_returns_false_when_staging_preprod_do_not_match() {
+        let mut service_status = ServiceStatus::new(2);
+        service_status.services[1].staging = Commit::Ok(String::from("staging"));
+        service_status.services[1].preproduction = Commit::Ok(String::from("preproduction"));
+        service_status.list_state.select(Some(1));
+
+        assert_eq!(service_status.has_link(), false);
+    }
+
+    #[test]
+    fn get_link_returns_url_string() {
+        let mut service_status = ServiceStatus::new(2);
+        service_status.list_state.select(Some(1));
+
+        service_status.services[1].preproduction = Commit::Ok(String::from("preprod"));
+        service_status.services[1].production = Commit::Ok(String::from("prod"));
+
+        let actual = service_status.get_link(&String::from("https://github.com/myrepo"));
+
+        assert_eq!(
+            actual,
+            String::from("https://github.com/myrepo/compare/prod...preprod")
+        );
+    }
+
+    #[test_case(Commit::Ok(String::from("commit")), Some("commit"))]
+    #[test_case(Commit::Fetching, None)]
+    fn commit_value_returns_expected_value(commit: Commit, expected: Option<&str>) {
+        assert_eq!(commit.value(), expected);
+    }
+
+    #[test_case(
+        Commit::Ok(String::from("e5a18108ac6bc2c2a77ac3bda09ba1752c0087a5")),
+        Some(String::from("e5a181...0087a5"))
+    )]
+    #[test_case(
+        Commit::Ok(String::from("e5a18108ac6")),
+        Some(String::from("e5a18108ac6"))
+    )]
+    #[test_case(Commit::Fetching, None)]
+    fn commit_short_value_returns_expected_value(commit: Commit, expected: Option<String>) {
+        assert_eq!(commit.short_value(), expected);
+    }
+
+    #[test_case(Commit::Empty, false)]
+    #[test_case(Commit::Error(String::from("error")), true)]
+    fn commit_is_errored_returns_expected_bool(commit: Commit, expected: bool) {
+        assert_eq!(commit.is_errored(), expected);
+    }
+
+    #[test_case(
+        Commit::Error(String::from("error")),
+        Commit::Empty,
+        Commit::Empty,
+        CommitRefStatus::CommitMissing
+    )]
+    #[test_case(
+        Commit::Empty,
+        Commit::Error(String::from("error")),
+        Commit::Empty,
+        CommitRefStatus::CommitMissing
+    )]
+    #[test_case(
+        Commit::Empty,
+        Commit::Empty,
+        Commit::Error(String::from("error")),
+        CommitRefStatus::CommitMissing
+    )]
+    #[test_case(
+        Commit::Ok(String::from("commit")),
+        Commit::Ok(String::from("commit")),
+        Commit::Ok(String::from("not_on_prod")),
+        CommitRefStatus::StagingPreprodMatch
+    )]
+    #[test_case(
+        Commit::Ok(String::from("commit")),
+        Commit::Ok(String::from("commit")),
+        Commit::Ok(String::from("commit")),
+        CommitRefStatus::AllMatches
+    )]
+    #[test_case(
+        Commit::Ok(String::from("incoming")),
+        Commit::Ok(String::from("commit")),
+        Commit::Ok(String::from("commit")),
+        CommitRefStatus::PreprodProdMatch
+    )]
+    #[test_case(
+        Commit::Ok(String::from("staging")),
+        Commit::Ok(String::from("preprod")),
+        Commit::Ok(String::from("prod")),
+        CommitRefStatus::NothingMatches
+    )]
+    fn service_commit_ref_status(
+        staging_commit: Commit,
+        preprod_commit: Commit,
+        prod_commit: Commit,
+        expected: CommitRefStatus,
+    ) {
+        let mut service = Service::new();
+        service.staging = staging_commit;
+        service.preproduction = preprod_commit;
+        service.production = prod_commit;
+
+        assert_eq!(service.commit_ref_status(), expected);
     }
 }

@@ -1,6 +1,6 @@
 use crate::client::jira::models::TicketResponse;
 use crate::events::event::Direction;
-use crate::persistence::{JiraFile, JiraPersistence};
+use crate::persistence::persister::JiraFile;
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +15,7 @@ pub struct Jira {
 impl Jira {
     pub fn new() -> Jira {
         Self {
-            tickets: JiraFile::read_jira_persistence().tickets,
+            tickets: JiraFile::new().read_jira().tickets,
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false,
             new_ticket_id: None,
@@ -41,14 +41,6 @@ impl Jira {
                 }
             }
         }
-    }
-
-    pub fn set_new_ticket_id(&mut self, id: Option<String>) {
-        self.new_ticket_id = id;
-    }
-
-    pub fn set_new_ticket_popup(&mut self, visible: bool) {
-        self.new_ticket_popup = visible;
     }
 
     pub fn add_ticket(&mut self, ticket: TicketResponse) {
@@ -95,11 +87,13 @@ impl Jira {
     }
 
     fn persist_tickets(&mut self) {
-        JiraFile::write_jira_tickets(&self.tickets).expect("Failed to persist tickets");
+        JiraFile::new()
+            .write_jira(&self.tickets)
+            .expect("Failed to persist tickets");
     }
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Debug)]
 pub struct Ticket {
     pub id: String,
     pub title: String,
@@ -115,5 +109,154 @@ impl Ticket {
             status,
             assignee,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::events::event::Direction;
+    use crate::state::jira::{Jira, Ticket};
+    use test_case::test_case;
+
+    fn get_jira() -> Jira {
+        Jira {
+            tickets: vec![
+                Ticket {
+                    id: "1".to_string(),
+                    title: "title 1".to_string(),
+                    status: "in progress".to_string(),
+                    assignee: "john".to_string(),
+                },
+                Ticket {
+                    id: "2".to_string(),
+                    title: "title 2".to_string(),
+                    status: "complete".to_string(),
+                    assignee: "jane".to_string(),
+                },
+            ],
+            list_state: Default::default(),
+            new_ticket_popup: false,
+            new_ticket_id: None,
+        }
+    }
+
+    #[test]
+    fn jira_add_char_to_ticket_id_adds_char() {
+        let mut jira = get_jira();
+        jira.add_char_to_ticket_id('s');
+        assert_eq!(jira.new_ticket_id.clone().unwrap(), "S");
+
+        jira.add_char_to_ticket_id('-');
+        assert_eq!(jira.new_ticket_id.clone().unwrap(), "S-");
+    }
+
+    #[test_case(None, None)]
+    #[test_case(Some(String::from("S")), None)]
+    #[test_case(Some(String::from("SE")), Some(String::from("S")))]
+    fn jira_remove_char_from_ticket_id(current: Option<String>, expected: Option<String>) {
+        let mut jira = get_jira();
+        jira.new_ticket_id = current;
+        jira.remove_char_from_ticket_id();
+        assert_eq!(jira.new_ticket_id, expected);
+    }
+
+    #[test]
+    fn jira_swap_tickets_does_nothing_when_moving_top_ticket_up() {
+        let mut jira = get_jira();
+        jira.list_state.select(Some(0));
+
+        jira.swap_tickets(Direction::Up);
+        assert_eq!(
+            jira.tickets,
+            vec![
+                Ticket {
+                    id: "1".to_string(),
+                    title: "title 1".to_string(),
+                    status: "in progress".to_string(),
+                    assignee: "john".to_string(),
+                },
+                Ticket {
+                    id: "2".to_string(),
+                    title: "title 2".to_string(),
+                    status: "complete".to_string(),
+                    assignee: "jane".to_string(),
+                }
+            ]
+        )
+    }
+
+    #[test]
+    fn jira_swap_tickets_does_nothing_when_moving_bottom_ticket_down() {
+        let mut jira = get_jira();
+        jira.list_state.select(Some(1));
+
+        jira.swap_tickets(Direction::Down);
+        assert_eq!(
+            jira.tickets,
+            vec![
+                Ticket {
+                    id: "1".to_string(),
+                    title: "title 1".to_string(),
+                    status: "in progress".to_string(),
+                    assignee: "john".to_string(),
+                },
+                Ticket {
+                    id: "2".to_string(),
+                    title: "title 2".to_string(),
+                    status: "complete".to_string(),
+                    assignee: "jane".to_string(),
+                }
+            ]
+        )
+    }
+
+    #[test]
+    fn jira_swap_tickets_move_bottom_ticket_up() {
+        let mut jira = get_jira();
+        jira.list_state.select(Some(1));
+
+        jira.swap_tickets(Direction::Up);
+        assert_eq!(
+            jira.tickets,
+            vec![
+                Ticket {
+                    id: "2".to_string(),
+                    title: "title 2".to_string(),
+                    status: "complete".to_string(),
+                    assignee: "jane".to_string(),
+                },
+                Ticket {
+                    id: "1".to_string(),
+                    title: "title 1".to_string(),
+                    status: "in progress".to_string(),
+                    assignee: "john".to_string(),
+                }
+            ]
+        )
+    }
+
+    #[test]
+    fn jira_swap_tickets_move_top_ticket_down() {
+        let mut jira = get_jira();
+        jira.list_state.select(Some(0));
+
+        jira.swap_tickets(Direction::Down);
+        assert_eq!(
+            jira.tickets,
+            vec![
+                Ticket {
+                    id: "2".to_string(),
+                    title: "title 2".to_string(),
+                    status: "complete".to_string(),
+                    assignee: "jane".to_string(),
+                },
+                Ticket {
+                    id: "1".to_string(),
+                    title: "title 1".to_string(),
+                    status: "in progress".to_string(),
+                    assignee: "john".to_string(),
+                }
+            ]
+        )
     }
 }

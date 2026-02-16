@@ -1,6 +1,8 @@
 use crate::app::Tool::{Home, Jira, TokenGenerator};
+use crate::client::auth_zero::api::{AuthZeroApi, ImmediateAuthZeroApi};
+use crate::client::healthcheck::api::{HealthcheckApi, ImmediateHealthcheckApi};
 use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
-use crate::config::Config;
+use crate::config::model::Config;
 use crate::events::event::AppEvent::*;
 use crate::events::event::{AppEvent, Event};
 use crate::events::handler::EventHandler;
@@ -32,6 +34,8 @@ pub struct App {
 
     // External Services
     pub jira_api: Arc<dyn JiraApi>,
+    pub auth_zero_api: Arc<dyn AuthZeroApi>,
+    pub healthcheck_api: Arc<dyn HealthcheckApi>,
 }
 
 impl App {
@@ -49,6 +53,8 @@ impl App {
 
             // wire real infra
             jira_api: Arc::new(ImmediateJiraApi {}),
+            auth_zero_api: Arc::new(ImmediateAuthZeroApi {}),
+            healthcheck_api: Arc::new(ImmediateHealthcheckApi {}),
         }
     }
 
