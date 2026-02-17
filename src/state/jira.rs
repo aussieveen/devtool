@@ -26,6 +26,17 @@ impl Jira {
         }
     }
 
+    #[cfg(test)]
+    pub fn new_empty(jira_file: JiraFile) -> Jira {
+        Self {
+            tickets: Vec::new(),
+            list_state: ListState::default().with_selected(None),
+            new_ticket_popup: false,
+            new_ticket_id: None,
+            jira_file,
+        }
+    }
+
     pub fn add_char_to_ticket_id(&mut self, c: char) {
         self.new_ticket_id
             .get_or_insert_with(String::new)
@@ -288,7 +299,8 @@ mod tests {
 
     #[test]
     fn jira_swap_tickets_move_bottom_ticket_up() {
-        let mut jira = get_jira();
+        let dir = TempDir::new().unwrap();
+        let mut jira = get_jira_with_path(temp_file_path(&dir));
         jira.list_state.select(Some(1));
 
         jira.swap_tickets(Direction::Up);
@@ -313,7 +325,8 @@ mod tests {
 
     #[test]
     fn jira_swap_tickets_move_top_ticket_down() {
-        let mut jira = get_jira();
+        let dir = TempDir::new().unwrap();
+        let mut jira = get_jira_with_path(temp_file_path(&dir));
         jira.list_state.select(Some(0));
 
         jira.swap_tickets(Direction::Down);

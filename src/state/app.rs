@@ -24,6 +24,10 @@ pub struct AppState {
 
 impl AppState {
     pub(crate) fn new(config: &Config) -> AppState {
+        Self::build(config, Jira::new())
+    }
+
+    fn build(config: &Config, jira: Jira) -> AppState {
         Self {
             tool_list: ToolList {
                 items: {
@@ -42,7 +46,7 @@ impl AppState {
             current_tool: Tool::Home,
             service_status: ServiceStatus::new(config.servicestatus.len()),
             token_generator: TokenGenerator::new(&config.tokengenerator.services),
-            jira: Jira::new(),
+            jira,
             focus: AppFocus::List,
         }
     }
@@ -51,7 +55,15 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use crate::config::model::{Auth0Config, Config, JiraConfig, TokenGenerator};
+    use crate::persistence::persister::JiraFile;
     use crate::state::app::AppState;
+    use crate::state::jira::Jira;
+    use tempfile::TempDir;
+
+    fn test_jira() -> Jira {
+        let dir = TempDir::new().unwrap();
+        Jira::new_empty(JiraFile::new_from_path(dir.path().join("test.yaml")))
+    }
 
     #[test]
     fn new_adds_jira_item_when_jira_config_is_some() {
@@ -72,7 +84,7 @@ mod tests {
             }),
         };
 
-        let app_state = AppState::new(&config);
+        let app_state = AppState::build(&config, test_jira());
 
         assert_eq!(app_state.tool_list.items.len(), 4);
     }
@@ -93,7 +105,7 @@ mod tests {
             jira: None,
         };
 
-        let app_state = AppState::new(&config);
+        let app_state = AppState::build(&config, test_jira());
 
         assert_eq!(app_state.tool_list.items.len(), 3);
     }
