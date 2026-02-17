@@ -178,8 +178,8 @@ mod tests {
         dir.path().join("jirafile.yaml")
     }
 
-    #[test_case(None, "Unassigned")]
-    #[test_case(Some(Assignee{display_name:"John Smith".to_string()}), "John Smith")]
+    #[test_case(None, "Unassigned"; "Unassigned set as default")]
+    #[test_case(Some(Assignee{display_name:"John Smith".to_string()}), "John Smith"; "Assignee set from response")]
     fn jira_add_ticket(assignee: Option<Assignee>, assignee_value: &str){
         let dir = TempDir::new().unwrap();
         let file_path = temp_file_path(&dir);
@@ -201,8 +201,8 @@ mod tests {
         assert_eq!(jira.tickets[2].assignee, assignee_value);
     }
 
-    #[test_case(Some(0), 1)]
-    #[test_case(None, 2)]
+    #[test_case(Some(0), 1; "Remove ticket leaving one")]
+    #[test_case(None, 2; "Nothing removed when nothing selected")]
     fn jira_remove_ticket(selection: Option<usize>, length: usize){
         let dir = TempDir::new().unwrap();
         let file_path = temp_file_path(&dir);
@@ -224,9 +224,9 @@ mod tests {
         assert_eq!(jira.new_ticket_id.clone().unwrap(), "S-");
     }
 
-    #[test_case(None, None)]
-    #[test_case(Some(String::from("S")), None)]
-    #[test_case(Some(String::from("SE")), Some(String::from("S")))]
+    #[test_case(None, None; "String not changed when NONE")]
+    #[test_case(Some(String::from("S")), None; "Removing last character set ticket_id to NONE")]
+    #[test_case(Some(String::from("SE")), Some(String::from("S")); "Removes a single character")]
     fn jira_remove_char_from_ticket_id(current: Option<String>, expected: Option<String>) {
         let mut jira = get_jira();
         jira.new_ticket_id = current;

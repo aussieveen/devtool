@@ -231,27 +231,29 @@ mod tests {
         );
     }
 
-    #[test_case(Commit::Ok(String::from("commit")), Some("commit"))]
-    #[test_case(Commit::Fetching, None)]
+    #[test_case(Commit::Ok(String::from("commit")), Some("commit"); "Returns value from Ok Commit")]
+    #[test_case(Commit::Fetching, None; "Returns NONE when no Commit::Ok")]
     fn commit_value_returns_expected_value(commit: Commit, expected: Option<&str>) {
         assert_eq!(commit.value(), expected);
     }
 
     #[test_case(
         Commit::Ok(String::from("e5a18108ac6bc2c2a77ac3bda09ba1752c0087a5")),
-        Some(String::from("e5a181...0087a5"))
+        Some(String::from("e5a181...0087a5"));
+        "Returns shortened commit ref"
     )]
     #[test_case(
         Commit::Ok(String::from("e5a18108ac6")),
-        Some(String::from("e5a18108ac6"))
+        Some(String::from("e5a18108ac6"));
+        "Returns full commit ref when less than 12 characters. "
     )]
-    #[test_case(Commit::Fetching, None)]
+    #[test_case(Commit::Fetching, None; "Returns NONE when Commit is no Ok")]
     fn commit_short_value_returns_expected_value(commit: Commit, expected: Option<String>) {
         assert_eq!(commit.short_value(), expected);
     }
 
-    #[test_case(Commit::Empty, false)]
-    #[test_case(Commit::Error(String::from("error")), true)]
+    #[test_case(Commit::Empty, false; "Is errored returns false")]
+    #[test_case(Commit::Error(String::from("error")), true; "Is errored returns true")]
     fn commit_is_errored_returns_expected_bool(commit: Commit, expected: bool) {
         assert_eq!(commit.is_errored(), expected);
     }
@@ -260,43 +262,50 @@ mod tests {
         Commit::Error(String::from("error")),
         Commit::Empty,
         Commit::Empty,
-        CommitRefStatus::CommitMissing
+        CommitRefStatus::CommitMissing;
+        "Commit marked as missing when staging is an error"
     )]
     #[test_case(
         Commit::Empty,
         Commit::Error(String::from("error")),
         Commit::Empty,
-        CommitRefStatus::CommitMissing
+        CommitRefStatus::CommitMissing;
+        "Commit marked as missing when preprod is an error"
     )]
     #[test_case(
         Commit::Empty,
         Commit::Empty,
         Commit::Error(String::from("error")),
-        CommitRefStatus::CommitMissing
+        CommitRefStatus::CommitMissing;
+        "Commit marked as missing when prod is an error"
     )]
     #[test_case(
         Commit::Ok(String::from("commit")),
         Commit::Ok(String::from("commit")),
         Commit::Ok(String::from("not_on_prod")),
-        CommitRefStatus::StagingPreprodMatch
+        CommitRefStatus::StagingPreprodMatch;
+        "Commit marked as StagingPreprodMatch when they do but don't match prod"
     )]
     #[test_case(
         Commit::Ok(String::from("commit")),
         Commit::Ok(String::from("commit")),
         Commit::Ok(String::from("commit")),
-        CommitRefStatus::AllMatches
+        CommitRefStatus::AllMatches;
+        "Commit marked as AllMatches when all commit references match"
     )]
     #[test_case(
         Commit::Ok(String::from("incoming")),
         Commit::Ok(String::from("commit")),
         Commit::Ok(String::from("commit")),
-        CommitRefStatus::PreprodProdMatch
+        CommitRefStatus::PreprodProdMatch;
+        "Commit marked as PreprodProdMatch when they do but doesn't match staging"
     )]
     #[test_case(
         Commit::Ok(String::from("staging")),
         Commit::Ok(String::from("preprod")),
         Commit::Ok(String::from("prod")),
-        CommitRefStatus::NothingMatches
+        CommitRefStatus::NothingMatches;
+        "Commit marked as NothingMatches when nothing matches"
     )]
     fn service_commit_ref_status(
         staging_commit: Commit,
