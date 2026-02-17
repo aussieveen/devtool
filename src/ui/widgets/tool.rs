@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::model::Config;
 use crate::state::app::{AppState, Tool};
 use crate::ui::styles;
 use ratatui::prelude::Alignment;
@@ -14,7 +14,7 @@ pub fn render(
     config: &Config,
 ) {
     let content_block_border_style = styles::block_style(
-        styles::is_content_active(state.focus) || matches!(state.current_tool, Tool::Home),
+        styles::tool_has_focus(state.focus) || matches!(state.current_tool, Tool::Home),
     );
 
     let pane = Block::default()

@@ -10,13 +10,15 @@ mod ui;
 mod utils;
 
 use crate::app::App;
-use crate::config::Config;
+use crate::config::loader::ConfigLoader;
+use crate::config::model::Config;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
-    let config: Config = config::read_config();
+    let config: Config =
+        ConfigLoader::new(String::from(".devtool"), String::from("config.yaml")).read_config();
     let result = App::new(config).run(terminal).await;
     ratatui::restore();
     result

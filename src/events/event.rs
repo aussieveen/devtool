@@ -21,7 +21,7 @@ pub enum Event {
     App(AppEvent),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AppEvent {
     // List events
     ListMove(Direction), // Move up and down tool List
@@ -61,7 +61,7 @@ pub enum AppEvent {
     CopyToClipboard,
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Direction {
     Up,
     Down,

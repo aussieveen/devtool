@@ -1,4 +1,4 @@
-use crate::config::ServiceConfig;
+use crate::config::model::ServiceConfig;
 use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::list_style;
 use ratatui::Frame;

@@ -4,7 +4,7 @@ use crate::events::event::AppEvent::{
     RemoveTicket, RemoveTicketIdChar, SubmitTicketId, TicketRetrieved,
 };
 use crate::events::event::{AppEvent, Direction};
-use crate::persistence::{JiraFile, JiraPersistence};
+use crate::persistence::persister::JiraFile;
 use crate::state::app::AppFocus;
 use crate::utils::update_list_state;
 
@@ -19,7 +19,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             );
         }
         NewJiraTicketPopUp => {
-            app.state.jira.set_new_ticket_popup(true);
+            app.state.jira.new_ticket_popup = true;
             app.state.focus = AppFocus::PopUp
         }
         AddTicketIdChar(char) => app.state.jira.add_char_to_ticket_id(char),
@@ -30,7 +30,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             if let Some(config) = app.config.jira.clone()
                 && let Some(new_ticket_id) = app.state.jira.new_ticket_id.clone()
             {
-                app.state.jira.set_new_ticket_popup(false);
+                app.state.jira.new_ticket_popup = false;
                 app.state.focus = AppFocus::Tool;
 
                 let sender = app.event_sender.clone();
@@ -40,7 +40,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         TicketRetrieved(ticket_response) => {
             app.state.jira.add_ticket(ticket_response);
-            app.state.jira.set_new_ticket_id(None);
+            app.state.jira.new_ticket_id = None;
             app.event_sender.send(JiraTicketListUpdate);
         }
         RemoveTicket => {
@@ -66,7 +66,8 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             app.event_sender.send(JiraTicketListUpdate);
         }
         JiraTicketListUpdate => {
-            JiraFile::write_jira_tickets(&app.state.jira.tickets)
+            JiraFile::new()
+                .write_jira(&app.state.jira.tickets)
                 .expect("Failed to persist tickets");
         }
         _ => {}

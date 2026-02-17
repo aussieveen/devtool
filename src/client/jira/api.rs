@@ -1,6 +1,6 @@
 use crate::client::jira::jira_client;
 use crate::client::jira::models::TicketResponse;
-use crate::config::JiraConfig;
+use crate::config::model::JiraConfig;
 use crate::events::event::AppEvent::TicketRetrieved;
 use crate::events::sender::EventSender;
 use std::error::Error;

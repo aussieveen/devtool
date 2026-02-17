@@ -48,3 +48,81 @@ impl KeyEventMap {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::events::event::Direction;
+
+    #[test]
+    fn map_add_static() {
+        let mut map = KeyEventMap::new();
+
+        map.add_static(
+            KeyContext::Global,
+            KeyCode::Up,
+            KeyModifiers::SHIFT,
+            AppEvent::ListMove(Direction::Up),
+        );
+
+        assert_eq!(
+            map.static_events
+                .get(&(KeyContext::Global, (KeyCode::Up, KeyModifiers::SHIFT))),
+            Some(&AppEvent::ListMove(Direction::Up))
+        );
+    }
+
+    #[test]
+    fn map_add_dynamic() {
+        let mut map = KeyEventMap::new();
+
+        map.add_dynamic(KeyContext::Global, dynamic_function);
+
+        let saved_dynamic_event = map.dynamic_events.get(&KeyContext::Global).unwrap();
+
+        assert_eq!(
+            saved_dynamic_event(KeyEvent::new(KeyCode::Up, KeyModifiers::SHIFT)),
+            Some(AppEvent::GenerateToken)
+        );
+    }
+
+    #[test]
+    fn map_resolve() {
+        let mut map = KeyEventMap::new();
+        map.add_static(
+            KeyContext::Global,
+            KeyCode::Up,
+            KeyModifiers::SHIFT,
+            AppEvent::ListMove(Direction::Up),
+        );
+        map.add_dynamic(KeyContext::Global, dynamic_function);
+
+        assert_eq!(
+            map.resolve(
+                KeyContext::Global,
+                KeyEvent::new(KeyCode::Up, KeyModifiers::SHIFT)
+            ),
+            Some(AppEvent::ListMove(Direction::Up))
+        );
+
+        assert_eq!(
+            map.resolve(
+                KeyContext::Global,
+                KeyEvent::new(KeyCode::Down, KeyModifiers::SHIFT)
+            ),
+            Some(AppEvent::GenerateToken)
+        );
+
+        assert_eq!(
+            map.resolve(
+                KeyContext::List,
+                KeyEvent::new(KeyCode::Up, KeyModifiers::CONTROL)
+            ),
+            None
+        );
+    }
+
+    fn dynamic_function(_key_event: KeyEvent) -> Option<AppEvent> {
+        Some(AppEvent::GenerateToken)
+    }
+}

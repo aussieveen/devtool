@@ -1,9 +1,9 @@
 servicestatus:
   - name: My Api
-    staging: https://myapi.staging.com/
-    preprod: https://myapi.preprod.com/
-    prod: https://myapi.prod.com/
-    repo: https://github.com/myapi/
+    staging: https://myapi.staging.com
+    preprod: https://myapi.preprod.com
+    prod: https://myapi.prod.com
+    repo: https://github.com/myapi
 tokengenerator:
   auth0:
     # url structure https://m2m-auth0-url.com/oauth/token
