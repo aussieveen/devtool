@@ -49,22 +49,18 @@ async fn get_commit_ref(
     Ok(parse_version(healthcheck_response.version))
 }
 
-fn parse_version(version: String) -> String{
-    version
-        .split("_")
-        .next()
-        .unwrap()
-        .to_string()
+fn parse_version(version: String) -> String {
+    version.split("_").next().unwrap().to_string()
 }
 
 #[cfg(test)]
-mod tests{
-    use test_case::test_case;
+mod tests {
     use crate::client::healthcheck::api::parse_version;
+    use test_case::test_case;
 
     #[test_case("a_b".to_string(), "a".to_string(); "Version parsed with _")]
     #[test_case("ab".to_string(), "ab".to_string(); "Version without _")]
-    fn api_parse_version(version: String, expected: String){
+    fn api_parse_version(version: String, expected: String) {
         assert_eq!(parse_version(version), expected);
     }
 }

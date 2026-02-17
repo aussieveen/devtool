@@ -49,21 +49,27 @@ impl AppState {
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     use crate::config::model::{Auth0Config, Config, JiraConfig, TokenGenerator};
     use crate::state::app::AppState;
 
     #[test]
-    fn new_adds_jira_item_when_jira_config_is_some(){
-        let config = Config{
+    fn new_adds_jira_item_when_jira_config_is_some() {
+        let config = Config {
             servicestatus: vec![],
-            tokengenerator: TokenGenerator { auth0: Auth0Config {
-                local: "".to_string(),
-                staging: "".to_string(),
-                preproduction: "".to_string(),
-                production: "".to_string(),
-            }, services: vec![] },
-            jira: Some(JiraConfig { email: "".to_string(), token: "".to_string() }),
+            tokengenerator: TokenGenerator {
+                auth0: Auth0Config {
+                    local: "".to_string(),
+                    staging: "".to_string(),
+                    preproduction: "".to_string(),
+                    production: "".to_string(),
+                },
+                services: vec![],
+            },
+            jira: Some(JiraConfig {
+                email: "".to_string(),
+                token: "".to_string(),
+            }),
         };
 
         let app_state = AppState::new(&config);
@@ -72,15 +78,18 @@ mod tests{
     }
 
     #[test]
-    fn new_skips_jira_item_when_jira_config_is_none(){
-        let config = Config{
+    fn new_skips_jira_item_when_jira_config_is_none() {
+        let config = Config {
             servicestatus: vec![],
-            tokengenerator: TokenGenerator { auth0: Auth0Config {
-                local: "".to_string(),
-                staging: "".to_string(),
-                preproduction: "".to_string(),
-                production: "".to_string(),
-            }, services: vec![] },
+            tokengenerator: TokenGenerator {
+                auth0: Auth0Config {
+                    local: "".to_string(),
+                    staging: "".to_string(),
+                    preproduction: "".to_string(),
+                    production: "".to_string(),
+                },
+                services: vec![],
+            },
             jira: None,
         };
 

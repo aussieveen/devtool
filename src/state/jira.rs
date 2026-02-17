@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use crate::client::jira::models::TicketResponse;
 use crate::events::event::Direction;
 use crate::persistence::persister::JiraFile;
@@ -11,7 +10,7 @@ pub struct Jira {
     pub list_state: ListState,
     pub new_ticket_popup: bool,
     pub new_ticket_id: Option<String>,
-    pub jira_file: JiraFile
+    pub jira_file: JiraFile,
 }
 
 impl Jira {
@@ -23,7 +22,7 @@ impl Jira {
             list_state: ListState::default().with_selected(None),
             new_ticket_popup: false,
             new_ticket_id: None,
-            jira_file
+            jira_file,
         }
     }
 
@@ -93,7 +92,8 @@ impl Jira {
     }
 
     fn persist_tickets(&mut self) {
-        self.jira_file.clone()
+        self.jira_file
+            .clone()
             .write_jira(&self.tickets)
             .expect("Failed to persist tickets");
     }
@@ -120,13 +120,13 @@ impl Ticket {
 
 #[cfg(test)]
 mod tests {
+    use crate::client::jira::models::{Assignee, Fields, Status, TicketResponse};
+    use crate::events::event::Direction;
+    use crate::persistence::persister::JiraFile;
+    use crate::state::jira::{Jira, Ticket};
     use std::path::PathBuf;
     use tempfile::TempDir;
-    use crate::events::event::Direction;
-    use crate::state::jira::{Jira, Ticket};
     use test_case::test_case;
-    use crate::client::jira::models::{Assignee, Fields, Status, TicketResponse};
-    use crate::persistence::persister::JiraFile;
 
     fn get_jira() -> Jira {
         Jira {
@@ -174,22 +174,24 @@ mod tests {
         }
     }
 
-    fn temp_file_path(dir: &TempDir) -> PathBuf{
+    fn temp_file_path(dir: &TempDir) -> PathBuf {
         dir.path().join("jirafile.yaml")
     }
 
     #[test_case(None, "Unassigned"; "Unassigned set as default")]
     #[test_case(Some(Assignee{display_name:"John Smith".to_string()}), "John Smith"; "Assignee set from response")]
-    fn jira_add_ticket(assignee: Option<Assignee>, assignee_value: &str){
+    fn jira_add_ticket(assignee: Option<Assignee>, assignee_value: &str) {
         let dir = TempDir::new().unwrap();
         let file_path = temp_file_path(&dir);
 
         let mut jira = get_jira_with_path(file_path);
-        jira.add_ticket(TicketResponse{
+        jira.add_ticket(TicketResponse {
             key: "TEST-1".to_string(),
             fields: Fields {
                 assignee,
-                status: Status { name: "In Progress".to_string() },
+                status: Status {
+                    name: "In Progress".to_string(),
+                },
                 summary: "Testing".to_string(),
             },
         });
@@ -203,7 +205,7 @@ mod tests {
 
     #[test_case(Some(0), 1; "Remove ticket leaving one")]
     #[test_case(None, 2; "Nothing removed when nothing selected")]
-    fn jira_remove_ticket(selection: Option<usize>, length: usize){
+    fn jira_remove_ticket(selection: Option<usize>, length: usize) {
         let dir = TempDir::new().unwrap();
         let file_path = temp_file_path(&dir);
 
