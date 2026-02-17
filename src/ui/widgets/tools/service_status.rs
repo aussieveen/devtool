@@ -1,4 +1,4 @@
-use crate::config::ServiceStatus as ServiceStatusConfig;
+use crate::config::model::ServiceStatus as ServiceStatusConfig;
 use crate::state::service_status::{CommitRefStatus, ServiceStatus};
 use crate::ui::styles::list_style;
 use ratatui::Frame;
@@ -106,13 +106,16 @@ pub fn render(
         ));
         columns[2].push((
             service
-                .preprod
+                .preproduction
                 .short_value()
                 .unwrap_or(no_commit.to_string()),
             preprod_color,
         ));
         columns[3].push((
-            service.prod.short_value().unwrap_or(no_commit.to_string()),
+            service
+                .production
+                .short_value()
+                .unwrap_or(no_commit.to_string()),
             prod_color,
         ));
     }

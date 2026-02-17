@@ -6,7 +6,7 @@ use ratatui::{
 };
 
 pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState) {
-    let style = styles::block_style(styles::is_menu_active(state.focus));
+    let style = styles::block_style(styles::list_has_focus(state.focus));
 
     let menu = List::new(
         state

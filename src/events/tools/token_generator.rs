@@ -1,6 +1,4 @@
 use crate::app::App;
-use crate::client::auth_zero_client;
-use crate::config::TokenGenerator;
 use crate::events::event::AppEvent;
 use crate::events::event::AppEvent::{
     CopyToClipboard, GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove,
@@ -9,7 +7,6 @@ use crate::events::event::AppEvent::{
 use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
-use std::error::Error;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match app_event {
@@ -41,23 +38,13 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         GenerateToken => {
             let (service_idx, env_idx) = app.state.token_generator.get_selected_service_env();
 
-            app.state
-                .token_generator
-                .start_token_request(service_idx, env_idx);
+            app.state.token_generator.start_token_request();
 
             let sender = app.event_sender.clone();
             let config = app.config.tokengenerator.clone();
 
-            tokio::spawn(async move {
-                match get_token(service_idx, env_idx, config).await {
-                    Ok(token) => {
-                        sender.send(TokenGenerated(token, service_idx, env_idx));
-                    }
-                    Err(err) => {
-                        sender.send(TokenFailed(err.to_string(), service_idx, env_idx));
-                    }
-                }
-            });
+            app.auth_zero_api
+                .fetch_token(service_idx, env_idx, config, sender);
         }
         TokenGenerated(token, service_idx, env_idx) => {
             app.state
@@ -83,21 +70,4 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         _ => {}
     }
-}
-
-async fn get_token(
-    service_idx: usize,
-    env_idx: usize,
-    config: TokenGenerator,
-) -> Result<String, Box<dyn Error>> {
-    let service = &config.services[service_idx];
-    let credentials = &service.credentials[env_idx];
-
-    auth_zero_client::request_token(
-        config.auth0.get_from_env(&credentials.env),
-        &credentials.client_id,
-        &credentials.client_secret,
-        &service.audience,
-    )
-    .await
 }

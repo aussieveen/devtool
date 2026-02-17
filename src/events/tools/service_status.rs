@@ -1,7 +1,4 @@
 use crate::app::App;
-use crate::client::healthcheck_client;
-use crate::config::ServiceStatus;
-use crate::environment::Environment;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::events::event::AppEvent;
 use crate::events::event::AppEvent::{
@@ -10,7 +7,6 @@ use crate::events::event::AppEvent::{
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
-use std::error::Error;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match app_event {
@@ -36,16 +32,8 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             let sender = app.event_sender.clone();
             let config = app.config.servicestatus.clone();
 
-            tokio::spawn(async move {
-                match get_commit_ref(service_idx, &env, config).await {
-                    Ok(commit) => {
-                        sender.send(GetCommitRefOk(commit, service_idx, env));
-                    }
-                    Err(err) => {
-                        sender.send(GetCommitRefErrored(err.to_string(), service_idx, env));
-                    }
-                }
-            });
+            app.healthcheck_api
+                .get_commit_ref(service_idx, env, config, sender);
         }
         GetCommitRefOk(commit, service_idx, env) => {
             app.state
@@ -83,14 +71,4 @@ fn get_link_url(app: &App) -> Option<String> {
         );
     }
     None
-}
-
-async fn get_commit_ref(
-    service_idx: usize,
-    env: &Environment,
-    config: Vec<ServiceStatus>,
-) -> Result<String, Box<dyn Error>> {
-    let url = format!("{}healthcheck", config[service_idx].get_from_env(env));
-
-    healthcheck_client::get(url).await
 }
