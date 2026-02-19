@@ -1,5 +1,5 @@
-use crate::error::model::Error;
 use crate::config::model::Config;
+use crate::error::model::Error;
 use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
@@ -21,7 +21,7 @@ pub struct AppState {
     pub token_generator: TokenGenerator,
     pub jira: Jira,
     pub focus: AppFocus,
-    pub error: Option<Error>
+    pub error: Option<Error>,
 }
 
 impl AppState {
@@ -50,14 +50,14 @@ impl AppState {
             token_generator: TokenGenerator::new(&config.tokengenerator.services),
             jira,
             focus: AppFocus::List,
-            error: None
+            error: None,
         }
     }
 
     pub fn effective_focus(&self) -> AppFocus {
-        if self.error.is_some(){
+        if self.error.is_some() {
             AppFocus::PopUp
-        }else{
+        } else {
             self.focus
         }
     }

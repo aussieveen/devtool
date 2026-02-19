@@ -1,10 +1,10 @@
 use crate::state::jira::Jira;
 use crate::ui::styles::list_style;
+use crate::utils::popup::popup_area;
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
-use crate::utils::popup::popup_area;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let selected_ticket = state.list_state.selected();

@@ -8,14 +8,14 @@ pub struct TokenResponse {
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ErrorResponse {
     pub error: i16,
-    pub error_description: String
+    pub error_description: String,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum AuthZeroResponse {
     TokenResponse(TokenResponse),
-    ErrorResponse(ErrorResponse)
+    ErrorResponse(ErrorResponse),
 }
 
 #[cfg(test)]

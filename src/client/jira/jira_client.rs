@@ -1,6 +1,6 @@
-use crate::client::jira::models::{JiraResponse, TicketResponse};
 use crate::client::jira::models::JiraResponse::ErrorResponse as JiraErrorResponse;
 use crate::client::jira::models::JiraResponse::TicketResponse as JiraTicketResponse;
+use crate::client::jira::models::{JiraResponse, TicketResponse};
 use std::error::Error;
 
 const JIRA_ISSUE_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
@@ -28,13 +28,11 @@ async fn get_from(
     let body: JiraResponse = serde_json::from_str(response.text().await?.as_str())?;
 
     match body {
-        JiraTicketResponse(r) => {
-            Ok(r)
-        }
+        JiraTicketResponse(r) => Ok(r),
         JiraErrorResponse(e) => {
             let msg = match e.error_messages.len() {
                 0 => "Unknown error",
-                _ => e.error_messages[0].as_str()
+                _ => e.error_messages[0].as_str(),
             };
             Err(format!("Error: {}", msg).into())
         }

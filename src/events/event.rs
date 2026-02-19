@@ -1,9 +1,9 @@
 use crate::client::jira::models::TicketResponse;
 use crate::environment::Environment;
+use crate::error::model::Error;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
-use crate::error::model::Error;
 
 pub enum Event {
     /// An event that is emitted on a regular schedule.

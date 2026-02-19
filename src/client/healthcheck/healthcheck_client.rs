@@ -24,7 +24,9 @@ pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
         }
         Err(e) => {
             if e.is_timeout() {
-                Err(format!("{}", "Request timed out. VPN connection required").into())
+                Err("Request timed out. VPN connection required"
+                    .to_string()
+                    .into())
             } else {
                 Err(Box::new(e))
             }

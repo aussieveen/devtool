@@ -1,4 +1,3 @@
-use std::fmt::format;
 use crate::app::Tool::{Home, Jira, TokenGenerator};
 use crate::client::auth_zero::api::{AuthZeroApi, ImmediateAuthZeroApi};
 use crate::client::healthcheck::api::{HealthcheckApi, ImmediateHealthcheckApi};
@@ -16,16 +15,16 @@ use crate::input::key_context::KeyContext::{
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
+use crate::utils::popup::popup_area;
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
+use ratatui::layout::Alignment;
+use ratatui::text::Line;
+use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
-use ratatui::layout::{Alignment};
-use ratatui::text::Line;
-use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
-use crate::utils::popup::popup_area;
 
 /// The main application which holds the state and logic of the application.
 pub struct App {
@@ -110,7 +109,7 @@ impl App {
                 {
                     self.event_sender.send(ListSelect(tool))
                 }
-            },
+            }
             SystemError(error) => self.state.error = Some(error),
             DismissPopup => self.state.error = None,
 
@@ -161,15 +160,15 @@ impl App {
         footer::render(frame, areas.footer);
 
         if let Some(error) = &self.state.error {
-
             let block = Block::bordered().title(format!(" {} ", error.title));
             let lines: Vec<Line> = vec![
                 Line::from(format!("{}: {}", error.tool, error.originating_event)),
                 Line::from(""),
-                Line::from(error.description.clone())
+                Line::from(error.description.clone()),
             ];
 
-            let paragraph = Paragraph::new(lines).wrap(Wrap { trim: false })
+            let paragraph = Paragraph::new(lines)
+                .wrap(Wrap { trim: false })
                 .block(block)
                 .alignment(Alignment::Left);
 

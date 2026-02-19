@@ -1,10 +1,10 @@
+use crate::client::auth_zero::models::AuthZeroResponse;
+use crate::client::auth_zero::models::AuthZeroResponse::ErrorResponse as AuthZeroErrorResponse;
+use crate::client::auth_zero::models::AuthZeroResponse::TokenResponse as AuthZeroTokenResponse;
 use crate::client::auth_zero::models::TokenResponse;
 use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
-use crate::client::auth_zero::models::AuthZeroResponse;
-use crate::client::auth_zero::models::AuthZeroResponse::ErrorResponse as AuthZeroErrorResponse;
-use crate::client::auth_zero::models::AuthZeroResponse::TokenResponse as AuthZeroTokenResponse;
 
 pub async fn get_token(
     auth0_url: &String,
@@ -30,13 +30,9 @@ pub async fn get_token(
     let body: AuthZeroResponse = serde_json::from_str(response.text().await?.as_str())?;
 
     match body {
-        AuthZeroTokenResponse(r) => {
-            Ok(r)
-        }
+        AuthZeroTokenResponse(r) => Ok(r),
         AuthZeroErrorResponse(e) => {
-            Err(format!(
-                "Status code: {} - {}", e.error, e.error_description
-            ).into())
+            Err(format!("Status code: {} - {}", e.error, e.error_description).into())
         }
     }
 }

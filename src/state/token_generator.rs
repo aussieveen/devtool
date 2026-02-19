@@ -149,10 +149,7 @@ mod tests {
         let mut token_generator = get_default_token_generator();
         token_generator.set_token_error(service_idx, env_idx);
 
-        assert_eq!(
-            token_generator.tokens[service_idx][env_idx],
-            Token::Error
-        );
+        assert_eq!(token_generator.tokens[service_idx][env_idx], Token::Error);
     }
 
     #[test]

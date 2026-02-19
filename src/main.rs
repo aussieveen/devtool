@@ -2,13 +2,13 @@ mod app;
 mod client;
 mod config;
 mod environment;
+mod error;
 mod events;
 mod input;
 mod persistence;
 mod state;
 mod ui;
 mod utils;
-mod error;
 
 use crate::app::App;
 use crate::config::loader::ConfigLoader;

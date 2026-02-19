@@ -1,10 +1,10 @@
-use std::error::Error;
-use crate::error::model::Error as AppError;
 use crate::client::jira::jira_client;
 use crate::client::jira::models::TicketResponse;
 use crate::config::model::JiraConfig;
+use crate::error::model::Error as AppError;
 use crate::events::event::AppEvent::{SystemError, TicketRetrieved};
 use crate::events::sender::EventSender;
+use std::error::Error;
 
 pub trait JiraApi {
     fn fetch_ticket(&self, ticket_id: String, jira_config: JiraConfig, sender: EventSender);
@@ -19,14 +19,12 @@ impl JiraApi for ImmediateJiraApi {
                 Ok(ticket) => {
                     sender.send(TicketRetrieved(ticket));
                 }
-                Err(err) => {
-                    sender.send(SystemError(AppError{
-                        title: "Failed to get ticket".to_string(),
-                        originating_event: "SubmitTicketId".to_string(),
-                        tool: "Jira".to_string(),
-                        description: err.to_string(),
-                    }))
-                }
+                Err(err) => sender.send(SystemError(AppError {
+                    title: "Failed to get ticket".to_string(),
+                    originating_event: "SubmitTicketId".to_string(),
+                    tool: "Jira".to_string(),
+                    description: err.to_string(),
+                })),
             }
         });
     }

@@ -27,15 +27,15 @@ pub struct Status {
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct ErrorResponse{
-    pub error_messages: Vec<String>
+pub struct ErrorResponse {
+    pub error_messages: Vec<String>,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum JiraResponse {
     TicketResponse(TicketResponse),
-    ErrorResponse(ErrorResponse)
+    ErrorResponse(ErrorResponse),
 }
 
 #[cfg(test)]
