@@ -65,13 +65,13 @@ impl AppState {
 
 #[cfg(test)]
 mod tests {
+    use crate::app::AppFocus;
     use crate::config::model::{Auth0Config, Config, JiraConfig, TokenGenerator};
+    use crate::error::model::Error;
     use crate::persistence::persister::JiraFile;
     use crate::state::app::AppState;
     use crate::state::jira::Jira;
     use tempfile::TempDir;
-    use crate::app::AppFocus;
-    use crate::error::model::Error;
 
     fn test_jira() -> Jira {
         let dir = TempDir::new().unwrap();
@@ -97,7 +97,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn new_adds_jira_item_when_jira_config_is_some() {
         let app_state = AppState::build(&test_config(), test_jira());
@@ -116,9 +115,9 @@ mod tests {
     }
 
     #[test]
-    fn focus_is_popup_when_error_set(){
+    fn focus_is_popup_when_error_set() {
         let mut app_state = AppState::build(&test_config(), test_jira());
-        app_state.error = Some(Error{
+        app_state.error = Some(Error {
             title: "".to_string(),
             originating_event: "".to_string(),
             tool: "".to_string(),
@@ -129,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn focus_is_app_state_focus_when_error_set(){
+    fn focus_is_app_state_focus_when_error_set() {
         let app_state = AppState::build(&test_config(), test_jira());
 
         assert_eq!(app_state.effective_focus(), AppFocus::List);

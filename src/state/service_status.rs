@@ -42,36 +42,30 @@ impl ServiceStatus {
     }
 
     pub(crate) fn has_link(&self) -> bool {
-        match self.list_state.selected(){
+        match self.list_state.selected() {
             Some(service_idx) => {
                 let service = &self.services[service_idx];
                 service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
             }
-            None => {
-                false
-            }
+            None => false,
         }
-
     }
 
     pub(crate) fn get_link(&self, repo_url: &String) -> Option<String> {
         // TODO: Add robust checking that a service is selected
         // TODO: Return an option to cover bad values
         let service_idx = self.list_state.selected();
-        if service_idx.is_none(){
-            return None;
-        }
+        service_idx?;
 
         let service = &self.services[service_idx.unwrap()];
         if let Some(prod_ref) = service.production.get_ref()
-            && let Some(preprod_ref) = service.preproduction.get_ref() {
+            && let Some(preprod_ref) = service.preproduction.get_ref()
+        {
             Some(format!(
                 "{}/compare/{}...{}",
-                repo_url,
-                prod_ref,
-                preprod_ref,
+                repo_url, prod_ref, preprod_ref,
             ))
-        }else{
+        } else {
             None
         }
     }
@@ -261,8 +255,8 @@ mod tests {
     fn get_link_returns_none_when_required_values_are_not_set(
         selected: Option<usize>,
         preprod_commit: Commit,
-        prod_commit: Commit
-    ){
+        prod_commit: Commit,
+    ) {
         let mut service_status = ServiceStatus::new(2);
         service_status.list_state.select(selected);
 

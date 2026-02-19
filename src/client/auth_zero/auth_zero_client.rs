@@ -79,7 +79,8 @@ mod tests {
         let response = serde_json::json!({
                 "error": 403,
                 "error_description": "Access denied"
-        }).to_string();
+        })
+        .to_string();
 
         let mock = server
             .mock("POST", "/token")

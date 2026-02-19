@@ -1,8 +1,8 @@
 use crate::client::healthcheck::models::Healthcheck;
+use reqwest::StatusCode;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use std::error::Error;
 use std::time::Duration;
-use reqwest::StatusCode;
 
 pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
     let client = reqwest::Client::new();
@@ -22,7 +22,7 @@ pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
             } else if res.status() == StatusCode::SERVICE_UNAVAILABLE {
                 Err(format!("{}.", res.status()).into())
             } else {
-                return Err(format!("{}", res.status()).into());
+                Err(format!("{}", res.status()).into())
             }
         }
         Err(e) => {

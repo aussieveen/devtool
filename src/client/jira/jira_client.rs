@@ -126,7 +126,8 @@ mod tests {
                 "this went wrong",
                 "went badly here too"
             ]
-        }).to_string();
+        })
+        .to_string();
 
         let mock = server
             .mock("GET", "/TEST-123")
@@ -147,7 +148,6 @@ mod tests {
             "Error: this went wrong".to_string()
         );
 
-
         mock.assert_async().await;
     }
 
@@ -157,7 +157,8 @@ mod tests {
 
         let error = serde_json::json!({
             "errorMessages": []
-        }).to_string();
+        })
+        .to_string();
 
         let mock = server
             .mock("GET", "/TEST-123")
@@ -177,7 +178,6 @@ mod tests {
             result.err().unwrap().to_string(),
             "Error: Unknown error".to_string()
         );
-
 
         mock.assert_async().await;
     }
