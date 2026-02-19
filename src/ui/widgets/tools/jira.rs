@@ -1,7 +1,8 @@
 use crate::state::jira::Jira;
 use crate::ui::styles::list_style;
+use crate::utils::popup::popup_area;
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
@@ -61,16 +62,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
             .block(block)
             .alignment(Alignment::Center);
 
-        let area = popup_area(frame.area(), 20);
+        let area = popup_area(frame.area(), 20, 3);
         frame.render_widget(Clear, area);
         frame.render_widget(paragraph, area);
     }
-}
-
-fn popup_area(area: Rect, percent_x: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Length(3)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
 }

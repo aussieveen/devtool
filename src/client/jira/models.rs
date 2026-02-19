@@ -25,6 +25,19 @@ pub struct Status {
     pub name: String,
 }
 
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ErrorResponse {
+    pub error_messages: Vec<String>,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum JiraResponse {
+    TicketResponse(TicketResponse),
+    ErrorResponse(ErrorResponse),
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

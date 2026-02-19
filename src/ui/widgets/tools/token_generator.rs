@@ -43,7 +43,7 @@ pub fn render(
             let token = &state.tokens[service_idx][env_idx];
             let prefix = match token {
                 Token::Ready(_) => "[✓]",
-                Token::Error(_) => "[x]",
+                Token::Error => "[x]",
                 _ => "[ ]",
             };
             ListItem::new(format!("{} {}", prefix, c.env.as_str()))
@@ -60,7 +60,7 @@ pub fn render(
         Token::Idle => "[Return] to generate token",
         Token::Requesting => "Generating token",
         Token::Ready(_) => "Token available: [c] to Copy the token value",
-        Token::Error(e) => &*format!("{}: {}", "Error when attempting to get the token", e),
+        Token::Error => "Error when attempting to get the token",
     };
 
     frame.render_widget(Paragraph::new(text), vertical_break[1]);

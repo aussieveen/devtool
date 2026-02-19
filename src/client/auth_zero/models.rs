@@ -5,6 +5,19 @@ pub struct TokenResponse {
     pub access_token: String,
 }
 
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct ErrorResponse {
+    pub error: i16,
+    pub error_description: String,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum AuthZeroResponse {
+    TokenResponse(TokenResponse),
+    ErrorResponse(ErrorResponse),
+}
+
 #[cfg(test)]
 mod tests {
     use crate::client::auth_zero::models::TokenResponse;

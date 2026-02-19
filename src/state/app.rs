@@ -1,4 +1,5 @@
 use crate::config::model::Config;
+use crate::error::model::Error;
 use crate::state::jira::Jira;
 use crate::state::service_status::ServiceStatus;
 use crate::state::token_generator::TokenGenerator;
@@ -20,6 +21,7 @@ pub struct AppState {
     pub token_generator: TokenGenerator,
     pub jira: Jira,
     pub focus: AppFocus,
+    pub error: Option<Error>,
 }
 
 impl AppState {
@@ -48,13 +50,24 @@ impl AppState {
             token_generator: TokenGenerator::new(&config.tokengenerator.services),
             jira,
             focus: AppFocus::List,
+            error: None,
+        }
+    }
+
+    pub fn effective_focus(&self) -> AppFocus {
+        if self.error.is_some() {
+            AppFocus::PopUp
+        } else {
+            self.focus
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::app::AppFocus;
     use crate::config::model::{Auth0Config, Config, JiraConfig, TokenGenerator};
+    use crate::error::model::Error;
     use crate::persistence::persister::JiraFile;
     use crate::state::app::AppState;
     use crate::state::jira::Jira;
@@ -65,9 +78,8 @@ mod tests {
         Jira::new_empty(JiraFile::new_from_path(dir.path().join("test.yaml")))
     }
 
-    #[test]
-    fn new_adds_jira_item_when_jira_config_is_some() {
-        let config = Config {
+    fn test_config() -> Config {
+        Config {
             servicestatus: vec![],
             tokengenerator: TokenGenerator {
                 auth0: Auth0Config {
@@ -82,31 +94,43 @@ mod tests {
                 email: "".to_string(),
                 token: "".to_string(),
             }),
-        };
+        }
+    }
 
-        let app_state = AppState::build(&config, test_jira());
+    #[test]
+    fn new_adds_jira_item_when_jira_config_is_some() {
+        let app_state = AppState::build(&test_config(), test_jira());
 
         assert_eq!(app_state.tool_list.items.len(), 4);
     }
 
     #[test]
     fn new_skips_jira_item_when_jira_config_is_none() {
-        let config = Config {
-            servicestatus: vec![],
-            tokengenerator: TokenGenerator {
-                auth0: Auth0Config {
-                    local: "".to_string(),
-                    staging: "".to_string(),
-                    preproduction: "".to_string(),
-                    production: "".to_string(),
-                },
-                services: vec![],
-            },
-            jira: None,
-        };
+        let mut config = test_config();
+        config.jira = None;
 
         let app_state = AppState::build(&config, test_jira());
 
         assert_eq!(app_state.tool_list.items.len(), 3);
+    }
+
+    #[test]
+    fn focus_is_popup_when_error_set() {
+        let mut app_state = AppState::build(&test_config(), test_jira());
+        app_state.error = Some(Error {
+            title: "".to_string(),
+            originating_event: "".to_string(),
+            tool: "".to_string(),
+            description: "".to_string(),
+        });
+
+        assert_eq!(app_state.effective_focus(), AppFocus::PopUp);
+    }
+
+    #[test]
+    fn focus_is_app_state_focus_when_error_set() {
+        let app_state = AppState::build(&test_config(), test_jira());
+
+        assert_eq!(app_state.effective_focus(), AppFocus::List);
     }
 }

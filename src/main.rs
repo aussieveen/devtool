@@ -2,6 +2,7 @@ mod app;
 mod client;
 mod config;
 mod environment;
+mod error;
 mod events;
 mod input;
 mod persistence;

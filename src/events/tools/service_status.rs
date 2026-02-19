@@ -1,8 +1,10 @@
 use crate::app::App;
 use crate::environment::Environment::{Preproduction, Production, Staging};
+use crate::error::model::Error;
 use crate::events::event::AppEvent;
 use crate::events::event::AppEvent::{
     GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ScanServices, ServiceStatusListMove,
+    SystemError,
 };
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::string_copy::copy_to_clipboard;
@@ -46,8 +48,16 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .set_commit_error(service_idx, &env, error);
         }
         AppEvent::CopyToClipboard => {
-            if let Some(link) = get_link_url(app) {
-                copy_to_clipboard(link).expect("TODO: panic message");
+            if let Some(link) = get_link_url(app)
+                && let Err(e) = copy_to_clipboard(link)
+            {
+                let sender = app.event_sender.clone();
+                sender.send(SystemError(Error {
+                    title: "Fail to copy to clipboard".to_string(),
+                    originating_event: "CopyToClipboard".to_string(),
+                    tool: "Service Status".to_string(),
+                    description: e,
+                }))
             }
         }
         AppEvent::OpenInBrowser => {
@@ -64,11 +74,10 @@ fn get_link_url(app: &App) -> Option<String> {
         return None;
     }
     if let Some(service_idx) = app.state.service_status.get_selected_service_idx() {
-        return Some(
-            app.state
-                .service_status
-                .get_link(&app.config.servicestatus[service_idx].repo),
-        );
+        return app
+            .state
+            .service_status
+            .get_link(&app.config.servicestatus[service_idx].repo);
     }
     None
 }

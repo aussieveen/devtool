@@ -15,9 +15,13 @@ use crate::input::key_context::KeyContext::{
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
+use crate::utils::popup::popup_area;
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
+use ratatui::layout::Alignment;
+use ratatui::text::Line;
+use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
@@ -106,6 +110,8 @@ impl App {
                     self.event_sender.send(ListSelect(tool))
                 }
             }
+            SystemError(error) => self.state.error = Some(error),
+            DismissPopup => self.state.error = None,
 
             e @ CopyToClipboard => match self.state.current_tool {
                 Tool::ServiceStatus => service_status::handle_event(self, e),
@@ -151,7 +157,25 @@ impl App {
 
         tool::render(frame, areas.content, &mut self.state, &self.config);
 
-        footer::render(frame, areas.footer)
+        footer::render(frame, areas.footer);
+
+        if let Some(error) = &self.state.error {
+            let block = Block::bordered().title(format!(" {} ", error.title));
+            let lines: Vec<Line> = vec![
+                Line::from(format!("{}: {}", error.tool, error.originating_event)),
+                Line::from(""),
+                Line::from(error.description.clone()),
+            ];
+
+            let paragraph = Paragraph::new(lines)
+                .wrap(Wrap { trim: false })
+                .block(block)
+                .alignment(Alignment::Left);
+
+            let area = popup_area(frame.area(), 50, 7);
+            frame.render_widget(Clear, area);
+            frame.render_widget(paragraph, area);
+        }
     }
 
     /// Handles the key events and updates the state of [`App`].
