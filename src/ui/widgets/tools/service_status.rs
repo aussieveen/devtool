@@ -1,6 +1,5 @@
 use crate::config::model::ServiceStatus as ServiceStatusConfig;
-use crate::state::service_status::{CommitRefStatus, ServiceStatus};
-use crate::ui::styles::list_style;
+use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
@@ -15,8 +14,17 @@ pub fn render(
 ) {
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;
-    const PREPROD_PROD_MATCH: Color = Color::Blue;
+    const PREPROD_PROD_MATCH: Color = Color::Cyan;
     const STAGING_PREPROD_MATCH: Color = Color::Yellow;
+
+    let commit_cell = |commit: &Commit, ok_color: Color| -> (String, Color) {
+        match commit {
+            Commit::Fetching => ("…".to_string(), Color::DarkGray),
+            Commit::Empty => ("—".to_string(), Color::DarkGray),
+            Commit::Error(_) => ("Error".to_string(), NONE_MATCH),
+            Commit::Ok(_) => (commit.short_value().unwrap(), ok_color),
+        }
+    };
 
     let selected_service_idx = state.list_state.selected();
 
@@ -42,10 +50,10 @@ pub fn render(
     let columns = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
+            Constraint::Percentage(30),
+            Constraint::Percentage(23),
+            Constraint::Percentage(23),
+            Constraint::Percentage(24),
         ]);
 
     let header_cols = columns.split(header_area);
@@ -76,50 +84,24 @@ pub fn render(
     ];
 
     for (service_idx, service) in state.services.iter().enumerate() {
-        let (service_color, staging_color, preprod_color, prod_color) = match service
-            .commit_ref_status()
-        {
+        let (service_color, staging_ok, preprod_ok, prod_ok) = match service.commit_ref_status() {
             CommitRefStatus::NothingMatches => (NONE_MATCH, Color::Red, Color::Red, Color::Red),
             CommitRefStatus::AllMatches => (ALL_MATCH, Color::Green, Color::Green, Color::Green),
-            CommitRefStatus::StagingPreprodMatch => (
-                STAGING_PREPROD_MATCH,
-                Color::Green,
-                Color::Green,
-                Color::Red,
-            ),
-            CommitRefStatus::PreprodProdMatch => (
-                PREPROD_PROD_MATCH,
-                Color::Yellow,
-                Color::Green,
-                Color::Green,
-            ),
-            CommitRefStatus::CommitMissing => (Color::Red, Color::Red, Color::Red, Color::Red),
+            CommitRefStatus::StagingPreprodMatch => {
+                (STAGING_PREPROD_MATCH, Color::Green, Color::Green, Color::Red)
+            }
+            CommitRefStatus::PreprodProdMatch => {
+                (PREPROD_PROD_MATCH, PREPROD_PROD_MATCH, Color::Green, Color::Green)
+            }
+            CommitRefStatus::CommitMissing => {
+                (NONE_MATCH, Color::DarkGray, Color::DarkGray, Color::DarkGray)
+            }
         };
 
-        let no_commit: &str = "Unable to get commit";
-
         columns[0].push((config[service_idx].name.clone(), service_color));
-        columns[1].push((
-            service
-                .staging
-                .short_value()
-                .unwrap_or(no_commit.to_string()),
-            staging_color,
-        ));
-        columns[2].push((
-            service
-                .preproduction
-                .short_value()
-                .unwrap_or(no_commit.to_string()),
-            preprod_color,
-        ));
-        columns[3].push((
-            service
-                .production
-                .short_value()
-                .unwrap_or(no_commit.to_string()),
-            prod_color,
-        ));
+        columns[1].push(commit_cell(&service.staging, staging_ok));
+        columns[2].push(commit_cell(&service.preproduction, preprod_ok));
+        columns[3].push(commit_cell(&service.production, prod_ok));
     }
 
     // ── 5. Render commit grid columns ───────────────────────────────────────────────
@@ -127,18 +109,31 @@ pub fn render(
         let lines: Vec<Line> = columns[col_idx]
             .iter()
             .enumerate()
-            .map(|(row_idx, (hash, status_color))| {
-                let line_style = list_style(
-                    (selected_service_idx.is_some() && selected_service_idx.unwrap() == row_idx)
-                        || selected_service_idx.is_none(),
-                );
+            .map(|(row_idx, (text, color))| {
+                let is_active = selected_service_idx.is_none()
+                    || selected_service_idx == Some(row_idx);
 
-                Line::from(vec![
-                    // status stripe
-                    Span::styled("▍", Style::default().bg(*status_color)),
-                    Span::raw(" "),
-                    Span::styled(hash.clone(), line_style),
-                ])
+                if col_idx == 0 {
+                    // Service name column: status stripe + name
+                    let stripe_color = if is_active { *color } else { Color::DarkGray };
+                    let text_style = if is_active {
+                        Style::default()
+                    } else {
+                        Style::default().fg(Color::DarkGray)
+                    };
+                    Line::from(vec![
+                        Span::styled("▍", Style::default().bg(stripe_color)),
+                        Span::raw(" "),
+                        Span::styled(text.clone(), text_style),
+                    ])
+                } else {
+                    // Env columns: colored text only, no stripe
+                    let text_color = if is_active { *color } else { Color::DarkGray };
+                    Line::from(Span::styled(
+                        text.clone(),
+                        Style::default().fg(text_color),
+                    ))
+                }
             })
             .collect();
 
