@@ -1,9 +1,7 @@
 use crate::app::App;
+use crate::error::model::Error;
 use crate::events::event::AppEvent;
-use crate::events::event::AppEvent::{
-    CopyToClipboard, GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove,
-    TokenGenServiceListMove, TokenGenerated,
-};
+use crate::events::event::AppEvent::{CopyToClipboard, GenerateToken, SetTokenGenFocus, SystemError, TokenFailed, TokenGenEnvListMove, TokenGenServiceListMove, TokenGenerated};
 use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
@@ -54,7 +52,14 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         TokenFailed(error, service_idx, env_idx) => {
             app.state
                 .token_generator
-                .set_token_error(service_idx, env_idx, error);
+                .set_token_error(service_idx, env_idx);
+            let sender = app.event_sender.clone();
+            sender.send(SystemError(Error{
+                title: "Error requesting token".to_string(),
+                originating_event: "TokenFailed".to_string(),
+                tool: "Token Generator".to_string(),
+                description: error,
+            }));
         }
         CopyToClipboard => {
             let token = app
@@ -64,8 +69,17 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             if matches!(token, Token::Ready(_))
                 && let Some(value) = token.value()
             {
-                // @TODO - Error handle failure to copy
-                let _ = copy_to_clipboard(value.to_string());
+                let result = copy_to_clipboard(value.to_string());
+                if result.is_err(){
+                    let sender = app.event_sender.clone();
+                    let description = result.err().unwrap_or_else(|| "Unknown error".to_string());
+                    sender.send(SystemError(Error{
+                        title: "Failed to copy to clipboard".to_string(),
+                        originating_event: "CopyToClipboard".to_string(),
+                        tool: "Token Generator".to_string(),
+                        description,
+                    }));
+                }
             }
         }
         _ => {}

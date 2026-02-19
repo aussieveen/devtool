@@ -3,6 +3,7 @@ use crate::environment::Environment;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
+use crate::error::model::Error;
 
 pub enum Event {
     /// An event that is emitted on a regular schedule.
@@ -26,6 +27,8 @@ pub enum AppEvent {
     // List events
     ListMove(Direction), // Move up and down tool List
     ListSelect(Tool),    // Select item on tool list
+    SystemError(Error),
+    DismissPopup,
 
     // Tool events
     // ServiceStatus

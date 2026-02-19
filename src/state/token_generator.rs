@@ -56,8 +56,8 @@ impl TokenGenerator {
         self.tokens[service_idx][env_idx] = Token::Ready(token);
     }
 
-    pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize, error: String) {
-        self.tokens[service_idx][env_idx] = Token::Error(error);
+    pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize) {
+        self.tokens[service_idx][env_idx] = Token::Error;
     }
 
     pub fn get_token_for_selected_service_env(&self) -> &Token {
@@ -70,13 +70,13 @@ pub enum Token {
     Idle,
     Requesting,
     Ready(String),
-    Error(String),
+    Error,
 }
 
 impl Token {
     pub(crate) fn value(&self) -> Option<&str> {
         match self {
-            Token::Ready(s) | Token::Error(s) => Some(s.as_str()),
+            Token::Ready(s) => Some(s.as_str()),
             _ => None,
         }
     }
@@ -146,13 +146,12 @@ mod tests {
     fn set_token_error_sets_token_to_error() {
         let service_idx = 0;
         let env_idx = 1;
-        let token_string = String::from("token");
         let mut token_generator = get_default_token_generator();
-        token_generator.set_token_error(service_idx, env_idx, token_string.clone());
+        token_generator.set_token_error(service_idx, env_idx);
 
         assert_eq!(
             token_generator.tokens[service_idx][env_idx],
-            Token::Error(token_string)
+            Token::Error
         );
     }
 

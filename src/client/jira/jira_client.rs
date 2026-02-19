@@ -1,4 +1,6 @@
-use crate::client::jira::models::TicketResponse;
+use crate::client::jira::models::{JiraResponse, TicketResponse};
+use crate::client::jira::models::JiraResponse::ErrorResponse as JiraErrorResponse;
+use crate::client::jira::models::JiraResponse::TicketResponse as JiraTicketResponse;
 use std::error::Error;
 
 const JIRA_ISSUE_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
@@ -21,7 +23,22 @@ async fn get_from(
     let client = reqwest::Client::builder().build()?;
     let request = client.get(url).basic_auth(username, Some(password));
 
-    Ok(request.send().await?.json::<TicketResponse>().await?)
+    let response = request.send().await?;
+
+    let body: JiraResponse = serde_json::from_str(response.text().await?.as_str())?;
+
+    match body {
+        JiraTicketResponse(r) => {
+            Ok(r)
+        }
+        JiraErrorResponse(e) => {
+            let msg = match e.error_messages.len() {
+                0 => "Unknown error",
+                _ => e.error_messages[0].as_str()
+            };
+            Err(format!("Error: {}", msg).into())
+        }
+    }
 }
 
 #[cfg(test)]

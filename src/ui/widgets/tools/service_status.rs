@@ -26,15 +26,17 @@ pub fn render(
         .constraints([
             Constraint::Length(2), // column headers
             Constraint::Min(0),    // commit grid
+            Constraint::Min(0),    // request errors
             Constraint::Length(2), // color legend
             Constraint::Length(2), // additional actions
         ])
         .split(area);
 
     let header_area = vertical[0];
-    let grid_area = vertical[1];
-    let legend_area = vertical[2];
-    let action_area = vertical[3];
+    let grid_area   = vertical[1];
+    let error_area  = vertical[2];
+    let legend_area = vertical[3];
+    let action_area = vertical[4];
 
     // ── 2. Define shared 25% column layout ──────────────────────────────────────────
     let columns = Layout::default()
@@ -145,6 +147,27 @@ pub fn render(
             .alignment(Alignment::Left);
 
         frame.render_widget(column, *col_area);
+    }
+
+    // ── Render errors
+    if let Some(service_idx) = state.list_state.selected(){
+        let mut lines: Vec<Line> = vec![];
+        let service = &state.services[service_idx];
+        let commits = vec![
+            (&service.staging, "Staging"),
+            (&service.preproduction, "Preproduction"),
+            (&service.production, "Production")
+        ];
+        for commit in commits{
+            let (c,env) = commit;
+            if let Some(error) = c.get_error(){
+                lines.push(format!("{}: {}", env, error ).into());
+            }
+        }
+        frame.render_widget(
+            Paragraph::new(lines).wrap(Wrap { trim: false }),
+            error_area,
+        );
     }
 
     // ── 5. Render legend,status and action rows ────────────────────────────────────

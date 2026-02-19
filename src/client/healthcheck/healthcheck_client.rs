@@ -13,7 +13,23 @@ pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
         .header(ACCEPT, "application/json")
         .timeout(Duration::from_secs(3));
 
-    Ok(request.send().await?.json::<Healthcheck>().await?)
+    let response = request.send().await;
+    match response {
+        Ok(res) => {
+            if res.status().is_server_error() {
+                return Err(format!("{}. Service likely shut down.", res.status()).into());
+            }
+
+            Ok(res.json::<Healthcheck>().await?)
+        }
+        Err(e) => {
+            if e.is_timeout() {
+                Err(format!("{}", "Request timed out. VPN connection required").into())
+            } else {
+                Err(Box::new(e))
+            }
+        }
+    }
 }
 
 #[cfg(test)]

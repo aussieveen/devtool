@@ -5,7 +5,7 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 
 pub fn render(frame: &mut Frame, area: Rect) {
     let footer = Paragraph::new(
-        "← →  Switch panels/lists  ↑ ↓  Move in list  esc|q Quit\n\
+        "[← →]  Switch panels/lists  [↑ ↓]  Move in list [d] Dismiss Popup [esc|q] Quit \n\
      More actions are shown within each tool.",
     )
     .block(

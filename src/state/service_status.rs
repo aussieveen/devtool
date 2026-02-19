@@ -54,8 +54,8 @@ impl ServiceStatus {
         format!(
             "{}/compare/{}...{}",
             repo_url,
-            service.production.value().unwrap(),
-            service.preproduction.value().unwrap(),
+            service.production.get_ref().unwrap(),
+            service.preproduction.get_ref().unwrap(),
         )
     }
 }
@@ -69,9 +69,16 @@ pub enum Commit {
 }
 
 impl Commit {
-    pub fn value(&self) -> Option<&str> {
+    pub fn get_ref(&self) -> Option<&str> {
         match self {
             Commit::Ok(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn get_error(&self) -> Option<&str> {
+        match self {
+            Commit::Error(s) => Some(s.as_str()),
             _ => None,
         }
     }
@@ -125,8 +132,8 @@ impl Service {
             return CommitRefStatus::CommitMissing;
         }
 
-        let preprod_prod_match = self.production.value() == self.preproduction.value();
-        let staging_preprod_match = self.preproduction.value() == self.staging.value();
+        let preprod_prod_match = self.production.get_ref() == self.preproduction.get_ref();
+        let staging_preprod_match = self.preproduction.get_ref() == self.staging.get_ref();
 
         if preprod_prod_match && staging_preprod_match {
             return CommitRefStatus::AllMatches;
@@ -234,7 +241,7 @@ mod tests {
     #[test_case(Commit::Ok(String::from("commit")), Some("commit"); "Returns value from Ok Commit")]
     #[test_case(Commit::Fetching, None; "Returns NONE when no Commit::Ok")]
     fn commit_value_returns_expected_value(commit: Commit, expected: Option<&str>) {
-        assert_eq!(commit.value(), expected);
+        assert_eq!(commit.get_ref(), expected);
     }
 
     #[test_case(

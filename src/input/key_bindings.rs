@@ -1,11 +1,6 @@
 use crate::app::AppFocus;
 use crate::app::Tool::{Home, Jira, ServiceStatus, TokenGenerator};
-use crate::events::event::AppEvent::{
-    AddTicketIdChar, CopyToClipboard, GenerateToken, JiraTicketListMove, JiraTicketMove,
-    NewJiraTicketPopUp, OpenInBrowser, Quit, RemoveTicket, RemoveTicketIdChar, ScanServices,
-    ServiceStatusListMove, SetFocus, SetTokenGenFocus, SubmitTicketId, TokenGenEnvListMove,
-    TokenGenServiceListMove,
-};
+use crate::events::event::AppEvent::{AddTicketIdChar, CopyToClipboard, DismissPopup, GenerateToken, JiraTicketListMove, JiraTicketMove, NewJiraTicketPopUp, OpenInBrowser, Quit, RemoveTicket, RemoveTicketIdChar, ScanServices, ServiceStatusListMove, SetFocus, SetTokenGenFocus, SubmitTicketId, TokenGenEnvListMove, TokenGenServiceListMove};
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
     Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
@@ -29,6 +24,12 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyCode::Char('o'),
         KeyModifiers::NONE,
         OpenInBrowser,
+    );
+    key_event_map.add_static(
+        Global,
+        KeyCode::Char('d'),
+        KeyModifiers::NONE,
+        DismissPopup,
     );
 
     // POP UP EVENTS
