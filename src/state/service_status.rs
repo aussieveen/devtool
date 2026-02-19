@@ -52,8 +52,6 @@ impl ServiceStatus {
     }
 
     pub(crate) fn get_link(&self, repo_url: &String) -> Option<String> {
-        // TODO: Add robust checking that a service is selected
-        // TODO: Return an option to cover bad values
         let service_idx = self.list_state.selected();
         service_idx?;
 
