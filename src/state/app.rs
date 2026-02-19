@@ -70,15 +70,16 @@ mod tests {
     use crate::state::app::AppState;
     use crate::state::jira::Jira;
     use tempfile::TempDir;
+    use crate::app::AppFocus;
+    use crate::error::model::Error;
 
     fn test_jira() -> Jira {
         let dir = TempDir::new().unwrap();
         Jira::new_empty(JiraFile::new_from_path(dir.path().join("test.yaml")))
     }
 
-    #[test]
-    fn new_adds_jira_item_when_jira_config_is_some() {
-        let config = Config {
+    fn test_config() -> Config {
+        Config {
             servicestatus: vec![],
             tokengenerator: TokenGenerator {
                 auth0: Auth0Config {
@@ -93,31 +94,44 @@ mod tests {
                 email: "".to_string(),
                 token: "".to_string(),
             }),
-        };
+        }
+    }
 
-        let app_state = AppState::build(&config, test_jira());
+
+    #[test]
+    fn new_adds_jira_item_when_jira_config_is_some() {
+        let app_state = AppState::build(&test_config(), test_jira());
 
         assert_eq!(app_state.tool_list.items.len(), 4);
     }
 
     #[test]
     fn new_skips_jira_item_when_jira_config_is_none() {
-        let config = Config {
-            servicestatus: vec![],
-            tokengenerator: TokenGenerator {
-                auth0: Auth0Config {
-                    local: "".to_string(),
-                    staging: "".to_string(),
-                    preproduction: "".to_string(),
-                    production: "".to_string(),
-                },
-                services: vec![],
-            },
-            jira: None,
-        };
+        let mut config = test_config();
+        config.jira = None;
 
         let app_state = AppState::build(&config, test_jira());
 
         assert_eq!(app_state.tool_list.items.len(), 3);
+    }
+
+    #[test]
+    fn focus_is_popup_when_error_set(){
+        let mut app_state = AppState::build(&test_config(), test_jira());
+        app_state.error = Some(Error{
+            title: "".to_string(),
+            originating_event: "".to_string(),
+            tool: "".to_string(),
+            description: "".to_string(),
+        });
+
+        assert_eq!(app_state.effective_focus(), AppFocus::PopUp);
+    }
+
+    #[test]
+    fn focus_is_app_state_focus_when_error_set(){
+        let app_state = AppState::build(&test_config(), test_jira());
+
+        assert_eq!(app_state.effective_focus(), AppFocus::List);
     }
 }

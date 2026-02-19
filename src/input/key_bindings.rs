@@ -237,6 +237,7 @@ mod tests {
     #[test_case(Tool(Jira), KeyCode::Char('x'), KeyModifiers::NONE, RemoveTicket; "jira x removes ticket")]
     #[test_case(Popup(Jira), KeyCode::Backspace, KeyModifiers::NONE, RemoveTicketIdChar; "popup backspace removes char")]
     #[test_case(Popup(Jira), KeyCode::Enter, KeyModifiers::NONE, SubmitTicketId; "popup enter submits")]
+    #[test_case(Global, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
     fn binding_resolves_to_expected_event(
         context: KeyContext,
         code: KeyCode,

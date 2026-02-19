@@ -73,7 +73,36 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_token_handles_error_response() {
+    async fn get_token_returns_error_response() {
+        let mut server = mockito::Server::new_async().await;
+
+        let response = serde_json::json!({
+                "error": 403,
+                "error_description": "Access denied"
+        }).to_string();
+
+        let mock = server
+            .mock("POST", "/token")
+            .with_status(500)
+            .with_header("content-type", "application/json")
+            .with_body(response)
+            .create_async()
+            .await;
+
+        let base_url = format!("{}/token", server.url());
+        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let error = result.err();
+
+        assert_eq!(
+            error.unwrap().to_string(),
+            "Status code: 403 - Access denied"
+        );
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_token_handles_generic_error_response() {
         let mut server = mockito::Server::new_async().await;
 
         let mock = server

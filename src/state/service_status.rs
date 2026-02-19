@@ -42,21 +42,38 @@ impl ServiceStatus {
     }
 
     pub(crate) fn has_link(&self) -> bool {
-        // TODO: Add robust checking that a service is selected
-        let service = &self.services[self.list_state.selected().unwrap()];
-        service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
+        match self.list_state.selected(){
+            Some(service_idx) => {
+                let service = &self.services[service_idx];
+                service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
+            }
+            None => {
+                false
+            }
+        }
+
     }
 
-    pub(crate) fn get_link(&self, repo_url: &String) -> String {
+    pub(crate) fn get_link(&self, repo_url: &String) -> Option<String> {
         // TODO: Add robust checking that a service is selected
         // TODO: Return an option to cover bad values
-        let service = &self.services[self.list_state.selected().unwrap()];
-        format!(
-            "{}/compare/{}...{}",
-            repo_url,
-            service.production.get_ref().unwrap(),
-            service.preproduction.get_ref().unwrap(),
-        )
+        let service_idx = self.list_state.selected();
+        if service_idx.is_none(){
+            return None;
+        }
+
+        let service = &self.services[service_idx.unwrap()];
+        if let Some(prod_ref) = service.production.get_ref()
+            && let Some(preprod_ref) = service.preproduction.get_ref() {
+            Some(format!(
+                "{}/compare/{}...{}",
+                repo_url,
+                prod_ref,
+                preprod_ref,
+            ))
+        }else{
+            None
+        }
     }
 }
 
@@ -233,15 +250,38 @@ mod tests {
         let actual = service_status.get_link(&String::from("https://github.com/myrepo"));
 
         assert_eq!(
-            actual,
+            actual.unwrap(),
             String::from("https://github.com/myrepo/compare/prod...preprod")
         );
     }
 
+    #[test_case(None, Commit::Ok(String::from("preprod")), Commit::Ok(String::from("prod")); "nothing selected")]
+    #[test_case(Some(1), Commit::Empty, Commit::Ok(String::from("rod")); "no preprod commit")]
+    #[test_case(Some(1), Commit::Ok(String::from("preprod")), Commit::Empty; "no prod commit")]
+    fn get_link_returns_none_when_required_values_are_not_set(
+        selected: Option<usize>,
+        preprod_commit: Commit,
+        prod_commit: Commit
+    ){
+        let mut service_status = ServiceStatus::new(2);
+        service_status.list_state.select(selected);
+
+        service_status.services[1].preproduction = preprod_commit;
+        service_status.services[1].production = prod_commit;
+
+        assert_eq!(None, service_status.get_link(&"repo_url".to_string()));
+    }
+
     #[test_case(Commit::Ok(String::from("commit")), Some("commit"); "Returns value from Ok Commit")]
     #[test_case(Commit::Fetching, None; "Returns NONE when no Commit::Ok")]
-    fn commit_value_returns_expected_value(commit: Commit, expected: Option<&str>) {
+    fn commit_get_ref_returns_expected_value(commit: Commit, expected: Option<&str>) {
         assert_eq!(commit.get_ref(), expected);
+    }
+
+    #[test_case(Commit::Ok(String::from("commit")), None; "Returns NONE when no Commit::Ok")]
+    #[test_case(Commit::Error(String::from("No good")), Some("No good"); "Returns value from Error Commit")]
+    fn commit_get_error_returns_expected_value(commit: Commit, expected: Option<&str>) {
+        assert_eq!(commit.get_error(), expected);
     }
 
     #[test_case(

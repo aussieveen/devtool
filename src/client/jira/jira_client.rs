@@ -118,6 +118,71 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn get_from_returns_error_response() {
+        let mut server = mockito::Server::new_async().await;
+
+        let error = serde_json::json!({
+            "errorMessages": [
+                "this went wrong",
+                "went badly here too"
+            ]
+        }).to_string();
+
+        let mock = server
+            .mock("GET", "/TEST-123")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(error)
+            .create_async()
+            .await;
+
+        let base_url = format!("{}/", server.url());
+        let username = String::from("user");
+        let password = String::from("password");
+
+        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Error: this went wrong".to_string()
+        );
+
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_from_returns_unknown_error_response() {
+        let mut server = mockito::Server::new_async().await;
+
+        let error = serde_json::json!({
+            "errorMessages": []
+        }).to_string();
+
+        let mock = server
+            .mock("GET", "/TEST-123")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(error)
+            .create_async()
+            .await;
+
+        let base_url = format!("{}/", server.url());
+        let username = String::from("user");
+        let password = String::from("password");
+
+        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Error: Unknown error".to_string()
+        );
+
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
     async fn get_from_handles_404_responses() {
         let mut server = mockito::Server::new_async().await;
 

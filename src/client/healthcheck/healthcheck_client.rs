@@ -2,6 +2,7 @@ use crate::client::healthcheck::models::Healthcheck;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use std::error::Error;
 use std::time::Duration;
+use reqwest::StatusCode;
 
 pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
     let client = reqwest::Client::new();
@@ -16,11 +17,13 @@ pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
     let response = request.send().await;
     match response {
         Ok(res) => {
-            if res.status().is_server_error() {
-                return Err(format!("{}. Service likely shut down.", res.status()).into());
+            if res.status() == StatusCode::OK {
+                Ok(res.json::<Healthcheck>().await?)
+            } else if res.status() == StatusCode::SERVICE_UNAVAILABLE {
+                Err(format!("{}.", res.status()).into())
+            } else {
+                return Err(format!("{}", res.status()).into());
             }
-
-            Ok(res.json::<Healthcheck>().await?)
         }
         Err(e) => {
             if e.is_timeout() {
@@ -70,7 +73,29 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_from_handles_404_responses() {
+    async fn get_healthcheck_handles_service_unavailable() {
+        let mut server = mockito::Server::new_async().await;
+
+        let mock = server
+            .mock("GET", "/healthcheck")
+            .with_status(503)
+            .with_header("content-type", "application/json")
+            .create_async()
+            .await;
+
+        let base_url = format!("{}", server.url());
+        let result = get(base_url).await;
+
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "503 Service Unavailable.".to_string()
+        );
+
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn get_from_handles_generic_errors() {
         let mut server = mockito::Server::new_async().await;
 
         let mock = server
