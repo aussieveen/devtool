@@ -3,6 +3,8 @@ use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::list_style;
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::style::{Color, Style};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{List, ListItem, Paragraph};
 
 pub fn render(
@@ -41,12 +43,16 @@ pub fn render(
     let environments = List::new(service_config.credentials.iter().enumerate().map(
         |(env_idx, c)| {
             let token = &state.tokens[service_idx][env_idx];
-            let prefix = match token {
-                Token::Ready(_) => "[✓]",
-                Token::Error => "[x]",
-                _ => "[ ]",
+            let (prefix, prefix_style) = match token {
+                Token::Ready(_) => ("[✓]", Style::default().fg(Color::Green)),
+                Token::Error => ("[x]", Style::default().fg(Color::Red)),
+                Token::Requesting => ("[…]", Style::default().fg(Color::Yellow)),
+                _ => ("[ ]", Style::default().fg(Color::DarkGray)),
             };
-            ListItem::new(format!("{} {}", prefix, c.env.as_str()))
+            ListItem::new(Line::from(vec![
+                Span::styled(prefix, prefix_style),
+                Span::raw(format!(" {}", c.env.as_str())),
+            ]))
         },
     ))
     .style(list_style(matches!(state.focus, Focus::Env)))

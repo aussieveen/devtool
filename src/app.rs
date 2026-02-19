@@ -20,6 +20,7 @@ use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
 use ratatui::layout::Alignment;
+use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
 use ratatui::{DefaultTerminal, Frame};
@@ -160,7 +161,11 @@ impl App {
         footer::render(frame, areas.footer);
 
         if let Some(error) = &self.state.error {
-            let block = Block::bordered().title(format!(" {} ", error.title));
+            let red = Style::default().fg(Color::Red);
+            let block = Block::bordered()
+                .title(format!(" {} ", error.title))
+                .border_style(red)
+                .title_style(red);
             let lines: Vec<Line> = vec![
                 Line::from(format!("{}: {}", error.tool, error.originating_event)),
                 Line::from(""),
