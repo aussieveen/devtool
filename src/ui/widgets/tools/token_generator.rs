@@ -29,7 +29,7 @@ pub fn render(
     )
     .style(list_style(matches!(state.focus, Focus::Service)))
     .highlight_style(ratatui::style::Style::default().reversed())
-    .highlight_symbol(">> ")
+    .highlight_symbol("▶ " )
     .repeat_highlight_symbol(true);
 
     frame.render_stateful_widget(services, inner_horizonal[0], &mut state.service_list_state);
@@ -51,7 +51,7 @@ pub fn render(
     ))
     .style(list_style(matches!(state.focus, Focus::Env)))
     .highlight_style(ratatui::style::Style::default().reversed())
-    .highlight_symbol(">> ")
+    .highlight_symbol("▶ " )
     .repeat_highlight_symbol(true);
 
     frame.render_stateful_widget(environments, inner_horizonal[1], &mut state.env_list_state);
