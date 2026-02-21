@@ -212,7 +212,7 @@ mod tests {
     #[test_case(Global, KeyCode::Esc, KeyModifiers::NONE, Quit; "esc quits")]
     #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
     #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
-    #[test_case(Global, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
+    #[test_case(ErrorPopUp, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
     #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
     #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
     #[test_case(ListIgnore(Home), KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]

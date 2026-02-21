@@ -3,9 +3,9 @@ use ratatui::style::{Color, Modifier, Style};
 
 pub fn block_style(active: bool) -> Style {
     if active {
-        Style::default().fg(Color::Yellow)
+        Style::default().fg(Color::Cyan)
     } else {
-        Style::default()
+        Style::default().fg(Color::DarkGray)
     }
 }
 
@@ -56,7 +56,7 @@ mod tests {
     #[test]
     fn block_style_returns_active_style() {
         let actual = block_style(true);
-        assert!(actual.fg.is_none());
+        assert_eq!(actual.fg.unwrap(), Color::Cyan);
     }
 
     #[test_case(AppFocus::List, true)]

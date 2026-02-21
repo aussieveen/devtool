@@ -4,6 +4,7 @@ use crate::utils::popup::popup_area;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Span;
+use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
@@ -28,9 +29,27 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
         .iter()
         .enumerate()
         .map(|(index, ticket)| {
+            let status_color = match ticket.status.to_lowercase().as_str() {
+                s if s.contains("complete") => Color::Green,
+                s if s.contains("release") => Color::Magenta,
+                s if s.contains("in test") => Color::LightCyan,
+                s if s.contains("testing") => Color::Cyan,
+                s if s.contains("review") => Color::Yellow,
+                s if s.contains("progress") => Color::Blue,
+                s if s.contains("development") => Color::Gray,
+                s if s.contains("failed") => Color::Red,
+                _ => Color::DarkGray,
+            };
+
             let mut lines: Vec<Line> = Vec::new();
-            lines.push(Line::from(format!("{} - {}", ticket.id, ticket.title)));
-            lines.push(Line::from(format!("{} {}", ticket.assignee, ticket.status)));
+            lines.push(Line::from(vec![
+                Span::styled(ticket.id.clone(), Style::default().fg(Color::Cyan)),
+                Span::raw(format!(" - {}", ticket.title)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled(ticket.status.clone(), Style::default().fg(status_color)),
+                Span::styled(format!("  @{}", ticket.assignee), Style::default().fg(Color::LightBlue)),
+            ]));
             lines.push(Line::from(""));
             ListItem::from(lines).style(list_style(
                 (selected_ticket.is_some() && selected_ticket.unwrap() == index)
