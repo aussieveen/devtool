@@ -1,5 +1,5 @@
 use crate::app::AppFocus;
-use crate::app::Tool::{Home, Jira, ServiceStatus, TokenGenerator};
+use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::events::event::AppEvent::{
     AddTicketIdChar, CopyToClipboard, DismissPopup, GenerateToken, JiraTicketListMove,
     JiraTicketMove, NewJiraTicketPopUp, OpenInBrowser, Quit, RemoveTicket, RemoveTicketIdChar,
@@ -8,7 +8,7 @@ use crate::events::event::AppEvent::{
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
-    Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
+    ErrorPopUp, Global, List, Popup, TokenGen, Tool, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::token_generator::Focus;
@@ -30,7 +30,12 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyModifiers::NONE,
         OpenInBrowser,
     );
-    key_event_map.add_static(Global, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup);
+    key_event_map.add_static(
+        ErrorPopUp,
+        KeyCode::Char('d'),
+        KeyModifiers::NONE,
+        DismissPopup,
+    );
 
     // POP UP EVENTS
     key_event_map.add_static(
@@ -48,12 +53,6 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     key_event_map.add_dynamic(Popup(Jira), add_ticket_id_char);
 
     // LIST EVENTS
-    key_event_map.add_static(
-        ListIgnore(Home),
-        KeyCode::Right,
-        KeyModifiers::NONE,
-        AppEvent::SetFocus(AppFocus::Tool),
-    );
     key_event_map.add_static(
         List,
         KeyCode::Down,
@@ -198,9 +197,7 @@ mod tests {
     use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
     use crate::events::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
-    use crate::input::key_context::KeyContext::{
-        Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
-    };
+    use crate::input::key_context::KeyContext::{Global, List, Popup, TokenGen, Tool, ToolIgnore};
     use crate::state::token_generator::Focus;
     use test_case::test_case;
 
@@ -214,9 +211,9 @@ mod tests {
     #[test_case(Global, KeyCode::Esc, KeyModifiers::NONE, Quit; "esc quits")]
     #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
     #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
+    #[test_case(ErrorPopUp, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
     #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
     #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
-    #[test_case(ListIgnore(Home), KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]
     #[test_case(Tool(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusListMove(Down); "service status down")]
     #[test_case(Tool(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusListMove(Up); "service status up")]
     #[test_case(Tool(ServiceStatus), KeyCode::Char('s'), KeyModifiers::NONE, ScanServices; "s scans services")]
@@ -237,7 +234,6 @@ mod tests {
     #[test_case(Tool(Jira), KeyCode::Char('x'), KeyModifiers::NONE, RemoveTicket; "jira x removes ticket")]
     #[test_case(Popup(Jira), KeyCode::Backspace, KeyModifiers::NONE, RemoveTicketIdChar; "popup backspace removes char")]
     #[test_case(Popup(Jira), KeyCode::Enter, KeyModifiers::NONE, SubmitTicketId; "popup enter submits")]
-    #[test_case(Global, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
     fn binding_resolves_to_expected_event(
         context: KeyContext,
         code: KeyCode,

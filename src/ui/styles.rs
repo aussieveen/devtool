@@ -1,9 +1,9 @@
 use crate::state::app::AppFocus;
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Modifier, Style};
 
 pub fn block_style(active: bool) -> Style {
     if active {
-        Style::default()
+        Style::default().fg(Color::Cyan)
     } else {
         Style::default().fg(Color::DarkGray)
     }
@@ -24,6 +24,21 @@ pub fn list_style(active: bool) -> Style {
         Style::default().fg(Color::DarkGray)
     }
 }
+pub fn key_style() -> Style {
+    Style::default().fg(Color::Cyan)
+}
+
+pub fn key_desc_style() -> Style {
+    Style::default().add_modifier(Modifier::DIM)
+}
+
+pub fn row_style(active: bool) -> Style {
+    if active {
+        Style::default()
+    } else {
+        Style::default().add_modifier(Modifier::DIM)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -41,7 +56,7 @@ mod tests {
     #[test]
     fn block_style_returns_active_style() {
         let actual = block_style(true);
-        assert!(actual.fg.is_none());
+        assert_eq!(actual.fg.unwrap(), Color::Cyan);
     }
 
     #[test_case(AppFocus::List, true)]

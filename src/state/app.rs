@@ -34,7 +34,6 @@ impl AppState {
             tool_list: ToolList {
                 items: {
                     let mut items: Vec<Tool> = Vec::new();
-                    items.push(Tool::Home);
                     items.push(Tool::ServiceStatus);
                     items.push(Tool::TokenGenerator);
                     if config.jira.is_some() {
@@ -45,7 +44,7 @@ impl AppState {
                 },
                 list_state: ListState::default().with_selected(Some(0)),
             },
-            current_tool: Tool::Home,
+            current_tool: Tool::ServiceStatus,
             service_status: ServiceStatus::new(config.servicestatus.len()),
             token_generator: TokenGenerator::new(&config.tokengenerator.services),
             jira,
@@ -101,7 +100,7 @@ mod tests {
     fn new_adds_jira_item_when_jira_config_is_some() {
         let app_state = AppState::build(&test_config(), test_jira());
 
-        assert_eq!(app_state.tool_list.items.len(), 4);
+        assert_eq!(app_state.tool_list.items.len(), 3);
     }
 
     #[test]
@@ -111,7 +110,7 @@ mod tests {
 
         let app_state = AppState::build(&config, test_jira());
 
-        assert_eq!(app_state.tool_list.items.len(), 3);
+        assert_eq!(app_state.tool_list.items.len(), 2);
     }
 
     #[test]

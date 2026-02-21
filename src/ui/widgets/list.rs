@@ -15,11 +15,15 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
             .iter()
             .map(|i| ListItem::new(i.menu_entry())),
     )
-    .block(Block::default().borders(Borders::ALL).title(" Tools "))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(style)
+            .title(" Tools "),
+    )
     .highlight_style(ratatui::style::Style::default().reversed())
-    .highlight_symbol(">> ")
-    .repeat_highlight_symbol(true)
-    .style(style);
+    .highlight_symbol("▶ ")
+    .repeat_highlight_symbol(true);
 
     frame.render_stateful_widget(menu, area, &mut state.tool_list.list_state);
 }

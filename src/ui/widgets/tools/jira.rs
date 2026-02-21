@@ -1,8 +1,10 @@
 use crate::state::jira::Jira;
-use crate::ui::styles::list_style;
+use crate::ui::styles::{key_desc_style, key_style, list_style};
 use crate::utils::popup::popup_area;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::prelude::Span;
+use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
@@ -27,9 +29,30 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
         .iter()
         .enumerate()
         .map(|(index, ticket)| {
+            let status_color = match ticket.status.to_lowercase().as_str() {
+                s if s.contains("complete") => Color::Green,
+                s if s.contains("release") => Color::Magenta,
+                s if s.contains("in test") => Color::LightCyan,
+                s if s.contains("testing") => Color::Cyan,
+                s if s.contains("review") => Color::Yellow,
+                s if s.contains("progress") => Color::Blue,
+                s if s.contains("development") => Color::Gray,
+                s if s.contains("failed") => Color::Red,
+                _ => Color::DarkGray,
+            };
+
             let mut lines: Vec<Line> = Vec::new();
-            lines.push(Line::from(format!("{} - {}", ticket.id, ticket.title)));
-            lines.push(Line::from(format!("{} {}", ticket.assignee, ticket.status)));
+            lines.push(Line::from(vec![
+                Span::styled(ticket.id.clone(), Style::default().fg(Color::Cyan)),
+                Span::raw(format!(" - {}", ticket.title)),
+            ]));
+            lines.push(Line::from(vec![
+                Span::styled(ticket.status.clone(), Style::default().fg(status_color)),
+                Span::styled(
+                    format!("  @{}", ticket.assignee),
+                    Style::default().fg(Color::LightBlue),
+                ),
+            ]));
             lines.push(Line::from(""));
             ListItem::from(lines).style(list_style(
                 (selected_ticket.is_some() && selected_ticket.unwrap() == index)
@@ -45,14 +68,24 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     );
 
     let action_area = vertical[1];
-    let ticket_action_text = match selected_ticket {
-        Some(_) => "[x] to remove ticket [shift + ↑ ↓] to move tickets",
-        None => "",
-    };
 
-    let action_text = format!("{} {}", "[a] to add ticket", ticket_action_text);
+    let key = key_style();
+    let desc = key_desc_style();
+
+    let mut action_text = vec![
+        Span::styled("[a]", key),
+        Span::styled(" to add ticket  ", desc),
+    ];
+
+    if selected_ticket.is_some() {
+        action_text.push(Span::styled("[x]", key));
+        action_text.push(Span::styled(" to remove ticket  ", desc));
+        action_text.push(Span::styled("[shift + ↑ ↓]", key));
+        action_text.push(Span::styled(" to move tickets  ", desc));
+    }
+
     frame.render_widget(
-        Paragraph::new(action_text).wrap(Wrap { trim: false }),
+        Paragraph::new(Line::from(action_text)).wrap(Wrap { trim: false }),
         action_area,
     );
 

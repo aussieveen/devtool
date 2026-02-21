@@ -1,11 +1,11 @@
 use crate::config::model::ServiceStatus as ServiceStatusConfig;
-use crate::state::service_status::{CommitRefStatus, ServiceStatus};
-use crate::ui::styles::list_style;
+use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
+use crate::ui::styles::{key_desc_style, key_style, row_style};
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
 pub fn render(
     frame: &mut Frame,
@@ -15,142 +15,105 @@ pub fn render(
 ) {
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;
-    const PREPROD_PROD_MATCH: Color = Color::Blue;
+    const PREPROD_PROD_MATCH: Color = Color::Cyan;
     const STAGING_PREPROD_MATCH: Color = Color::Yellow;
 
-    let selected_service_idx = state.list_state.selected();
+    let commit_cell = |commit: &Commit, ok_color: Color| -> (String, Color) {
+        match commit {
+            Commit::Fetching => ("…".to_string(), Color::DarkGray),
+            Commit::Empty => ("—".to_string(), Color::DarkGray),
+            Commit::Error(_) => ("Error".to_string(), NONE_MATCH),
+            Commit::Ok(_) => (commit.short_value().unwrap(), ok_color),
+        }
+    };
+
+    let selected_service_idx = state.table_state.selected();
 
     // ── 1. Split into header row + grid ─────────────────────────────────────────────
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(2), // column headers
-            Constraint::Min(0),    // commit grid
+            Constraint::Min(0),    // table
             Constraint::Min(0),    // request errors
             Constraint::Length(2), // color legend
             Constraint::Length(2), // additional actions
         ])
         .split(area);
 
-    let header_area = vertical[0];
-    let grid_area = vertical[1];
-    let error_area = vertical[2];
-    let legend_area = vertical[3];
-    let action_area = vertical[4];
-
-    // ── 2. Define shared 25% column layout ──────────────────────────────────────────
-    let columns = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ]);
-
-    let header_cols = columns.split(header_area);
-    let grid_cols = columns.split(grid_area);
+    let table_area = vertical[0];
+    let error_area = vertical[1];
+    let legend_area = vertical[2];
+    let action_area = vertical[3];
 
     // ── 3. Render column headers ────────────────────────────────────────────────────
-    let headers = ["Service", "Staging", "Preproduction", "Production"];
+    let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
+    let rows: Vec<Row> = state
+        .services
+        .iter()
+        .enumerate()
+        .map(|(service_idx, service)| {
+            let (service_color, staging_ok, preprod_ok, prod_ok) = match service.commit_ref_status()
+            {
+                CommitRefStatus::NothingMatches => (NONE_MATCH, Color::Red, Color::Red, Color::Red),
+                CommitRefStatus::AllMatches => {
+                    (ALL_MATCH, Color::Green, Color::Green, Color::Green)
+                }
+                CommitRefStatus::StagingPreprodMatch => (
+                    STAGING_PREPROD_MATCH,
+                    Color::Green,
+                    Color::Green,
+                    Color::Red,
+                ),
+                CommitRefStatus::PreprodProdMatch => (
+                    PREPROD_PROD_MATCH,
+                    PREPROD_PROD_MATCH,
+                    Color::Green,
+                    Color::Green,
+                ),
+                CommitRefStatus::CommitMissing => (
+                    NONE_MATCH,
+                    Color::DarkGray,
+                    Color::DarkGray,
+                    Color::DarkGray,
+                ),
+            };
 
-    for (i, title) in headers.iter().enumerate() {
-        let header = Paragraph::new(*title)
-            .alignment(Alignment::Left)
-            .block(
-                Block::default()
-                    .borders(Borders::BOTTOM)
-                    .border_style(Style::default().fg(Color::DarkGray)),
-            )
-            .style(Style::default().fg(Color::Gray));
+            let is_active = selected_service_idx.is_none_or(|s| s == service_idx);
 
-        frame.render_widget(header, header_cols[i]);
-    }
+            let (staging_text, staging_color) = commit_cell(&service.staging, staging_ok);
+            let (preprod_text, preprod_color) = commit_cell(&service.preproduction, preprod_ok);
+            let (prod_text, prod_color) = commit_cell(&service.production, prod_ok);
 
-    // ── 4. Example commit data per column ───────────────────────────────────────────
-    let mut columns: Vec<Vec<(String, Color)>> = vec![
-        Vec::new(), // Service
-        Vec::new(), // Staging
-        Vec::new(), // Preprod
-        Vec::new(), // Prod
-    ];
-
-    for (service_idx, service) in state.services.iter().enumerate() {
-        let (service_color, staging_color, preprod_color, prod_color) = match service
-            .commit_ref_status()
-        {
-            CommitRefStatus::NothingMatches => (NONE_MATCH, Color::Red, Color::Red, Color::Red),
-            CommitRefStatus::AllMatches => (ALL_MATCH, Color::Green, Color::Green, Color::Green),
-            CommitRefStatus::StagingPreprodMatch => (
-                STAGING_PREPROD_MATCH,
-                Color::Green,
-                Color::Green,
-                Color::Red,
-            ),
-            CommitRefStatus::PreprodProdMatch => (
-                PREPROD_PROD_MATCH,
-                Color::Yellow,
-                Color::Green,
-                Color::Green,
-            ),
-            CommitRefStatus::CommitMissing => (Color::Red, Color::Red, Color::Red, Color::Red),
-        };
-
-        let no_commit: &str = "Unable to get commit";
-
-        columns[0].push((config[service_idx].name.clone(), service_color));
-        columns[1].push((
-            service
-                .staging
-                .short_value()
-                .unwrap_or(no_commit.to_string()),
-            staging_color,
-        ));
-        columns[2].push((
-            service
-                .preproduction
-                .short_value()
-                .unwrap_or(no_commit.to_string()),
-            preprod_color,
-        ));
-        columns[3].push((
-            service
-                .production
-                .short_value()
-                .unwrap_or(no_commit.to_string()),
-            prod_color,
-        ));
-    }
-
-    // ── 5. Render commit grid columns ───────────────────────────────────────────────
-    for (col_idx, col_area) in grid_cols.iter().enumerate() {
-        let lines: Vec<Line> = columns[col_idx]
-            .iter()
-            .enumerate()
-            .map(|(row_idx, (hash, status_color))| {
-                let line_style = list_style(
-                    (selected_service_idx.is_some() && selected_service_idx.unwrap() == row_idx)
-                        || selected_service_idx.is_none(),
-                );
-
-                Line::from(vec![
-                    // status stripe
-                    Span::styled("▍", Style::default().bg(*status_color)),
+            Row::new([
+                Cell::from(Line::from(vec![
+                    Span::styled("▍ ", Style::default().bg(service_color)),
                     Span::raw(" "),
-                    Span::styled(hash.clone(), line_style),
-                ])
-            })
-            .collect();
+                    Span::styled(config[service_idx].name.clone(), Style::default()),
+                ])),
+                Cell::from(staging_text).style(Style::default().fg(staging_color)),
+                Cell::from(preprod_text).style(Style::default().fg(preprod_color)),
+                Cell::from(prod_text).style(Style::default().fg(prod_color)),
+            ])
+            .style(row_style(is_active))
+        })
+        .collect();
 
-        let column = Paragraph::new(lines)
-            .block(Block::default())
-            .alignment(Alignment::Left);
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Percentage(30),
+            Constraint::Percentage(23),
+            Constraint::Percentage(23),
+            Constraint::Percentage(24),
+        ],
+    )
+    .block(Block::default())
+    .header(headers);
 
-        frame.render_widget(column, *col_area);
-    }
+    frame.render_stateful_widget(table, table_area, &mut state.table_state);
 
     // ── Render errors
-    if let Some(service_idx) = state.list_state.selected() {
+    if let Some(service_idx) = state.table_state.selected() {
         let mut lines: Vec<Line> = vec![];
         let service = &state.services[service_idx];
         let commits = vec![
@@ -169,35 +132,42 @@ pub fn render(
 
     // ── 5. Render legend,status and action rows ────────────────────────────────────
 
-    let service_action_text = if let Some(service) = state
-        .list_state
+    let key = key_style();
+    let desc = key_desc_style();
+    let mut service_action_text = vec![
+        Span::styled("[s]", key),
+        Span::styled(" to scan the services  ", desc),
+    ];
+
+    if let Some(service) = state
+        .table_state
         .selected()
         .and_then(|idx| state.services.get(idx))
     {
         match service.commit_ref_status() {
             CommitRefStatus::StagingPreprodMatch | CommitRefStatus::NothingMatches => {
-                "[o] to Open in browser [c] to Copy the url"
+                service_action_text.push(Span::styled("[o]", key));
+                service_action_text.push(Span::styled(" to Open in browser  ", desc));
+                service_action_text.push(Span::styled("[c]", key));
+                service_action_text.push(Span::styled(" to Copy the url", desc));
             }
-            _ => "",
+            _ => {}
         }
-    } else {
-        ""
-    };
+    }
 
-    let action_text = format!("{} {}", "[s] to scan the services", service_action_text);
     frame.render_widget(
-        Paragraph::new(action_text).wrap(Wrap { trim: false }),
+        Paragraph::new(Line::from(service_action_text)).wrap(Wrap { trim: false }),
         action_area,
     );
 
     let legend_text = Line::from(vec![
-        Span::styled("▍", Style::default().bg(ALL_MATCH)),
+        Span::styled("▍ ", Style::default().bg(ALL_MATCH)),
         Span::raw(" Up to date  "),
-        Span::styled("▍", Style::default().bg(PREPROD_PROD_MATCH)),
+        Span::styled("▍ ", Style::default().bg(PREPROD_PROD_MATCH)),
         Span::raw(" New version in deployment pipeline  "),
-        Span::styled("▍", Style::default().bg(STAGING_PREPROD_MATCH)),
+        Span::styled("▍ ", Style::default().bg(STAGING_PREPROD_MATCH)),
         Span::raw(" Pending production deployment  "),
-        Span::styled("▍", Style::default().bg(NONE_MATCH)),
+        Span::styled("▍ ", Style::default().bg(NONE_MATCH)),
         Span::raw(" Requires maintenance  "),
     ]);
 

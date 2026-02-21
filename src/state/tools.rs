@@ -14,7 +14,6 @@ pub struct ToolList {
 
 #[derive(Clone, PartialEq, Copy, Eq, Hash, Debug)]
 pub enum Tool {
-    Home,
     ServiceStatus,
     TokenGenerator,
     Jira,
@@ -23,7 +22,6 @@ pub enum Tool {
 impl Tool {
     pub fn title(&self) -> &'static str {
         match self {
-            Tool::Home => "Dev Tool",
             Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "M2M Auth0 Token Generator",
             Tool::Jira => "My Jira Tickets",
@@ -40,7 +38,6 @@ impl Tool {
         jira_state: &mut Jira,
     ) {
         match self {
-            Tool::Home => home::render(frame, area),
             Tool::ServiceStatus => {
                 service_status::render(frame, area, service_status_state, &config.servicestatus)
             }
@@ -56,7 +53,6 @@ impl Tool {
 
     pub fn menu_entry(&self) -> &'static str {
         match self {
-            Tool::Home => "Home",
             Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "Token Generator",
             Tool::Jira => "Jira",
@@ -69,7 +65,6 @@ mod tests {
     use crate::app::Tool;
     use test_case::test_case;
 
-    #[test_case(Tool::Home, "Dev Tool")]
     #[test_case(Tool::ServiceStatus, "Service Status")]
     #[test_case(Tool::TokenGenerator, "M2M Auth0 Token Generator")]
     #[test_case(Tool::Jira, "My Jira Tickets")]
@@ -77,7 +72,6 @@ mod tests {
         assert_eq!(tool.title(), expected);
     }
 
-    #[test_case(Tool::Home, "Home")]
     #[test_case(Tool::ServiceStatus, "Service Status")]
     #[test_case(Tool::TokenGenerator, "Token Generator")]
     #[test_case(Tool::Jira, "Jira")]

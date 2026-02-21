@@ -1,16 +1,16 @@
 use crate::environment::Environment;
-use ratatui::widgets::ListState;
+use ratatui::widgets::TableState;
 
 pub struct ServiceStatus {
     pub services: Vec<Service>,
-    pub list_state: ListState,
+    pub table_state: TableState,
 }
 
 impl ServiceStatus {
     pub fn new(num_services: usize) -> Self {
         Self {
             services: vec![Service::new(); num_services],
-            list_state: ListState::default().with_selected(None),
+            table_state: TableState::default().with_selected(None),
         }
     }
 
@@ -38,11 +38,11 @@ impl ServiceStatus {
     }
 
     pub fn get_selected_service_idx(&self) -> Option<usize> {
-        self.list_state.selected()
+        self.table_state.selected()
     }
 
     pub(crate) fn has_link(&self) -> bool {
-        match self.list_state.selected() {
+        match self.table_state.selected() {
             Some(service_idx) => {
                 let service = &self.services[service_idx];
                 service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
@@ -52,7 +52,7 @@ impl ServiceStatus {
     }
 
     pub(crate) fn get_link(&self, repo_url: &String) -> Option<String> {
-        let service_idx = self.list_state.selected();
+        let service_idx = self.table_state.selected();
         service_idx?;
 
         let service = &self.services[service_idx.unwrap()];
@@ -206,7 +206,7 @@ mod tests {
         let mut service_status = ServiceStatus::new(3);
         assert_eq!(service_status.get_selected_service_idx(), None);
 
-        service_status.list_state.select(Some(2));
+        service_status.table_state.select(Some(2));
         assert_eq!(service_status.get_selected_service_idx(), Some(2));
     }
 
@@ -216,7 +216,7 @@ mod tests {
         let commit_ref = String::from("commit");
         service_status.services[1].staging = Commit::Ok(commit_ref.clone());
         service_status.services[1].preproduction = Commit::Ok(commit_ref);
-        service_status.list_state.select(Some(1));
+        service_status.table_state.select(Some(1));
 
         assert!(service_status.has_link());
     }
@@ -226,7 +226,7 @@ mod tests {
         let mut service_status = ServiceStatus::new(2);
         service_status.services[1].staging = Commit::Ok(String::from("staging"));
         service_status.services[1].preproduction = Commit::Ok(String::from("preproduction"));
-        service_status.list_state.select(Some(1));
+        service_status.table_state.select(Some(1));
 
         assert_eq!(service_status.has_link(), false);
     }
@@ -234,7 +234,7 @@ mod tests {
     #[test]
     fn get_link_returns_url_string() {
         let mut service_status = ServiceStatus::new(2);
-        service_status.list_state.select(Some(1));
+        service_status.table_state.select(Some(1));
 
         service_status.services[1].preproduction = Commit::Ok(String::from("preprod"));
         service_status.services[1].production = Commit::Ok(String::from("prod"));
@@ -256,7 +256,7 @@ mod tests {
         prod_commit: Commit,
     ) {
         let mut service_status = ServiceStatus::new(2);
-        service_status.list_state.select(selected);
+        service_status.table_state.select(selected);
 
         service_status.services[1].preproduction = preprod_commit;
         service_status.services[1].production = prod_commit;
