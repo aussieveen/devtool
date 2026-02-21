@@ -3,10 +3,11 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
+use crate::ui::styles::{key_desc_style, key_style};
 
 pub fn render(frame: &mut Frame, area: Rect) {
-    let key = Style::default().fg(Color::Cyan);
-    let desc = Style::default().add_modifier(Modifier::DIM);
+    let key = key_style();
+    let desc = key_desc_style();
 
     let line1 = Line::from(vec![
         Span::styled("[← →]", key),

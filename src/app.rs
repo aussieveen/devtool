@@ -10,9 +10,7 @@ use crate::events::sender::EventSender;
 use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
-use crate::input::key_context::KeyContext::{
-    Global, List, ListIgnore, Popup, TokenGen, ToolIgnore,
-};
+use crate::input::key_context::KeyContext::{ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, ToolIgnore};
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::utils::popup::popup_area;
@@ -183,7 +181,6 @@ impl App {
         }
     }
 
-    /// Handles the key events and updates the state of [`App`].
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
         for context in self.get_context_stack() {
             if let Some(event) = self.key_event_map.resolve(context, key) {
@@ -196,23 +193,31 @@ impl App {
 
     fn get_context_stack(&self) -> Vec<KeyContext> {
         let mut stack = Vec::new();
-        match self.state.focus {
-            AppFocus::List => {
-                stack.push(List);
-                stack.push(ListIgnore(Home));
-            }
-            AppFocus::Tool => {
-                stack.push(KeyContext::Tool(self.state.current_tool));
-                if self.state.current_tool == TokenGenerator {
-                    stack.push(TokenGen(self.state.token_generator.focus))
-                } else {
-                    stack.push(ToolIgnore(TokenGenerator));
+
+        // If an Error pop up is displayed, don't allow additional contexts i.e
+        // disable all key contexts except global and the error popup.
+        if self.state.error.is_some(){
+            stack.push(ErrorPopUp);
+        }else{
+            match self.state.focus {
+                AppFocus::List => {
+                    stack.push(List);
+                    stack.push(ListIgnore(Home));
+                }
+                AppFocus::Tool => {
+                    stack.push(KeyContext::Tool(self.state.current_tool));
+                    if self.state.current_tool == TokenGenerator {
+                        stack.push(TokenGen(self.state.token_generator.focus))
+                    } else {
+                        stack.push(ToolIgnore(TokenGenerator));
+                    }
+                }
+                AppFocus::PopUp => {
+                    stack.push(Popup(Jira));
                 }
             }
-            AppFocus::PopUp => {
-                stack.push(Popup(Jira));
-            }
         }
+
         stack.push(Global);
         stack
     }

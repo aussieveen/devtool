@@ -21,8 +21,7 @@ pub fn render(
         .borders(Borders::ALL)
         .border_style(content_block_border_style)
         .title(format!(" {} ", state.current_tool.title()))
-        .title_alignment(Alignment::Center)
-        .style(content_block_border_style);
+        .title_alignment(Alignment::Center);
 
     let inner = pane.inner(area);
 

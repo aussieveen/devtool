@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::error::model::Error;
-use crate::events::event::AppEvent;
+use crate::events::event::{AppEvent, Direction};
 use crate::events::event::AppEvent::{
     GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ScanServices, ServiceStatusListMove,
     SystemError,
@@ -13,9 +13,35 @@ use crate::utils::update_list_state;
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
     match app_event {
         ServiceStatusListMove(direction) => {
-            let list_state = &mut app.state.service_status.list_state;
+            let table_state = &mut app.state.service_status.table_state;
             let list_limit = app.state.service_status.services.len();
-            update_list_state::update_noneable_list(list_state, direction, list_limit);
+            let state = &mut app.state.service_status;
+            let len = state.services.len();
+            let table_state = &mut state.table_state;
+
+            if len == 0 {
+                table_state.select(None);
+                return;
+            }
+        
+            match direction {
+                Direction::Up => {
+                    if table_state.selected().unwrap_or(0) > 0 {
+                            table_state.select_previous();
+                        } else {
+                            table_state.select(None);
+                        }
+                }
+                Direction::Down => {
+                    let selected = table_state.selected().unwrap_or(0);
+                    let max = len.saturating_sub(1);
+                    if selected < max {
+                            table_state.select_next();
+                        } else {
+                            table_state.select(Some(max));
+                        }
+                }
+            }
         }
         ScanServices => {
             let len = app.state.service_status.services.len();

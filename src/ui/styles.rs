@@ -1,11 +1,11 @@
 use crate::state::app::AppFocus;
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Modifier, Style};
 
 pub fn block_style(active: bool) -> Style {
     if active {
-        Style::default()
+        Style::default().fg(Color::Yellow)
     } else {
-        Style::default().fg(Color::DarkGray)
+        Style::default()
     }
 }
 
@@ -22,6 +22,21 @@ pub fn list_style(active: bool) -> Style {
         Style::default()
     } else {
         Style::default().fg(Color::DarkGray)
+    }
+}
+pub fn key_style() -> Style {
+    Style::default().fg(Color::Cyan)
+}
+
+pub fn key_desc_style() -> Style {
+    Style::default().add_modifier(Modifier::DIM)
+}
+
+pub fn row_style(active: bool) -> Style {
+    if active {
+        Style::default()
+    }else{
+        Style::default().add_modifier(Modifier::DIM)
     }
 }
 
