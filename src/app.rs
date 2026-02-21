@@ -11,7 +11,7 @@ use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, ToolIgnore,
+    ErrorPopUp, Global, List, Popup, TokenGen, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};

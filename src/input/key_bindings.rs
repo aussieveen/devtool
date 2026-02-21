@@ -8,7 +8,7 @@ use crate::events::event::AppEvent::{
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
-    ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
+    ErrorPopUp, Global, List, Popup, TokenGen, Tool, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::token_generator::Focus;
@@ -198,7 +198,7 @@ mod tests {
     use crate::events::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
     use crate::input::key_context::KeyContext::{
-        Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
+        Global, List, Popup, TokenGen, Tool, ToolIgnore,
     };
     use crate::state::token_generator::Focus;
     use test_case::test_case;

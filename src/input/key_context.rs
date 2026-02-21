@@ -6,7 +6,6 @@ pub enum KeyContext {
     ErrorPopUp,
     Global,
     List,
-    ListIgnore(Tool),
     Tool(Tool),
     ToolIgnore(Tool),
     Popup(Tool),
