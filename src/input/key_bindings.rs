@@ -1,5 +1,5 @@
 use crate::app::AppFocus;
-use crate::app::Tool::{Home, Jira, ServiceStatus, TokenGenerator};
+use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::events::event::AppEvent::{
     AddTicketIdChar, CopyToClipboard, DismissPopup, GenerateToken, JiraTicketListMove,
     JiraTicketMove, NewJiraTicketPopUp, OpenInBrowser, Quit, RemoveTicket, RemoveTicketIdChar,
@@ -53,12 +53,6 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     key_event_map.add_dynamic(Popup(Jira), add_ticket_id_char);
 
     // LIST EVENTS
-    key_event_map.add_static(
-        ListIgnore(Home),
-        KeyCode::Right,
-        KeyModifiers::NONE,
-        AppEvent::SetFocus(AppFocus::Tool),
-    );
     key_event_map.add_static(
         List,
         KeyCode::Down,
@@ -222,7 +216,6 @@ mod tests {
     #[test_case(ErrorPopUp, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
     #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
     #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
-    #[test_case(ListIgnore(Home), KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]
     #[test_case(Tool(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusListMove(Down); "service status down")]
     #[test_case(Tool(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusListMove(Up); "service status up")]
     #[test_case(Tool(ServiceStatus), KeyCode::Char('s'), KeyModifiers::NONE, ScanServices; "s scans services")]

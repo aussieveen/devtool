@@ -34,7 +34,6 @@ impl AppState {
             tool_list: ToolList {
                 items: {
                     let mut items: Vec<Tool> = Vec::new();
-                    items.push(Tool::Home);
                     items.push(Tool::ServiceStatus);
                     items.push(Tool::TokenGenerator);
                     if config.jira.is_some() {
@@ -45,7 +44,7 @@ impl AppState {
                 },
                 list_state: ListState::default().with_selected(Some(0)),
             },
-            current_tool: Tool::Home,
+            current_tool: Tool::ServiceStatus,
             service_status: ServiceStatus::new(config.servicestatus.len()),
             token_generator: TokenGenerator::new(&config.tokengenerator.services),
             jira,

@@ -1,4 +1,4 @@
-use crate::app::Tool::{Home, Jira, TokenGenerator};
+use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::client::auth_zero::api::{AuthZeroApi, ImmediateAuthZeroApi};
 use crate::client::healthcheck::api::{HealthcheckApi, ImmediateHealthcheckApi};
 use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
@@ -114,14 +114,14 @@ impl App {
             SystemError(error) => self.state.error = Some(error),
             DismissPopup => self.state.error = None,
 
-            e @ CopyToClipboard => match self.state.current_tool {
-                Tool::ServiceStatus => service_status::handle_event(self, e),
-                Tool::TokenGenerator => token_generator::handle_event(self, e),
+            CopyToClipboard => match self.state.current_tool {
+                ServiceStatus => service_status::handle_event(self, CopyToClipboard),
+                TokenGenerator => token_generator::handle_event(self, CopyToClipboard),
                 _ => {}
             },
-            e @ OpenInBrowser => {
-                if self.state.current_tool == Tool::ServiceStatus {
-                    service_status::handle_event(self, e)
+            OpenInBrowser => {
+                if self.state.current_tool == ServiceStatus {
+                    service_status::handle_event(self, OpenInBrowser)
                 }
             }
 
@@ -204,7 +204,6 @@ impl App {
             match self.state.focus {
                 AppFocus::List => {
                     stack.push(List);
-                    stack.push(ListIgnore(Home));
                 }
                 AppFocus::Tool => {
                     stack.push(KeyContext::Tool(self.state.current_tool));
