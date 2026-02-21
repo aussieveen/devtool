@@ -2,9 +2,9 @@ use crate::app::AppFocus;
 use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::events::event::AppEvent::{
     AddTicketIdChar, CopyToClipboard, DismissPopup, GenerateToken, JiraTicketListMove,
-    JiraTicketMove, NewJiraTicketPopUp, OpenInBrowser, Quit, RemoveTicket, RemoveTicketIdChar,
-    ScanServices, ServiceStatusListMove, SetFocus, SetTokenGenFocus, SubmitTicketId,
-    TokenGenEnvListMove, TokenGenServiceListMove,
+    JiraTicketMove, ListMove, NewJiraTicketPopUp, OpenInBrowser, Quit, RemoveTicket,
+    RemoveTicketIdChar, ScanServices, ServiceStatusListMove, SetFocus, SetTokenGenFocus,
+    SubmitTicketId, TokenGenEnvListMove, TokenGenServiceListMove,
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
@@ -55,15 +55,21 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     // LIST EVENTS
     key_event_map.add_static(
         List,
+        KeyCode::Right,
+        KeyModifiers::NONE,
+        SetFocus(AppFocus::Tool),
+    );
+    key_event_map.add_static(
+        List,
         KeyCode::Down,
         KeyModifiers::NONE,
-        AppEvent::ListMove(Direction::Down),
+        ListMove(Direction::Down),
     );
     key_event_map.add_static(
         List,
         KeyCode::Up,
         KeyModifiers::NONE,
-        AppEvent::ListMove(Direction::Up),
+        ListMove(Direction::Up),
     );
 
     // SERVICE STATUS EVENTS
@@ -212,6 +218,7 @@ mod tests {
     #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
     #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
     #[test_case(ErrorPopUp, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
+    #[test_case(List, KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]
     #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
     #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
     #[test_case(Tool(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusListMove(Down); "service status down")]
