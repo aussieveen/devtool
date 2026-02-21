@@ -17,7 +17,6 @@ pub fn render(
     const ERROR_COLOR: Color = Color::Red;
     const REQUESTING_COLOR: Color = Color::Yellow;
 
-
     let vertical_break = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(2)])
@@ -34,12 +33,16 @@ pub fn render(
             .iter()
             .map(|s| ListItem::new(s.name.clone())),
     )
-        .style(list_style(matches!(state.focus, Focus::Service)))
-        .highlight_style(Style::default().reversed())
-        .highlight_symbol("▶ " )
-        .repeat_highlight_symbol(true)
-        .block(Block::new().borders(Borders::NONE).title(" Services ").title_alignment(Alignment::Center));
-
+    .style(list_style(matches!(state.focus, Focus::Service)))
+    .highlight_style(Style::default().reversed())
+    .highlight_symbol("▶ ")
+    .repeat_highlight_symbol(true)
+    .block(
+        Block::new()
+            .borders(Borders::NONE)
+            .title(" Services ")
+            .title_alignment(Alignment::Center),
+    );
 
     frame.render_stateful_widget(services, inner_horizonal[0], &mut state.service_list_state);
 
@@ -62,11 +65,16 @@ pub fn render(
             ]))
         },
     ))
-        .style(list_style(matches!(state.focus, Focus::Env)))
-        .highlight_style(Style::default().reversed())
-        .highlight_symbol("▶ " )
-        .repeat_highlight_symbol(true)
-        .block(Block::new().borders(Borders::NONE).title(" Environments ").title_alignment(Alignment::Center));
+    .style(list_style(matches!(state.focus, Focus::Env)))
+    .highlight_style(Style::default().reversed())
+    .highlight_symbol("▶ ")
+    .repeat_highlight_symbol(true)
+    .block(
+        Block::new()
+            .borders(Borders::NONE)
+            .title(" Environments ")
+            .title_alignment(Alignment::Center),
+    );
 
     frame.render_stateful_widget(environments, inner_horizonal[1], &mut state.env_list_state);
 
@@ -77,25 +85,21 @@ pub fn render(
         Token::Idle => {
             vec![
                 Span::styled("[Return]", key),
-                Span::styled(" to generate token  ", desc)
+                Span::styled(" to generate token  ", desc),
             ]
-        },
+        }
         Token::Requesting => {
-            vec![
-                Span::from("Generating token")
-            ]
-        },
+            vec![Span::from("Generating token")]
+        }
         Token::Ready(_) => {
             vec![
                 Span::from("Token available: "),
                 Span::styled("[c]", key),
-                Span::styled(" to Copy the token value", desc)
+                Span::styled(" to Copy the token value", desc),
             ]
-        },
+        }
         Token::Error => {
-            vec![
-                Span::from("Error when attempting to get the token")
-            ]
+            vec![Span::from("Error when attempting to get the token")]
         }
     };
 

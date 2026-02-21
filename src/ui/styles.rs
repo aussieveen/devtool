@@ -35,7 +35,7 @@ pub fn key_desc_style() -> Style {
 pub fn row_style(active: bool) -> Style {
     if active {
         Style::default()
-    }else{
+    } else {
         Style::default().add_modifier(Modifier::DIM)
     }
 }

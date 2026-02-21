@@ -1,16 +1,16 @@
 use crate::environment::Environment;
-use ratatui::widgets::{ListState, TableState};
+use ratatui::widgets::TableState;
 
 pub struct ServiceStatus {
     pub services: Vec<Service>,
-    pub table_state: TableState
+    pub table_state: TableState,
 }
 
 impl ServiceStatus {
     pub fn new(num_services: usize) -> Self {
         Self {
             services: vec![Service::new(); num_services],
-            table_state: TableState::default().with_selected(None)
+            table_state: TableState::default().with_selected(None),
         }
     }
 

@@ -1,11 +1,11 @@
 use crate::config::model::ServiceStatus as ServiceStatusConfig;
 use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Styled};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap};
 use crate::ui::styles::{key_desc_style, key_style, row_style};
+use ratatui::Frame;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::style::{Color, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
 pub fn render(
     frame: &mut Frame,
@@ -47,26 +47,38 @@ pub fn render(
 
     // ── 3. Render column headers ────────────────────────────────────────────────────
     let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
-    let rows: Vec<Row> = state.services
+    let rows: Vec<Row> = state
+        .services
         .iter()
         .enumerate()
         .map(|(service_idx, service)| {
-            let (service_color, staging_ok, preprod_ok, prod_ok) = match service.commit_ref_status() {
+            let (service_color, staging_ok, preprod_ok, prod_ok) = match service.commit_ref_status()
+            {
                 CommitRefStatus::NothingMatches => (NONE_MATCH, Color::Red, Color::Red, Color::Red),
-                CommitRefStatus::AllMatches => (ALL_MATCH, Color::Green, Color::Green, Color::Green),
-                CommitRefStatus::StagingPreprodMatch => {
-                    (STAGING_PREPROD_MATCH, Color::Green, Color::Green, Color::Red)
+                CommitRefStatus::AllMatches => {
+                    (ALL_MATCH, Color::Green, Color::Green, Color::Green)
                 }
-                CommitRefStatus::PreprodProdMatch => {
-                    (PREPROD_PROD_MATCH, PREPROD_PROD_MATCH, Color::Green, Color::Green)
-                }
-                CommitRefStatus::CommitMissing => {
-                    (NONE_MATCH, Color::DarkGray, Color::DarkGray, Color::DarkGray)
-                }
+                CommitRefStatus::StagingPreprodMatch => (
+                    STAGING_PREPROD_MATCH,
+                    Color::Green,
+                    Color::Green,
+                    Color::Red,
+                ),
+                CommitRefStatus::PreprodProdMatch => (
+                    PREPROD_PROD_MATCH,
+                    PREPROD_PROD_MATCH,
+                    Color::Green,
+                    Color::Green,
+                ),
+                CommitRefStatus::CommitMissing => (
+                    NONE_MATCH,
+                    Color::DarkGray,
+                    Color::DarkGray,
+                    Color::DarkGray,
+                ),
             };
-            let is_active = selected_service_idx.is_none()
-                || selected_service_idx == Some(service_idx);
-            let is_active = selected_service_idx.map_or(true, |s| s == service_idx);
+
+            let is_active = selected_service_idx.is_none_or(|s| s == service_idx);
 
             let (staging_text, staging_color) = commit_cell(&service.staging, staging_ok);
             let (preprod_text, preprod_color) = commit_cell(&service.preproduction, preprod_ok);
@@ -81,28 +93,24 @@ pub fn render(
                 Cell::from(staging_text).style(Style::default().fg(staging_color)),
                 Cell::from(preprod_text).style(Style::default().fg(preprod_color)),
                 Cell::from(prod_text).style(Style::default().fg(prod_color)),
-            ]).style(row_style(is_active))
+            ])
+            .style(row_style(is_active))
         })
         .collect();
 
     let table = Table::new(
         rows,
         [
-              Constraint::Percentage(30),
-              Constraint::Percentage(23),
-              Constraint::Percentage(23),
-              Constraint::Percentage(24),
-        ]
+            Constraint::Percentage(30),
+            Constraint::Percentage(23),
+            Constraint::Percentage(23),
+            Constraint::Percentage(24),
+        ],
     )
-        .block(Block::default())
-        .header(headers);
+    .block(Block::default())
+    .header(headers);
 
-
-    frame.render_stateful_widget(
-        table,
-        table_area,
-        &mut state.table_state,
-    );
+    frame.render_stateful_widget(table, table_area, &mut state.table_state);
 
     // ── Render errors
     if let Some(service_idx) = state.table_state.selected() {
@@ -128,7 +136,7 @@ pub fn render(
     let desc = key_desc_style();
     let mut service_action_text = vec![
         Span::styled("[s]", key),
-        Span::styled(" to scan the services  ", desc)
+        Span::styled(" to scan the services  ", desc),
     ];
 
     if let Some(service) = state

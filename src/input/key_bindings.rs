@@ -7,7 +7,9 @@ use crate::events::event::AppEvent::{
     TokenGenEnvListMove, TokenGenServiceListMove,
 };
 use crate::events::event::{AppEvent, Direction};
-use crate::input::key_context::KeyContext::{ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore};
+use crate::input::key_context::KeyContext::{
+    ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, Tool, ToolIgnore,
+};
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::token_generator::Focus;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -28,7 +30,12 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyModifiers::NONE,
         OpenInBrowser,
     );
-    key_event_map.add_static(ErrorPopUp, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup);
+    key_event_map.add_static(
+        ErrorPopUp,
+        KeyCode::Char('d'),
+        KeyModifiers::NONE,
+        DismissPopup,
+    );
 
     // POP UP EVENTS
     key_event_map.add_static(

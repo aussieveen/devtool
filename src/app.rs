@@ -10,7 +10,9 @@ use crate::events::sender::EventSender;
 use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
-use crate::input::key_context::KeyContext::{ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, ToolIgnore};
+use crate::input::key_context::KeyContext::{
+    ErrorPopUp, Global, List, ListIgnore, Popup, TokenGen, ToolIgnore,
+};
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::utils::popup::popup_area;
@@ -196,9 +198,9 @@ impl App {
 
         // If an Error pop up is displayed, don't allow additional contexts i.e
         // disable all key contexts except global and the error popup.
-        if self.state.error.is_some(){
+        if self.state.error.is_some() {
             stack.push(ErrorPopUp);
-        }else{
+        } else {
             match self.state.focus {
                 AppFocus::List => {
                     stack.push(List);

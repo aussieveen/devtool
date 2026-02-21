@@ -48,7 +48,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
             ]));
             lines.push(Line::from(vec![
                 Span::styled(ticket.status.clone(), Style::default().fg(status_color)),
-                Span::styled(format!("  @{}", ticket.assignee), Style::default().fg(Color::LightBlue)),
+                Span::styled(
+                    format!("  @{}", ticket.assignee),
+                    Style::default().fg(Color::LightBlue),
+                ),
             ]));
             lines.push(Line::from(""));
             ListItem::from(lines).style(list_style(
@@ -71,7 +74,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
 
     let mut action_text = vec![
         Span::styled("[a]", key),
-        Span::styled(" to add ticket  ", desc)
+        Span::styled(" to add ticket  ", desc),
     ];
 
     if selected_ticket.is_some() {

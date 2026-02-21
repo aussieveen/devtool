@@ -1,9 +1,8 @@
+use crate::ui::styles::{key_desc_style, key_style};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use crate::ui::styles::{key_desc_style, key_style};
 
 pub fn render(frame: &mut Frame, area: Rect) {
     let key = key_style();
