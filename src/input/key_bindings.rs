@@ -197,9 +197,7 @@ mod tests {
     use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
     use crate::events::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
-    use crate::input::key_context::KeyContext::{
-        Global, List, Popup, TokenGen, Tool, ToolIgnore,
-    };
+    use crate::input::key_context::KeyContext::{Global, List, Popup, TokenGen, Tool, ToolIgnore};
     use crate::state::token_generator::Focus;
     use test_case::test_case;
 

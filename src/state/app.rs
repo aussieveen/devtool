@@ -100,7 +100,7 @@ mod tests {
     fn new_adds_jira_item_when_jira_config_is_some() {
         let app_state = AppState::build(&test_config(), test_jira());
 
-        assert_eq!(app_state.tool_list.items.len(), 4);
+        assert_eq!(app_state.tool_list.items.len(), 3);
     }
 
     #[test]
@@ -110,7 +110,7 @@ mod tests {
 
         let app_state = AppState::build(&config, test_jira());
 
-        assert_eq!(app_state.tool_list.items.len(), 3);
+        assert_eq!(app_state.tool_list.items.len(), 2);
     }
 
     #[test]
