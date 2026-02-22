@@ -1,11 +1,10 @@
 use crate::client::healthcheck::models::Healthcheck;
-use reqwest::StatusCode;
+use reqwest::{Client, StatusCode};
 use reqwest::header::{ACCEPT, USER_AGENT};
 use std::error::Error;
 use std::time::Duration;
 
-pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
-    let client = reqwest::Client::new();
+pub async fn get(client: Client, base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
     let url = format!("{}/healthcheck", base_url);
 
     let request = client
@@ -59,7 +58,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}", server.url());
-        let result = get(base_url).await;
+        let client = Client::new();
+        let result = get(client, base_url).await;
         let healthcheck = result.unwrap();
 
         assert_eq!(
@@ -84,7 +84,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}", server.url());
-        let result = get(base_url).await;
+        let client = Client::new();
+        let result = get(client, base_url).await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -107,7 +108,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}", server.url());
-        let result = get(base_url).await;
+        let client = Client::new();
+        let result = get(client, base_url).await;
 
         assert!(result.is_err());
 

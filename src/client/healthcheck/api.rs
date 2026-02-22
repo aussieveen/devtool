@@ -4,6 +4,7 @@ use crate::environment::Environment;
 use crate::events::event::AppEvent::{GetCommitRefErrored, GetCommitRefOk};
 use crate::events::sender::EventSender;
 use std::error::Error;
+use reqwest::Client;
 
 pub trait HealthcheckApi {
     fn get_commit_ref(
@@ -15,7 +16,17 @@ pub trait HealthcheckApi {
     );
 }
 
-pub struct ImmediateHealthcheckApi {}
+pub struct ImmediateHealthcheckApi {
+    client: Client
+}
+
+impl ImmediateHealthcheckApi{
+    pub fn new() -> Self{
+        Self{
+            client: Client::new(),
+        }
+    }
+}
 
 impl HealthcheckApi for ImmediateHealthcheckApi {
     fn get_commit_ref(
@@ -25,8 +36,9 @@ impl HealthcheckApi for ImmediateHealthcheckApi {
         config: Vec<ServiceStatus>,
         sender: EventSender,
     ) {
+        let client = self.client.clone();
         tokio::spawn(async move {
-            match get_commit_ref(service_idx, &env, config).await {
+            match get_commit_ref(client, service_idx, &env, config).await {
                 Ok(commit) => {
                     sender.send(GetCommitRefOk(commit, service_idx, env));
                 }
@@ -39,12 +51,13 @@ impl HealthcheckApi for ImmediateHealthcheckApi {
 }
 
 async fn get_commit_ref(
+    client: Client,
     service_idx: usize,
     env: &Environment,
     config: Vec<ServiceStatus>,
 ) -> Result<String, Box<dyn Error>> {
     let healthcheck_response =
-        healthcheck_client::get(config[service_idx].get_from_env(env).to_string()).await?;
+        healthcheck_client::get(client, config[service_idx].get_from_env(env).to_string()).await?;
 
     Ok(parse_version(healthcheck_response.version))
 }

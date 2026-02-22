@@ -2,15 +2,16 @@ use crate::client::jira::models::JiraResponse::ErrorResponse as JiraErrorRespons
 use crate::client::jira::models::JiraResponse::TicketResponse as JiraTicketResponse;
 use crate::client::jira::models::{JiraResponse, TicketResponse};
 use std::error::Error;
+use reqwest::Client;
 
 pub async fn get(
+    client: Client,
     base_url: &str,
     ticket_id: &str,
     username: &str,
     password: &str,
 ) -> Result<TicketResponse, Box<dyn Error>> {
     let url = format!("{}/issue/{}", base_url, ticket_id);
-    let client = reqwest::Client::builder().build()?;
     let request = client.get(url).basic_auth(username, Some(password));
 
     let response = request.send().await?;
@@ -58,7 +59,8 @@ mod tests {
         let username = String::from("user");
         let password = String::from("password");
 
-        let result = get(&server.url(), "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -94,7 +96,8 @@ mod tests {
         let username = String::from("user");
         let password = String::from("password");
 
-        let result = get(&server.url(), "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -128,7 +131,8 @@ mod tests {
         let username = String::from("user");
         let password = String::from("password");
 
-        let result = get(&server.url(), "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -158,7 +162,8 @@ mod tests {
         let username = String::from("user");
         let password = String::from("password");
 
-        let result = get(&server.url(), "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -183,7 +188,8 @@ mod tests {
         let username = String::from("user");
         let password = String::from("password");
 
-        let result = get(&server.url(), "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
         assert!(result.is_err());
 
         mock.assert_async().await;

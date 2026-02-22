@@ -5,15 +5,15 @@ use crate::client::auth_zero::models::TokenResponse;
 use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
+use reqwest::Client;
 
 pub async fn get_token(
+    client: Client,
     auth0_url: &str,
     client_id: &str,
     client_secret: &str,
     audience: &str,
 ) -> Result<TokenResponse, Box<dyn Error>> {
-    let client = reqwest::Client::new();
-
     let mut params = HashMap::new();
     params.insert("grant_type", "client_credentials");
     params.insert("client_id", client_id);
@@ -59,7 +59,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let client = Client::new();
+        let result = get_token(client, &base_url, "id", "secret", "audience").await;
         let token_response = result.unwrap();
 
         assert_eq!(
@@ -91,7 +92,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let client = Client::new();
+        let result = get_token(client, &base_url, "id", "secret", "audience").await;
         let error = result.err();
 
         assert_eq!(
@@ -115,7 +117,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let client = Client::new();
+        let result = get_token(client, &base_url, "id", "secret", "audience").await;
 
         assert!(result.is_err());
 

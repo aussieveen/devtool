@@ -57,9 +57,9 @@ impl App {
             key_event_map: KeyEventMap::default(),
 
             // wire real infra
-            jira_api: Arc::new(ImmediateJiraApi {}),
-            auth_zero_api: Arc::new(ImmediateAuthZeroApi {}),
-            healthcheck_api: Arc::new(ImmediateHealthcheckApi {}),
+            jira_api: Arc::new(ImmediateJiraApi::new()),
+            auth_zero_api: Arc::new(ImmediateAuthZeroApi::new()),
+            healthcheck_api: Arc::new(ImmediateHealthcheckApi::new()),
         }
     }
 
