@@ -50,7 +50,7 @@ async fn get_commit_ref(
 }
 
 fn parse_version(version: String) -> String {
-    version.split("_").next().unwrap().to_string()
+    version.split('_').next().unwrap().to_string()
 }
 
 #[cfg(test)]

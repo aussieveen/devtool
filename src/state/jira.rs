@@ -15,7 +15,7 @@ pub struct Jira {
 
 impl Jira {
     pub fn new() -> Jira {
-        let jira_file = JiraFile::new();
+        let jira_file = JiraFile::default();
         let tickets = jira_file.clone().read_jira().tickets;
         Self {
             tickets,
@@ -44,16 +44,10 @@ impl Jira {
     }
 
     pub fn remove_char_from_ticket_id(&mut self) {
-        self.new_ticket_id = match &self.new_ticket_id {
-            None => None,
-            Some(id) => {
-                if id.len() > 1 {
-                    let mut chars = id.chars();
-                    chars.next_back();
-                    Some(chars.as_str().to_string())
-                } else {
-                    None
-                }
+        if let Some(id) = &mut self.new_ticket_id {
+            id.pop();
+            if id.is_empty() {
+                self.new_ticket_id = None;
             }
         }
     }
@@ -79,26 +73,16 @@ impl Jira {
     }
 
     pub fn swap_tickets(&mut self, direction: Direction) {
-        let mut selected_ticket: Option<Ticket> = None;
-        let mut new_index: Option<usize> = None;
-
         if let Some(ticket_index) = self.list_state.selected() {
-            if Direction::Up == direction && ticket_index > 0 {
-                selected_ticket = Some(self.tickets.remove(ticket_index));
-                new_index = Some(ticket_index.saturating_sub(1));
-            }
-            if Direction::Down == direction && ticket_index < self.tickets.len() - 1 {
-                selected_ticket = Some(self.tickets.remove(ticket_index));
-                new_index = Some(ticket_index.saturating_add(1));
-            }
-        }
-
-        if let Some(index) = new_index
-            && let Some(ticket) = selected_ticket
-        {
-            self.tickets.insert(index, ticket);
-            self.list_state.select(Some(index));
-            self.persist_tickets()
+            let new_index = match direction {
+                Direction::Up if ticket_index > 0 => ticket_index - 1,
+                Direction::Down if ticket_index < self.tickets.len() - 1 => ticket_index + 1,
+                _ => return,
+            };
+            let ticket = self.tickets.remove(ticket_index);
+            self.tickets.insert(new_index, ticket);
+            self.list_state.select(Some(new_index));
+            self.persist_tickets();
         }
     }
 
@@ -138,29 +122,6 @@ mod tests {
     use std::path::PathBuf;
     use tempfile::TempDir;
     use test_case::test_case;
-
-    fn get_jira() -> Jira {
-        Jira {
-            tickets: vec![
-                Ticket {
-                    id: "1".to_string(),
-                    title: "title 1".to_string(),
-                    status: "in progress".to_string(),
-                    assignee: "john".to_string(),
-                },
-                Ticket {
-                    id: "2".to_string(),
-                    title: "title 2".to_string(),
-                    status: "complete".to_string(),
-                    assignee: "jane".to_string(),
-                },
-            ],
-            list_state: Default::default(),
-            new_ticket_popup: false,
-            new_ticket_id: None,
-            jira_file: JiraFile::new(),
-        }
-    }
 
     fn get_jira_with_path(path: PathBuf) -> Jira {
         Jira {
@@ -229,7 +190,10 @@ mod tests {
 
     #[test]
     fn jira_add_char_to_ticket_id_adds_char() {
-        let mut jira = get_jira();
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
         jira.add_char_to_ticket_id('s');
         assert_eq!(jira.new_ticket_id.clone().unwrap(), "S");
 
@@ -241,7 +205,10 @@ mod tests {
     #[test_case(Some(String::from("S")), None; "Removing last character set ticket_id to NONE")]
     #[test_case(Some(String::from("SE")), Some(String::from("S")); "Removes a single character")]
     fn jira_remove_char_from_ticket_id(current: Option<String>, expected: Option<String>) {
-        let mut jira = get_jira();
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
         jira.new_ticket_id = current;
         jira.remove_char_from_ticket_id();
         assert_eq!(jira.new_ticket_id, expected);
@@ -249,7 +216,10 @@ mod tests {
 
     #[test]
     fn jira_swap_tickets_does_nothing_when_moving_top_ticket_up() {
-        let mut jira = get_jira();
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
         jira.list_state.select(Some(0));
 
         jira.swap_tickets(Direction::Up);
@@ -274,7 +244,10 @@ mod tests {
 
     #[test]
     fn jira_swap_tickets_does_nothing_when_moving_bottom_ticket_down() {
-        let mut jira = get_jira();
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
         jira.list_state.select(Some(1));
 
         jira.swap_tickets(Direction::Down);

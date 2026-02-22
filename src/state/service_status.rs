@@ -51,11 +51,10 @@ impl ServiceStatus {
         }
     }
 
-    pub(crate) fn get_link(&self, repo_url: &String) -> Option<String> {
-        let service_idx = self.table_state.selected();
-        service_idx?;
+    pub(crate) fn get_link(&self, repo_url: &str) -> Option<String> {
+        let service_idx = self.table_state.selected()?;
+        let service = &self.services[service_idx];
 
-        let service = &self.services[service_idx.unwrap()];
         if let Some(prod_ref) = service.production.get_ref()
             && let Some(preprod_ref) = service.preproduction.get_ref()
         {

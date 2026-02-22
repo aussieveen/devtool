@@ -19,9 +19,9 @@ pub struct JiraFile {
 }
 
 impl JiraFile {
-    pub fn new() -> JiraFile {
+    pub fn default() -> JiraFile {
         JiraFile {
-            file: PersistenceFile::new(),
+            file: PersistenceFile::default(),
         }
     }
 
@@ -56,7 +56,7 @@ pub struct PersistenceFile {
 }
 
 impl PersistenceFile {
-    pub fn new() -> PersistenceFile {
+    pub fn default() -> PersistenceFile {
         let home_dir = dirs::home_dir().expect("Could not find home directory");
         PersistenceFile {
             file_path: home_dir.join(".devtool").join("persistence.yaml"),

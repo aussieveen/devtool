@@ -1,6 +1,6 @@
+use std::fmt::{Display, Formatter};
 use serde::Deserialize;
-use strum_macros::EnumCount;
-#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, EnumCount, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Debug)]
 pub enum Environment {
     Local,
     Staging,
@@ -8,8 +8,8 @@ pub enum Environment {
     Production,
 }
 
-impl Environment {
-    pub fn as_str(&self) -> String {
+impl Display for Environment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Environment::Local => "Local",
             Environment::Staging => "Staging",
@@ -17,7 +17,7 @@ impl Environment {
             Environment::Production => "Production",
         };
 
-        str.to_string()
+        write!(f, "{}", str)
     }
 }
 
@@ -26,10 +26,10 @@ mod tests {
     use crate::environment::Environment;
 
     #[test]
-    fn as_str() {
-        assert_eq!(Environment::Local.as_str(), "Local");
-        assert_eq!(Environment::Staging.as_str(), "Staging");
-        assert_eq!(Environment::Preproduction.as_str(), "Preproduction");
-        assert_eq!(Environment::Production.as_str(), "Production");
+    fn display_fmt() {
+        assert_eq!(Environment::Local.to_string(), "Local");
+        assert_eq!(Environment::Staging.to_string(), "Staging");
+        assert_eq!(Environment::Preproduction.to_string(), "Preproduction");
+        assert_eq!(Environment::Production.to_string(), "Production");
     }
 }

@@ -34,5 +34,5 @@ async fn get_ticket(
     ticket_id: &str,
     config: &JiraConfig,
 ) -> Result<TicketResponse, Box<dyn Error>> {
-    jira_client::get(ticket_id, &config.email, &config.token).await
+    jira_client::get(&config.url, ticket_id, &config.email, &config.token).await
 }

@@ -18,7 +18,7 @@ pub(crate) struct ServiceStatus {
 }
 
 impl ServiceStatus {
-    pub fn get_from_env(&self, env: &Environment) -> &String {
+    pub fn get_from_env(&self, env: &Environment) -> &str {
         if let Environment::Staging = env {
             &self.staging
         } else if let Environment::Preproduction = env {
@@ -44,7 +44,7 @@ pub struct Auth0Config {
 }
 
 impl Auth0Config {
-    pub fn get_from_env(&self, env: &Environment) -> &String {
+    pub fn get_from_env(&self, env: &Environment) -> &str {
         match env {
             Environment::Local => &self.local,
             Environment::Staging => &self.staging,
@@ -70,6 +70,7 @@ pub struct Credentials {
 
 #[derive(Deserialize, Clone, PartialEq)]
 pub struct JiraConfig {
+    pub url: String,
     pub email: String,
     pub token: String,
 }

@@ -7,7 +7,7 @@ pub struct ConfigLoader {
 }
 
 impl ConfigLoader {
-    pub fn new(folder: String, config_file: String) -> ConfigLoader {
+    pub fn new(folder: &str, config_file: &str) -> ConfigLoader {
         let home_dir = dirs::home_dir().expect("Could not find home directory");
         ConfigLoader {
             file_path: home_dir.join(folder).join(config_file),
@@ -109,6 +109,7 @@ tokengenerator:
           client_id: def
           client_secret: 789
 jira:
+    url: url
     email: email
     token: token";
 

@@ -66,7 +66,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             app.event_sender.send(JiraTicketListUpdate);
         }
         JiraTicketListUpdate => {
-            JiraFile::new()
+            JiraFile::default()
                 .write_jira(&app.state.jira.tickets)
                 .expect("Failed to persist tickets");
         }

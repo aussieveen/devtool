@@ -72,7 +72,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         AppEvent::CopyToClipboard => {
             if let Some(link) = get_link_url(app)
-                && let Err(e) = copy_to_clipboard(link)
+                && let Err(e) = copy_to_clipboard(link.as_str())
             {
                 let sender = app.event_sender.clone();
                 sender.send(SystemError(Error {

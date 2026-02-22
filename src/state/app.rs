@@ -90,6 +90,7 @@ mod tests {
                 services: vec![],
             },
             jira: Some(JiraConfig {
+                url: "".to_string(),
                 email: "".to_string(),
                 token: "".to_string(),
             }),

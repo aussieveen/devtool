@@ -1,14 +1,13 @@
 use std::io::Write;
 use std::process::{Command, Stdio};
 
-pub fn copy_to_clipboard(text: String) -> Result<(), String> {
-    let str = text.as_str();
+pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
     if which::which("wl-copy").is_ok() {
-        return pipe_to("wl-copy", &[], str);
+        return pipe_to("wl-copy", &[], text);
     }
 
     if cfg!(target_os = "macos") {
-        return pipe_to("pbcopy", &[], str);
+        return pipe_to("pbcopy", &[], text);
     }
 
     Ok(())

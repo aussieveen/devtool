@@ -7,7 +7,7 @@ use std::error::Error;
 use std::time::Duration;
 
 pub async fn get_token(
-    auth0_url: &String,
+    auth0_url: &str,
     client_id: &str,
     client_secret: &str,
     audience: &str,
