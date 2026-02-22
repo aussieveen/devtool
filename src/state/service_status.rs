@@ -9,7 +9,7 @@ pub struct ServiceStatus {
 impl ServiceStatus {
     pub fn new(num_services: usize) -> Self {
         Self {
-            services: vec![Service::new(); num_services],
+            services: vec![Service::default(); num_services],
             table_state: TableState::default().with_selected(None),
         }
     }
@@ -124,7 +124,7 @@ pub enum CommitRefStatus {
 }
 
 impl Service {
-    pub fn new() -> Self {
+    pub fn default() -> Self {
         Self {
             staging: Commit::Empty,
             preproduction: Commit::Empty,
@@ -227,7 +227,7 @@ mod tests {
         service_status.services[1].preproduction = Commit::Ok(String::from("preproduction"));
         service_status.table_state.select(Some(1));
 
-        assert_eq!(service_status.has_link(), false);
+        assert!(!service_status.has_link());
     }
 
     #[test]
@@ -351,7 +351,7 @@ mod tests {
         prod_commit: Commit,
         expected: CommitRefStatus,
     ) {
-        let mut service = Service::new();
+        let mut service = Service::default();
         service.staging = staging_commit;
         service.preproduction = preprod_commit;
         service.production = prod_commit;

@@ -163,7 +163,7 @@ mod tests {
 
         let jira = JiraFile::new_from_path(path.clone()).write_jira(&vec![sample_ticket()]);
 
-        assert_eq!(jira.unwrap().tickets.is_empty(), false);
+        assert!(!jira.unwrap().tickets.is_empty());
     }
 
     #[test]
@@ -174,7 +174,7 @@ mod tests {
         let jira_file = JiraFile::new_from_path(path.clone());
         let saved_jira = jira_file.write_jira(&vec![sample_ticket()]);
 
-        assert_eq!(saved_jira.unwrap().tickets.is_empty(), false);
+        assert!(!saved_jira.unwrap().tickets.is_empty());
 
         let jira_file = JiraFile::new_from_path(path.clone());
         let empty_jira = jira_file.write_jira(&vec![]);
@@ -190,7 +190,7 @@ mod tests {
         let jira_file = JiraFile::new_from_path(path.clone());
         let saved_jira = jira_file.write_jira(&vec![sample_ticket()]);
 
-        assert_eq!(saved_jira.unwrap().tickets.is_empty(), false);
+        assert!(!saved_jira.unwrap().tickets.is_empty());
 
         let overwritten_ticket = Ticket {
             id: String::from("OVER-1"),
@@ -203,7 +203,7 @@ mod tests {
         let overwritten_jira = jira_file.write_jira(&vec![overwritten_ticket]);
 
         let ticket = overwritten_jira.unwrap().tickets;
-        assert_eq!(ticket.is_empty(), false);
+        assert!(!ticket.is_empty());
         assert_eq!(ticket[0].id, "OVER-1");
         assert_eq!(ticket[0].title, "OVERWRITTEN");
         assert_eq!(ticket[0].assignee, "John");
