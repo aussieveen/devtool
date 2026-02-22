@@ -12,7 +12,7 @@ pub struct KeyEventMap {
 }
 
 impl KeyEventMap {
-    pub fn new() -> KeyEventMap {
+    pub fn default() -> KeyEventMap {
         KeyEventMap {
             static_events: HashMap::new(),
             dynamic_events: HashMap::new(),
@@ -34,7 +34,7 @@ impl KeyEventMap {
         self.dynamic_events.insert(context, function);
     }
 
-    pub fn resolve(&mut self, context: KeyContext, key: KeyEvent) -> Option<AppEvent> {
+    pub fn resolve(&self, context: KeyContext, key: KeyEvent) -> Option<AppEvent> {
         let event = self
             .static_events
             .get(&(context.clone(), (key.code, key.modifiers)))
@@ -56,7 +56,7 @@ mod tests {
 
     #[test]
     fn map_add_static() {
-        let mut map = KeyEventMap::new();
+        let mut map = KeyEventMap::default();
 
         map.add_static(
             KeyContext::Global,
@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn map_add_dynamic() {
-        let mut map = KeyEventMap::new();
+        let mut map = KeyEventMap::default();
 
         map.add_dynamic(KeyContext::Global, dynamic_function);
 
@@ -88,7 +88,7 @@ mod tests {
 
     #[test]
     fn map_resolve() {
-        let mut map = KeyEventMap::new();
+        let mut map = KeyEventMap::default();
         map.add_static(
             KeyContext::Global,
             KeyCode::Up,

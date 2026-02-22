@@ -72,7 +72,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         AppEvent::CopyToClipboard => {
             if let Some(link) = get_link_url(app)
-                && let Err(e) = copy_to_clipboard(link)
+                && let Err(e) = copy_to_clipboard(link.as_str())
             {
                 let sender = app.event_sender.clone();
                 sender.send(SystemError(Error {
@@ -85,7 +85,15 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         AppEvent::OpenInBrowser => {
             if let Some(link) = get_link_url(app) {
-                open_link_in_browser(link);
+                if let Err(e) = open_link_in_browser(&link) {
+                    let sender = app.event_sender.clone();
+                    sender.send(SystemError(Error {
+                        title: "Failed to open browser".to_string(),
+                        originating_event: "OpenInBrowser".to_string(),
+                        tool: "Service Status".to_string(),
+                        description: e,
+                    }));
+                }
             }
         }
         _ => {}

@@ -2,38 +2,38 @@ use crate::client::auth_zero::models::AuthZeroResponse;
 use crate::client::auth_zero::models::AuthZeroResponse::ErrorResponse as AuthZeroErrorResponse;
 use crate::client::auth_zero::models::AuthZeroResponse::TokenResponse as AuthZeroTokenResponse;
 use crate::client::auth_zero::models::TokenResponse;
+use crate::error::model::ClientError;
 use std::collections::HashMap;
-use std::error::Error;
 use std::time::Duration;
 
 pub async fn get_token(
-    auth0_url: &String,
+    client: &reqwest::Client,
+    auth0_url: &str,
     client_id: &str,
     client_secret: &str,
     audience: &str,
-) -> Result<TokenResponse, Box<dyn Error>> {
-    let client = reqwest::Client::new();
-
+) -> Result<TokenResponse, ClientError> {
     let mut params = HashMap::new();
     params.insert("grant_type", "client_credentials");
     params.insert("client_id", client_id);
     params.insert("client_secret", client_secret);
     params.insert("audience", audience);
 
-    let request = client
-        .request(reqwest::Method::POST, auth0_url)
+    let response = client
+        .post(auth0_url)
         .form(&params)
-        .timeout(Duration::from_secs(3));
-
-    let response = request.send().await?;
+        .timeout(Duration::from_secs(3))
+        .send()
+        .await?;
 
     let body: AuthZeroResponse = serde_json::from_str(response.text().await?.as_str())?;
 
     match body {
         AuthZeroTokenResponse(r) => Ok(r),
-        AuthZeroErrorResponse(e) => {
-            Err(format!("Status code: {} - {}", e.error, e.error_description).into())
-        }
+        AuthZeroErrorResponse(e) => Err(ClientError::Api(format!(
+            "Status code: {} - {}",
+            e.error, e.error_description
+        ))),
     }
 }
 
@@ -59,7 +59,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let client = reqwest::Client::new();
+        let result = get_token(&client, &base_url, "id", "secret", "audience").await;
         let token_response = result.unwrap();
 
         assert_eq!(
@@ -91,7 +92,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let client = reqwest::Client::new();
+        let result = get_token(&client, &base_url, "id", "secret", "audience").await;
         let error = result.err();
 
         assert_eq!(
@@ -115,7 +117,8 @@ mod tests {
             .await;
 
         let base_url = format!("{}/token", server.url());
-        let result = get_token(&base_url, "id", "secret", "audience").await;
+        let client = reqwest::Client::new();
+        let result = get_token(&client, &base_url, "id", "secret", "audience").await;
 
         assert!(result.is_err());
 

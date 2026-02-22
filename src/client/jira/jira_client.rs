@@ -1,29 +1,21 @@
 use crate::client::jira::models::JiraResponse::ErrorResponse as JiraErrorResponse;
 use crate::client::jira::models::JiraResponse::TicketResponse as JiraTicketResponse;
 use crate::client::jira::models::{JiraResponse, TicketResponse};
-use std::error::Error;
+use crate::error::model::ClientError;
 
-const JIRA_ISSUE_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
-
-pub async fn get(
-    ticket_id: &str,
-    username: &String,
-    password: &String,
-) -> Result<TicketResponse, Box<dyn Error>> {
-    get_from(JIRA_ISSUE_URL, ticket_id, username, password).await
-}
-
-async fn get_from(
+pub(crate) async fn get(
+    client: &reqwest::Client,
     base_url: &str,
     ticket_id: &str,
-    username: &String,
-    password: &String,
-) -> Result<TicketResponse, Box<dyn Error>> {
-    let url = format!("{}{}", base_url, ticket_id);
-    let client = reqwest::Client::builder().build()?;
-    let request = client.get(url).basic_auth(username, Some(password));
-
-    let response = request.send().await?;
+    username: &str,
+    password: &str,
+) -> Result<TicketResponse, ClientError> {
+    let url = format!("{}/issue/{}", base_url, ticket_id);
+    let response = client
+        .get(url)
+        .basic_auth(username, Some(password))
+        .send()
+        .await?;
 
     let body: JiraResponse = serde_json::from_str(response.text().await?.as_str())?;
 
@@ -31,10 +23,10 @@ async fn get_from(
         JiraTicketResponse(r) => Ok(r),
         JiraErrorResponse(e) => {
             let msg = match e.error_messages.len() {
-                0 => "Unknown error",
-                _ => e.error_messages[0].as_str(),
+                0 => "Unknown error".to_string(),
+                _ => e.error_messages[0].clone(),
             };
-            Err(format!("Error: {}", msg).into())
+            Err(ClientError::Api(format!("Error: {}", msg)))
         }
     }
 }
@@ -58,18 +50,15 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(ticket_response)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url(), "TEST-123", "user", "password").await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -95,18 +84,15 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(ticket_response)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url(), "TEST-123", "user", "password").await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -130,18 +116,15 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(error)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url(), "TEST-123", "user", "password").await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -161,18 +144,15 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(error)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url(), "TEST-123", "user", "password").await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -187,18 +167,15 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(404)
             .with_header("content-type", "application/json")
             .with_body("Not Found")
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url(), "TEST-123", "user", "password").await;
         assert!(result.is_err());
 
         mock.assert_async().await;

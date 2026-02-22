@@ -1,8 +1,8 @@
 use crate::client::auth_zero::auth_zero_client;
 use crate::config::model::TokenGenerator;
+use crate::error::model::ClientError;
 use crate::events::event::AppEvent::{TokenFailed, TokenGenerated};
 use crate::events::sender::EventSender;
-use std::error::Error;
 
 pub trait AuthZeroApi {
     fn fetch_token(
@@ -14,7 +14,17 @@ pub trait AuthZeroApi {
     );
 }
 
-pub struct ImmediateAuthZeroApi {}
+pub struct ImmediateAuthZeroApi {
+    client: reqwest::Client,
+}
+
+impl ImmediateAuthZeroApi {
+    pub fn new() -> Self {
+        Self {
+            client: reqwest::Client::new(),
+        }
+    }
+}
 
 impl AuthZeroApi for ImmediateAuthZeroApi {
     fn fetch_token(
@@ -24,8 +34,9 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
         config: TokenGenerator,
         sender: EventSender,
     ) {
+        let client = self.client.clone();
         tokio::spawn(async move {
-            match get_token(service_idx, env_idx, config).await {
+            match get_token(&client, service_idx, env_idx, config).await {
                 Ok(token) => {
                     sender.send(TokenGenerated(token, service_idx, env_idx));
                 }
@@ -38,14 +49,16 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
 }
 
 async fn get_token(
+    client: &reqwest::Client,
     service_idx: usize,
     env_idx: usize,
     config: TokenGenerator,
-) -> Result<String, Box<dyn Error>> {
+) -> Result<String, ClientError> {
     let service = &config.services[service_idx];
     let credentials = &service.credentials[env_idx];
 
     Ok(auth_zero_client::get_token(
+        client,
         config.auth0.get_from_env(&credentials.env),
         &credentials.client_id,
         &credentials.client_secret,

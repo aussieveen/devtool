@@ -208,7 +208,7 @@ mod tests {
     use test_case::test_case;
 
     fn registered_map() -> KeyEventMap {
-        let mut map = KeyEventMap::new();
+        let mut map = KeyEventMap::default();
         register_bindings(&mut map);
         map
     }

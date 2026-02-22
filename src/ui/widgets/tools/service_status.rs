@@ -29,7 +29,6 @@ pub fn render(
 
     let selected_service_idx = state.table_state.selected();
 
-    // ── 1. Split into header row + grid ─────────────────────────────────────────────
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -45,7 +44,6 @@ pub fn render(
     let legend_area = vertical[2];
     let action_area = vertical[3];
 
-    // ── 3. Render column headers ────────────────────────────────────────────────────
     let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
     let rows: Vec<Row> = state
         .services
@@ -111,8 +109,7 @@ pub fn render(
     .header(headers);
 
     frame.render_stateful_widget(table, table_area, &mut state.table_state);
-
-    // ── Render errors
+    
     if let Some(service_idx) = state.table_state.selected() {
         let mut lines: Vec<Line> = vec![];
         let service = &state.services[service_idx];
@@ -129,8 +126,6 @@ pub fn render(
         }
         frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), error_area);
     }
-
-    // ── 5. Render legend,status and action rows ────────────────────────────────────
 
     let key = key_style();
     let desc = key_desc_style();

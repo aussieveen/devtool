@@ -72,7 +72,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             if matches!(token, Token::Ready(_))
                 && let Some(value) = token.value()
             {
-                let result = copy_to_clipboard(value.to_string());
+                let result = copy_to_clipboard(value);
                 if result.is_err() {
                     let sender = app.event_sender.clone();
                     let description = result.err().unwrap_or_else(|| "Unknown error".to_string());

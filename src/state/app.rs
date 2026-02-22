@@ -26,7 +26,7 @@ pub struct AppState {
 
 impl AppState {
     pub(crate) fn new(config: &Config) -> AppState {
-        Self::build(config, Jira::new())
+        Self::build(config, Jira::default())
     }
 
     fn build(config: &Config, jira: Jira) -> AppState {
@@ -90,6 +90,7 @@ mod tests {
                 services: vec![],
             },
             jira: Some(JiraConfig {
+                url: "".to_string(),
                 email: "".to_string(),
                 token: "".to_string(),
             }),

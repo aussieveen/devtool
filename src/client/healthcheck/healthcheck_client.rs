@@ -1,39 +1,33 @@
 use crate::client::healthcheck::models::Healthcheck;
+use crate::error::model::ClientError;
 use reqwest::StatusCode;
 use reqwest::header::{ACCEPT, USER_AGENT};
-use std::error::Error;
 use std::time::Duration;
 
-pub async fn get(base_url: String) -> Result<Healthcheck, Box<dyn Error>> {
-    let client = reqwest::Client::new();
+pub async fn get(client: &reqwest::Client, base_url: &str) -> Result<Healthcheck, ClientError> {
     let url = format!("{}/healthcheck", base_url);
 
-    let request = client
+    let response = client
         .get(url)
         .header(USER_AGENT, "chrome")
         .header(ACCEPT, "application/json")
-        .timeout(Duration::from_secs(3));
-
-    let response = request.send().await;
-    match response {
-        Ok(res) => {
-            if res.status() == StatusCode::OK {
-                Ok(res.json::<Healthcheck>().await?)
-            } else if res.status() == StatusCode::SERVICE_UNAVAILABLE {
-                Err(format!("{}.", res.status()).into())
-            } else {
-                Err(format!("{}", res.status()).into())
-            }
-        }
-        Err(e) => {
+        .timeout(Duration::from_secs(3))
+        .send()
+        .await
+        .map_err(|e| {
             if e.is_timeout() {
-                Err("Request timed out. VPN connection required"
-                    .to_string()
-                    .into())
+                ClientError::Api("Request timed out. VPN connection required".to_string())
             } else {
-                Err(Box::new(e))
+                ClientError::Request(e)
             }
+        })?;
+
+    match response.status() {
+        StatusCode::OK => Ok(response.json::<Healthcheck>().await?),
+        StatusCode::SERVICE_UNAVAILABLE => {
+            Err(ClientError::Api(format!("{}.", response.status())))
         }
+        status => Err(ClientError::Api(status.to_string())),
     }
 }
 
@@ -58,8 +52,8 @@ mod tests {
             .create_async()
             .await;
 
-        let base_url = format!("{}", server.url());
-        let result = get(base_url).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url()).await;
         let healthcheck = result.unwrap();
 
         assert_eq!(
@@ -83,8 +77,8 @@ mod tests {
             .create_async()
             .await;
 
-        let base_url = format!("{}", server.url());
-        let result = get(base_url).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url()).await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -106,8 +100,8 @@ mod tests {
             .create_async()
             .await;
 
-        let base_url = format!("{}", server.url());
-        let result = get(base_url).await;
+        let client = reqwest::Client::new();
+        let result = get(&client, &server.url()).await;
 
         assert!(result.is_err());
 

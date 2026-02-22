@@ -31,16 +31,16 @@ use std::time::Duration;
 pub struct App {
     /// Is the application running?
     running: bool,
-    pub state: AppState,
+    pub(crate) state: AppState,
     event_handler: EventHandler,
-    pub event_sender: EventSender,
-    pub config: Config,
+    pub(crate) event_sender: EventSender,
+    pub(crate) config: Config,
     key_event_map: KeyEventMap,
 
     // External Services
-    pub jira_api: Arc<dyn JiraApi>,
-    pub auth_zero_api: Arc<dyn AuthZeroApi>,
-    pub healthcheck_api: Arc<dyn HealthcheckApi>,
+    pub(crate) jira_api: Arc<dyn JiraApi>,
+    pub(crate) auth_zero_api: Arc<dyn AuthZeroApi>,
+    pub(crate) healthcheck_api: Arc<dyn HealthcheckApi>,
 }
 
 impl App {
@@ -54,12 +54,12 @@ impl App {
             event_handler,
             event_sender,
             config,
-            key_event_map: KeyEventMap::new(),
+            key_event_map: KeyEventMap::default(),
 
             // wire real infra
-            jira_api: Arc::new(ImmediateJiraApi {}),
-            auth_zero_api: Arc::new(ImmediateAuthZeroApi {}),
-            healthcheck_api: Arc::new(ImmediateHealthcheckApi {}),
+            jira_api: Arc::new(ImmediateJiraApi::new()),
+            auth_zero_api: Arc::new(ImmediateAuthZeroApi::new()),
+            healthcheck_api: Arc::new(ImmediateHealthcheckApi::new()),
         }
     }
 

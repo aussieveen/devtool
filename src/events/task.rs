@@ -13,7 +13,7 @@ pub struct EventTask {
 }
 
 impl EventTask {
-    /// Constructs a new instance of [`EventThread`].
+    /// Constructs a new instance of [`EventTask`].
     pub(crate) fn new(sender: mpsc::UnboundedSender<Event>) -> Self {
         Self { sender }
     }

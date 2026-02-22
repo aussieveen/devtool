@@ -10,7 +10,7 @@ pub struct Areas {
 pub fn main(area: Rect) -> Areas {
     let outer_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(100), Constraint::Min(3)])
+        .constraints([Constraint::Min(0), Constraint::Length(3)])
         .split(area);
 
     let chunks = Layout::default()
