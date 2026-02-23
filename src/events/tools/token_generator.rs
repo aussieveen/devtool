@@ -72,15 +72,13 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             if matches!(token, Token::Ready(_))
                 && let Some(value) = token.value()
             {
-                let result = copy_to_clipboard(value);
-                if result.is_err() {
+                if let Err(e) = copy_to_clipboard(value){
                     let sender = app.event_sender.clone();
-                    let description = result.err().unwrap_or_else(|| "Unknown error".to_string());
                     sender.send(SystemError(Error {
                         title: "Failed to copy to clipboard".to_string(),
                         originating_event: "CopyToClipboard".to_string(),
                         tool: "Token Generator".to_string(),
-                        description,
+                        description: e,
                     }));
                 }
             }

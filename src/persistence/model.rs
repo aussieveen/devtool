@@ -10,3 +10,11 @@ pub(crate) struct Persistence {
 pub(crate) struct Jira {
     pub tickets: Vec<Ticket>,
 }
+
+impl Default for Jira {
+    fn default() -> Jira {
+        Jira {
+            tickets: Vec::new(),
+        }
+    }
+}

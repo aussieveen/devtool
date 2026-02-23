@@ -5,14 +5,6 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
-impl Jira {
-    pub fn new() -> Jira {
-        Jira {
-            tickets: Vec::new(),
-        }
-    }
-}
-
 #[derive(Clone)]
 #[derive(Default)]
 pub struct JiraFile {
@@ -68,7 +60,7 @@ impl PersistenceFile{
         let persistence_yaml = match fs::read_to_string(&self.file_path) {
             Ok(contents) => contents,
             Err(e) if e.kind() == ErrorKind::NotFound => {
-                let default = Persistence { jira: Jira::new() };
+                let default = Persistence { jira: Jira::default() };
                 self.write_persistence(default.clone())?;
                 return Ok(default);
             }

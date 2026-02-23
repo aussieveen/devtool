@@ -22,7 +22,7 @@ impl Jira {
             .read_jira()
             .unwrap_or_else(|e| {
                 error!("Failed to load jira tickets from file: {}", e);
-                persistence::model::Jira::new()
+                persistence::model::Jira::default()
             })
             .tickets;
         Self {

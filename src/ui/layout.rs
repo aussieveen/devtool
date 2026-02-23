@@ -15,7 +15,7 @@ pub fn main(area: Rect) -> Areas {
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Min(30), Constraint::Percentage(90)])
+        .constraints([Constraint::Min(30), Constraint::Min(0)])
         .split(outer_chunks[0]);
 
     Areas {

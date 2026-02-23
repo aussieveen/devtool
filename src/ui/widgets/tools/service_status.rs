@@ -141,7 +141,7 @@ pub fn render(
         .and_then(|idx| state.services.get(idx))
     {
         match service.commit_ref_status() {
-            CommitRefStatus::StagingPreprodMatch | CommitRefStatus::NothingMatches => {
+            CommitRefStatus::StagingPreprodMatch => {
                 service_action_text.push(Span::styled("[o]", key));
                 service_action_text.push(Span::styled(" to Open in browser  ", desc));
                 service_action_text.push(Span::styled("[c]", key));

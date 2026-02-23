@@ -20,12 +20,12 @@ pub async fn get_token(
     params.insert("client_secret", client_secret);
     params.insert("audience", audience);
 
-    let request = client
-        .request(reqwest::Method::POST, auth0_url)
+    let response = client
+        .post(auth0_url)
         .form(&params)
-        .timeout(Duration::from_secs(3));
-
-    let response = request.send().await?;
+        .timeout(Duration::from_secs(3))
+        .send()
+        .await?;
 
     let body: AuthZeroResponse = serde_json::from_str(response.text().await?.as_str())?;
 

@@ -54,10 +54,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
                 ),
             ]));
             lines.push(Line::from(""));
-            ListItem::from(lines).style(list_style(
-                (selected_ticket.is_some() && selected_ticket.unwrap() == index)
-                    || selected_ticket.is_none(),
-            ))
+            ListItem::from(lines).style(list_style(selected_ticket.map_or(true, |i| i == index)))
         })
         .collect();
 
