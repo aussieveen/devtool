@@ -2,8 +2,8 @@ use crate::client::auth_zero::auth_zero_client;
 use crate::config::model::TokenGenerator;
 use crate::events::event::AppEvent::{TokenFailed, TokenGenerated};
 use crate::events::sender::EventSender;
-use std::error::Error;
 use reqwest::Client;
+use std::error::Error;
 
 pub trait AuthZeroApi {
     fn fetch_token(
@@ -16,12 +16,12 @@ pub trait AuthZeroApi {
 }
 
 pub struct ImmediateAuthZeroApi {
-    client: Client
+    client: Client,
 }
 
-impl ImmediateAuthZeroApi{
-    pub fn new() -> Self{
-        Self{
+impl ImmediateAuthZeroApi {
+    pub fn new() -> Self {
+        Self {
             client: Client::new(),
         }
     }

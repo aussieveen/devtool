@@ -3,8 +3,8 @@ use crate::config::model::ServiceStatus;
 use crate::environment::Environment;
 use crate::events::event::AppEvent::{GetCommitRefErrored, GetCommitRefOk};
 use crate::events::sender::EventSender;
-use std::error::Error;
 use reqwest::Client;
+use std::error::Error;
 
 pub trait HealthcheckApi {
     fn get_commit_ref(
@@ -17,12 +17,12 @@ pub trait HealthcheckApi {
 }
 
 pub struct ImmediateHealthcheckApi {
-    client: Client
+    client: Client,
 }
 
-impl ImmediateHealthcheckApi{
-    pub fn new() -> Self{
-        Self{
+impl ImmediateHealthcheckApi {
+    pub fn new() -> Self {
+        Self {
             client: Client::new(),
         }
     }

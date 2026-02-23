@@ -1,10 +1,9 @@
 use crate::client::jira::jira_client;
 use crate::client::jira::models::TicketResponse;
 use crate::config::model::JiraConfig;
-use crate::error::model::Error as AppError;
+use crate::error::model::{ClientError, Error};
 use crate::events::event::AppEvent::{SystemError, TicketRetrieved};
 use crate::events::sender::EventSender;
-use std::error::Error;
 use reqwest::Client;
 
 pub trait JiraApi {
@@ -12,12 +11,12 @@ pub trait JiraApi {
 }
 
 pub struct ImmediateJiraApi {
-    client: Client
+    client: Client,
 }
 
 impl ImmediateJiraApi {
-    pub fn new() -> Self{
-        Self{
+    pub fn new() -> Self {
+        Self {
             client: Client::new(),
         }
     }
@@ -31,7 +30,7 @@ impl JiraApi for ImmediateJiraApi {
                 Ok(ticket) => {
                     sender.send(TicketRetrieved(ticket));
                 }
-                Err(err) => sender.send(SystemError(AppError {
+                Err(err) => sender.send(SystemError(Error {
                     title: "Failed to get ticket".to_string(),
                     originating_event: "SubmitTicketId".to_string(),
                     tool: "Jira".to_string(),
@@ -46,6 +45,6 @@ async fn get_ticket(
     client: Client,
     ticket_id: &str,
     config: &JiraConfig,
-) -> Result<TicketResponse, Box<dyn Error>> {
+) -> Result<TicketResponse, ClientError> {
     jira_client::get(client, &config.url, ticket_id, &config.email, &config.token).await
 }

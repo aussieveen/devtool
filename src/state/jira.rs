@@ -1,6 +1,9 @@
 use crate::client::jira::models::TicketResponse;
+use crate::error::model::PersistenceError;
 use crate::events::event::Direction;
+use crate::persistence;
 use crate::persistence::persister::JiraFile;
+use log::error;
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +19,14 @@ pub struct Jira {
 impl Jira {
     pub fn new() -> Jira {
         let jira_file = JiraFile::default();
-        let tickets = jira_file.clone().read_jira().tickets;
+        let tickets = jira_file
+            .clone()
+            .read_jira()
+            .unwrap_or_else(|e| {
+                error!("Failed to load jira tickets from file: {}", e);
+                persistence::model::Jira::new()
+            })
+            .tickets;
         Self {
             tickets,
             list_state: ListState::default().with_selected(None),
@@ -87,10 +97,9 @@ impl Jira {
     }
 
     fn persist_tickets(&mut self) {
-        self.jira_file
-            .clone()
-            .write_jira(&self.tickets)
-            .expect("Failed to persist tickets");
+        if let Err(e) = self.jira_file.clone().write_jira(&self.tickets) {
+            log::error!("Failed to persist tickets: {}", e);
+        }
     }
 }
 

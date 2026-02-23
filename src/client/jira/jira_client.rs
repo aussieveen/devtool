@@ -1,7 +1,7 @@
 use crate::client::jira::models::JiraResponse::ErrorResponse as JiraErrorResponse;
 use crate::client::jira::models::JiraResponse::TicketResponse as JiraTicketResponse;
 use crate::client::jira::models::{JiraResponse, TicketResponse};
-use std::error::Error;
+use crate::error::model::ClientError;
 use reqwest::Client;
 
 pub async fn get(
@@ -10,7 +10,7 @@ pub async fn get(
     ticket_id: &str,
     username: &str,
     password: &str,
-) -> Result<TicketResponse, Box<dyn Error>> {
+) -> Result<TicketResponse, ClientError> {
     let url = format!("{}/issue/{}", base_url, ticket_id);
     let request = client.get(url).basic_auth(username, Some(password));
 
@@ -22,10 +22,10 @@ pub async fn get(
         JiraTicketResponse(r) => Ok(r),
         JiraErrorResponse(e) => {
             let msg = match e.error_messages.len() {
-                0 => "Unknown error",
-                _ => e.error_messages[0].as_str(),
+                0 => "Unknown error".to_string(),
+                _ => e.error_messages[0].clone(),
             };
-            Err(format!("Error: {}", msg).into())
+            Err(ClientError::Api(msg))
         }
     }
 }
@@ -136,7 +136,7 @@ mod tests {
 
         assert_eq!(
             result.err().unwrap().to_string(),
-            "Error: this went wrong".to_string()
+            "this went wrong".to_string()
         );
 
         mock.assert_async().await;
@@ -167,7 +167,7 @@ mod tests {
 
         assert_eq!(
             result.err().unwrap().to_string(),
-            "Error: Unknown error".to_string()
+            "Unknown error".to_string()
         );
 
         mock.assert_async().await;

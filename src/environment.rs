@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use serde::Deserialize;
+use std::fmt::{Display, Formatter};
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Debug)]
 pub enum Environment {
     Local,

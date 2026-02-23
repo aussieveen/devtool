@@ -2,10 +2,10 @@ use crate::client::auth_zero::models::AuthZeroResponse;
 use crate::client::auth_zero::models::AuthZeroResponse::ErrorResponse as AuthZeroErrorResponse;
 use crate::client::auth_zero::models::AuthZeroResponse::TokenResponse as AuthZeroTokenResponse;
 use crate::client::auth_zero::models::TokenResponse;
+use reqwest::Client;
 use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
-use reqwest::Client;
 
 pub async fn get_token(
     client: Client,

@@ -127,7 +127,7 @@ pub fn render(
         }
         frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), error_area);
     }
-    
+
     let key = key_style();
     let desc = key_desc_style();
     let mut service_action_text = vec![
