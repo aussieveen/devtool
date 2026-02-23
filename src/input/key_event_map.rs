@@ -6,19 +6,14 @@ use std::collections::HashMap;
 type Key = (KeyCode, KeyModifiers);
 type KeyHandler = fn(KeyEvent) -> Option<AppEvent>;
 
+#[derive(Default)]
 pub struct KeyEventMap {
     static_events: HashMap<(KeyContext, Key), AppEvent>,
     dynamic_events: HashMap<KeyContext, KeyHandler>,
 }
 
-impl KeyEventMap {
-    pub fn default() -> KeyEventMap {
-        KeyEventMap {
-            static_events: HashMap::default(),
-            dynamic_events: HashMap::default(),
-        }
-    }
 
+impl KeyEventMap {
     pub fn add_static(
         &mut self,
         context: KeyContext,

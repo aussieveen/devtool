@@ -19,7 +19,6 @@ impl Jira {
     pub fn new() -> Jira {
         let jira_file = JiraFile::default();
         let tickets = jira_file
-            .clone()
             .read_jira()
             .unwrap_or_else(|e| {
                 error!("Failed to load jira tickets from file: {}", e);
@@ -96,7 +95,7 @@ impl Jira {
     }
 
     fn persist_tickets(&mut self) {
-        if let Err(e) = self.jira_file.clone().write_jira(&self.tickets) {
+        if let Err(e) = self.jira_file.write_jira(&self.tickets) {
             log::error!("Failed to persist tickets: {}", e);
         }
     }

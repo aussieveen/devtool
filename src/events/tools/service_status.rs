@@ -85,7 +85,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         AppEvent::OpenInBrowser => {
             if let Some(link) = get_link_url(app)
-                && let Err(e) = open_link_in_browser(link)
+                && let Err(e) = open_link_in_browser(link.as_str())
             {
                 let sender = app.event_sender.clone();
                 sender.send(SystemError(Error {

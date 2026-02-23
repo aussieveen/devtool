@@ -4,8 +4,8 @@ use crate::client::auth_zero::models::AuthZeroResponse::TokenResponse as AuthZer
 use crate::client::auth_zero::models::TokenResponse;
 use reqwest::Client;
 use std::collections::HashMap;
-use std::error::Error;
 use std::time::Duration;
+use crate::error::model::ClientError;
 
 pub async fn get_token(
     client: Client,
@@ -13,7 +13,7 @@ pub async fn get_token(
     client_id: &str,
     client_secret: &str,
     audience: &str,
-) -> Result<TokenResponse, Box<dyn Error>> {
+) -> Result<TokenResponse, ClientError> {
     let mut params = HashMap::new();
     params.insert("grant_type", "client_credentials");
     params.insert("client_id", client_id);
@@ -32,7 +32,7 @@ pub async fn get_token(
     match body {
         AuthZeroTokenResponse(r) => Ok(r),
         AuthZeroErrorResponse(e) => {
-            Err(format!("Status code: {} - {}", e.error, e.error_description).into())
+            Err(ClientError::Api(format!("Status code: {} - {}", e.error, e.error_description)))
         }
     }
 }

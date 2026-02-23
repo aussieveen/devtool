@@ -4,7 +4,7 @@ use reqwest::header::{ACCEPT, USER_AGENT};
 use reqwest::{Client, StatusCode};
 use std::time::Duration;
 
-pub async fn get(client: Client, base_url: String) -> Result<Healthcheck, ClientError> {
+pub async fn get(client: Client, base_url: &str) -> Result<Healthcheck, ClientError> {
     let url = format!("{}/healthcheck", base_url);
 
     let response = client
@@ -50,9 +50,8 @@ mod tests {
             .create_async()
             .await;
 
-        let base_url = format!("{}", server.url());
         let client = Client::new();
-        let result = get(client, base_url).await;
+        let result = get(client, server.url().as_str()).await;
         let healthcheck = result.unwrap();
 
         assert_eq!(
@@ -76,9 +75,8 @@ mod tests {
             .create_async()
             .await;
 
-        let base_url = format!("{}", server.url());
         let client = Client::new();
-        let result = get(client, base_url).await;
+        let result = get(client, server.url().as_str()).await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -99,10 +97,9 @@ mod tests {
             .with_body("Not Found")
             .create_async()
             .await;
-
-        let base_url = format!("{}", server.url());
+        
         let client = Client::new();
-        let result = get(client, base_url).await;
+        let result = get(client, server.url().as_str()).await;
 
         assert!(result.is_err());
 

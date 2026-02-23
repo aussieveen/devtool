@@ -14,17 +14,13 @@ impl Jira {
 }
 
 #[derive(Clone)]
+#[derive(Default)]
 pub struct JiraFile {
     file: PersistenceFile,
 }
 
-impl JiraFile {
-    pub fn default() -> JiraFile {
-        JiraFile {
-            file: PersistenceFile::default(),
-        }
-    }
 
+impl JiraFile {
     #[cfg(test)]
     pub(crate) fn new_from_path(file_path: PathBuf) -> JiraFile {
         JiraFile {
@@ -32,11 +28,11 @@ impl JiraFile {
         }
     }
 
-    pub fn read_jira(self) -> Result<Jira, PersistenceError> {
+    pub fn read_jira(&self) -> Result<Jira, PersistenceError> {
         self.file.read_persistence().map(|p| p.jira)
     }
 
-    pub fn write_jira(self, tickets: &[Ticket]) -> Result<(), PersistenceError> {
+    pub fn write_jira(&self, tickets: &[Ticket]) -> Result<(), PersistenceError> {
         let mut persistence: Persistence = self.file.read_persistence()?;
         persistence.jira.tickets = tickets.to_owned();
         self.file.write_persistence(persistence)
@@ -48,14 +44,16 @@ pub struct PersistenceFile {
     file_path: PathBuf,
 }
 
-impl PersistenceFile {
-    pub fn default() -> PersistenceFile {
+impl Default for PersistenceFile {
+    fn default() -> PersistenceFile {
         let home_dir = dirs::home_dir().expect("Could not find home directory");
         PersistenceFile {
             file_path: home_dir.join(".devtool").join("persistence.yaml"),
         }
     }
+}
 
+impl PersistenceFile{
     #[cfg(test)]
     pub fn new_from_path(file_path: PathBuf) -> PersistenceFile {
         PersistenceFile { file_path }
@@ -163,14 +161,14 @@ mod tests {
         let path = temp_persistence_path(&dir);
 
         JiraFile::new_from_path(path.clone())
-            .write_jira(&vec![sample_ticket()])
+            .write_jira(&[sample_ticket()])
             .unwrap();
 
         let saved_jira = JiraFile::new_from_path(path.clone()).read_jira().unwrap();
         assert!(!saved_jira.tickets.is_empty());
 
         JiraFile::new_from_path(path.clone())
-            .write_jira(&vec![])
+            .write_jira(&[])
             .unwrap();
         let empty_jira = JiraFile::new_from_path(path.clone()).read_jira().unwrap();
         assert!(empty_jira.tickets.is_empty());
@@ -182,7 +180,7 @@ mod tests {
         let path = temp_persistence_path(&dir);
 
         JiraFile::new_from_path(path.clone())
-            .write_jira(&vec![sample_ticket()])
+            .write_jira(&[sample_ticket()])
             .unwrap();
 
         assert!(
@@ -201,7 +199,7 @@ mod tests {
         };
 
         JiraFile::new_from_path(path.clone())
-            .write_jira(&vec![overwritten_ticket])
+            .write_jira(&[overwritten_ticket])
             .unwrap();
 
         let overwritten_jira = JiraFile::new_from_path(path.clone()).read_jira().unwrap();
@@ -225,7 +223,7 @@ mod tests {
             assignee: "Not me".to_string(),
         };
         JiraFile::new_from_path(path.clone())
-            .write_jira(&vec![sample_ticket(), second_ticket])
+            .write_jira(&[sample_ticket(), second_ticket])
             .unwrap();
 
         let saved_tickets = JiraFile::new_from_path(path.clone())
@@ -233,7 +231,7 @@ mod tests {
             .unwrap()
             .tickets;
 
-        assert_eq!(saved_tickets.iter().count(), 2);
+        assert_eq!(saved_tickets.len(), 2);
         assert_eq!(saved_tickets[0].assignee, "Alice");
         assert_eq!(saved_tickets[0].status, "In Progress");
         assert_eq!(saved_tickets[0].id, "TEST-1");

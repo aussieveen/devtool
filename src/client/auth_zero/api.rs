@@ -3,7 +3,7 @@ use crate::config::model::TokenGenerator;
 use crate::events::event::AppEvent::{TokenFailed, TokenGenerated};
 use crate::events::sender::EventSender;
 use reqwest::Client;
-use std::error::Error;
+use crate::error::model::ClientError;
 
 pub trait AuthZeroApi {
     fn fetch_token(
@@ -54,7 +54,7 @@ async fn get_token(
     service_idx: usize,
     env_idx: usize,
     config: TokenGenerator,
-) -> Result<String, Box<dyn Error>> {
+) -> Result<String, ClientError> {
     let service = &config.services[service_idx];
     let credentials = &service.credentials[env_idx];
 

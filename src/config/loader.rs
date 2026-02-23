@@ -56,7 +56,7 @@ mod tests {
         );
         assert_eq!(
             status.get_from_env(&Environment::Local),
-            "http://production.test.com"
+            "http://staging.test.com"
         );
     }
 
@@ -164,7 +164,7 @@ jira:
     }
 
     #[test]
-    fn read_config_panics_when_unable_to_read_file_content() {
+    fn read_config_returns_error_when_unable_to_read_file_content() {
         let dir = TempDir::new().unwrap();
         let file_path = temp_loader_path(&dir);
         let config_loader = ConfigLoader::from_path(file_path);
@@ -175,7 +175,7 @@ jira:
     }
 
     #[test]
-    fn read_config_panics_when_unable_to_decode_yaml() {
+    fn read_config_returns_error_when_unable_to_decode_yaml() {
         let dir = TempDir::new().unwrap();
         let file_path = temp_loader_path(&dir);
         let json = "{}";

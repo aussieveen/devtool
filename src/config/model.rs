@@ -19,12 +19,11 @@ pub(crate) struct ServiceStatus {
 
 impl ServiceStatus {
     pub fn get_from_env(&self, env: &Environment) -> &str {
-        if let Environment::Staging = env {
-            &self.staging
-        } else if let Environment::Preproduction = env {
-            &self.preproduction
-        } else {
-            &self.production
+        match env {
+            Environment::Local => &self.staging,
+            Environment::Staging => &self.staging,
+            Environment::Preproduction => &self.preproduction,
+            Environment::Production => &self.production,
         }
     }
 }

@@ -4,7 +4,7 @@ use crate::environment::Environment;
 use crate::events::event::AppEvent::{GetCommitRefErrored, GetCommitRefOk};
 use crate::events::sender::EventSender;
 use reqwest::Client;
-use std::error::Error;
+use crate::error::model::ClientError;
 
 pub trait HealthcheckApi {
     fn get_commit_ref(
@@ -55,9 +55,9 @@ async fn get_commit_ref(
     service_idx: usize,
     env: &Environment,
     config: Vec<ServiceStatus>,
-) -> Result<String, Box<dyn Error>> {
+) -> Result<String, ClientError> {
     let healthcheck_response =
-        healthcheck_client::get(client, config[service_idx].get_from_env(env).to_string()).await?;
+        healthcheck_client::get(client, config[service_idx].get_from_env(env)).await?;
 
     Ok(parse_version(healthcheck_response.version))
 }

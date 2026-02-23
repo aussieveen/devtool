@@ -56,11 +56,8 @@ mod tests {
             .create_async()
             .await;
 
-        let username = String::from("user");
-        let password = String::from("password");
-
         let client = Client::new();
-        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -93,11 +90,8 @@ mod tests {
             .create_async()
             .await;
 
-        let username = String::from("user");
-        let password = String::from("password");
-
         let client = Client::new();
-        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -128,11 +122,8 @@ mod tests {
             .create_async()
             .await;
 
-        let username = String::from("user");
-        let password = String::from("password");
-
         let client = Client::new();
-        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -159,11 +150,8 @@ mod tests {
             .create_async()
             .await;
 
-        let username = String::from("user");
-        let password = String::from("password");
-
         let client = Client::new();
-        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
@@ -185,11 +173,8 @@ mod tests {
             .create_async()
             .await;
 
-        let username = String::from("user");
-        let password = String::from("password");
-
         let client = Client::new();
-        let result = get(client, &server.url(), "TEST-123", &username, &password).await;
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
         assert!(result.is_err());
 
         mock.assert_async().await;

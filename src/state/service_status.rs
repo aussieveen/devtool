@@ -123,15 +123,17 @@ pub enum CommitRefStatus {
     CommitMissing,
 }
 
-impl Service {
-    pub fn default() -> Self {
+impl Default for Service{
+    fn default() -> Self {
         Self {
             staging: Commit::Empty,
             preproduction: Commit::Empty,
             production: Commit::Empty,
         }
     }
+}
 
+impl Service {
     pub fn commit_ref_status(&self) -> CommitRefStatus {
         if self.production.is_errored()
             || self.preproduction.is_errored()
@@ -238,7 +240,7 @@ mod tests {
         service_status.services[1].preproduction = Commit::Ok(String::from("preprod"));
         service_status.services[1].production = Commit::Ok(String::from("prod"));
 
-        let actual = service_status.get_link(&String::from("https://github.com/myrepo"));
+        let actual = service_status.get_link("https://github.com/myrepo");
 
         assert_eq!(
             actual.unwrap(),
@@ -260,7 +262,7 @@ mod tests {
         service_status.services[1].preproduction = preprod_commit;
         service_status.services[1].production = prod_commit;
 
-        assert_eq!(None, service_status.get_link(&"repo_url".to_string()));
+        assert_eq!(None, service_status.get_link("repo_url"));
     }
 
     #[test_case(Commit::Ok(String::from("commit")), Some("commit"); "Returns value from Ok Commit")]
