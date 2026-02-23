@@ -9,7 +9,7 @@ pub struct ServiceStatus {
 impl ServiceStatus {
     pub fn new(num_services: usize) -> Self {
         Self {
-            services: vec![Service::new(); num_services],
+            services: vec![Service::default(); num_services],
             table_state: TableState::default().with_selected(None),
         }
     }
@@ -51,11 +51,10 @@ impl ServiceStatus {
         }
     }
 
-    pub(crate) fn get_link(&self, repo_url: &String) -> Option<String> {
-        let service_idx = self.table_state.selected();
-        service_idx?;
+    pub(crate) fn get_link(&self, repo_url: &str) -> Option<String> {
+        let service_idx = self.table_state.selected()?;
+        let service = &self.services[service_idx];
 
-        let service = &self.services[service_idx.unwrap()];
         if let Some(prod_ref) = service.production.get_ref()
             && let Some(preprod_ref) = service.preproduction.get_ref()
         {
@@ -124,15 +123,17 @@ pub enum CommitRefStatus {
     CommitMissing,
 }
 
-impl Service {
-    pub fn new() -> Self {
+impl Default for Service {
+    fn default() -> Self {
         Self {
             staging: Commit::Empty,
             preproduction: Commit::Empty,
             production: Commit::Empty,
         }
     }
+}
 
+impl Service {
     pub fn commit_ref_status(&self) -> CommitRefStatus {
         if self.production.is_errored()
             || self.preproduction.is_errored()
@@ -228,7 +229,7 @@ mod tests {
         service_status.services[1].preproduction = Commit::Ok(String::from("preproduction"));
         service_status.table_state.select(Some(1));
 
-        assert_eq!(service_status.has_link(), false);
+        assert!(!service_status.has_link());
     }
 
     #[test]
@@ -239,7 +240,7 @@ mod tests {
         service_status.services[1].preproduction = Commit::Ok(String::from("preprod"));
         service_status.services[1].production = Commit::Ok(String::from("prod"));
 
-        let actual = service_status.get_link(&String::from("https://github.com/myrepo"));
+        let actual = service_status.get_link("https://github.com/myrepo");
 
         assert_eq!(
             actual.unwrap(),
@@ -261,7 +262,7 @@ mod tests {
         service_status.services[1].preproduction = preprod_commit;
         service_status.services[1].production = prod_commit;
 
-        assert_eq!(None, service_status.get_link(&"repo_url".to_string()));
+        assert_eq!(None, service_status.get_link("repo_url"));
     }
 
     #[test_case(Commit::Ok(String::from("commit")), Some("commit"); "Returns value from Ok Commit")]
@@ -352,7 +353,7 @@ mod tests {
         prod_commit: Commit,
         expected: CommitRefStatus,
     ) {
-        let mut service = Service::new();
+        let mut service = Service::default();
         service.staging = staging_commit;
         service.preproduction = preprod_commit;
         service.production = prod_commit;

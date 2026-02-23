@@ -6,7 +6,7 @@ pub(crate) struct Persistence {
     pub jira: Jira,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Default)]
 pub(crate) struct Jira {
     pub tickets: Vec<Ticket>,
 }

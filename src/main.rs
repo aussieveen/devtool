@@ -18,8 +18,7 @@ use crate::config::model::Config;
 async fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;
     let terminal = ratatui::init();
-    let config: Config =
-        ConfigLoader::new(String::from(".devtool"), String::from("config.yaml")).read_config();
+    let config: Config = ConfigLoader::new(".devtool", "config.yaml").read_config()?;
     let result = App::new(config).run(terminal).await;
     ratatui::restore();
     result

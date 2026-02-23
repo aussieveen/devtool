@@ -208,7 +208,7 @@ mod tests {
     use test_case::test_case;
 
     fn registered_map() -> KeyEventMap {
-        let mut map = KeyEventMap::new();
+        let mut map = KeyEventMap::default();
         register_bindings(&mut map);
         map
     }
@@ -247,14 +247,14 @@ mod tests {
         modifiers: KeyModifiers,
         expected: AppEvent,
     ) {
-        let mut map = registered_map();
+        let map = registered_map();
         let result = map.resolve(context, KeyEvent::new(code, modifiers));
         assert_eq!(result, Some(expected));
     }
 
     #[test]
     fn popup_dynamic_handler_maps_char_to_add_ticket_id_char() {
-        let mut map = registered_map();
+        let map = registered_map();
         let result = map.resolve(
             Popup(Jira),
             KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE),
@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn popup_dynamic_handler_returns_none_for_non_char() {
-        let mut map = registered_map();
+        let map = registered_map();
         let result = map.resolve(Popup(Jira), KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         assert_eq!(result, None);
     }

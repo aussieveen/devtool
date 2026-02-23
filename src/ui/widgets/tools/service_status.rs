@@ -29,7 +29,6 @@ pub fn render(
 
     let selected_service_idx = state.table_state.selected();
 
-    // ── 1. Split into header row + grid ─────────────────────────────────────────────
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -45,7 +44,6 @@ pub fn render(
     let legend_area = vertical[2];
     let action_area = vertical[3];
 
-    // ── 3. Render column headers ────────────────────────────────────────────────────
     let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
     let rows: Vec<Row> = state
         .services
@@ -130,8 +128,6 @@ pub fn render(
         frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), error_area);
     }
 
-    // ── 5. Render legend,status and action rows ────────────────────────────────────
-
     let key = key_style();
     let desc = key_desc_style();
     let mut service_action_text = vec![
@@ -143,16 +139,12 @@ pub fn render(
         .table_state
         .selected()
         .and_then(|idx| state.services.get(idx))
+        && service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
     {
-        match service.commit_ref_status() {
-            CommitRefStatus::StagingPreprodMatch | CommitRefStatus::NothingMatches => {
-                service_action_text.push(Span::styled("[o]", key));
-                service_action_text.push(Span::styled(" to Open in browser  ", desc));
-                service_action_text.push(Span::styled("[c]", key));
-                service_action_text.push(Span::styled(" to Copy the url", desc));
-            }
-            _ => {}
-        }
+        service_action_text.push(Span::styled("[o]", key));
+        service_action_text.push(Span::styled(" to Open in browser  ", desc));
+        service_action_text.push(Span::styled("[c]", key));
+        service_action_text.push(Span::styled(" to Copy the url", desc));
     }
 
     frame.render_widget(

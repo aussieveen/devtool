@@ -1,26 +1,17 @@
 use crate::client::jira::models::JiraResponse::ErrorResponse as JiraErrorResponse;
 use crate::client::jira::models::JiraResponse::TicketResponse as JiraTicketResponse;
 use crate::client::jira::models::{JiraResponse, TicketResponse};
-use std::error::Error;
-
-const JIRA_ISSUE_URL: &str = "https://immediateco.atlassian.net/rest/api/3/issue/";
+use crate::error::model::ClientError;
+use reqwest::Client;
 
 pub async fn get(
-    ticket_id: &str,
-    username: &String,
-    password: &String,
-) -> Result<TicketResponse, Box<dyn Error>> {
-    get_from(JIRA_ISSUE_URL, ticket_id, username, password).await
-}
-
-async fn get_from(
+    client: Client,
     base_url: &str,
     ticket_id: &str,
-    username: &String,
-    password: &String,
-) -> Result<TicketResponse, Box<dyn Error>> {
-    let url = format!("{}{}", base_url, ticket_id);
-    let client = reqwest::Client::builder().build()?;
+    username: &str,
+    password: &str,
+) -> Result<TicketResponse, ClientError> {
+    let url = format!("{}/issue/{}", base_url, ticket_id);
     let request = client.get(url).basic_auth(username, Some(password));
 
     let response = request.send().await?;
@@ -31,10 +22,10 @@ async fn get_from(
         JiraTicketResponse(r) => Ok(r),
         JiraErrorResponse(e) => {
             let msg = match e.error_messages.len() {
-                0 => "Unknown error",
-                _ => e.error_messages[0].as_str(),
+                0 => "Unknown error".to_string(),
+                _ => e.error_messages[0].clone(),
             };
-            Err(format!("Error: {}", msg).into())
+            Err(ClientError::Api(msg))
         }
     }
 }
@@ -44,7 +35,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn get_from_returns_deserialized_ticket_response() {
+    async fn get_returns_deserialized_ticket_response() {
         let mut server = mockito::Server::new_async().await;
 
         let ticket_response = serde_json::json!({
@@ -58,18 +49,15 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(ticket_response)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -81,7 +69,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_from_handles_no_assignee() {
+    async fn get_handles_no_assignee() {
         let mut server = mockito::Server::new_async().await;
 
         let ticket_response = serde_json::json!({
@@ -95,18 +83,15 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(ticket_response)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
         let ticket = result.unwrap();
 
         assert_eq!(ticket.key, "TEST-123");
@@ -118,7 +103,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_from_returns_error_response() {
+    async fn get_returns_error_response() {
         let mut server = mockito::Server::new_async().await;
 
         let error = serde_json::json!({
@@ -130,29 +115,26 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(error)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
-            "Error: this went wrong".to_string()
+            "this went wrong".to_string()
         );
 
         mock.assert_async().await;
     }
 
     #[tokio::test]
-    async fn get_from_returns_unknown_error_response() {
+    async fn get_returns_unknown_error_response() {
         let mut server = mockito::Server::new_async().await;
 
         let error = serde_json::json!({
@@ -161,44 +143,38 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(error)
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
 
         assert_eq!(
             result.err().unwrap().to_string(),
-            "Error: Unknown error".to_string()
+            "Unknown error".to_string()
         );
 
         mock.assert_async().await;
     }
 
     #[tokio::test]
-    async fn get_from_handles_404_responses() {
+    async fn get_handles_404_responses() {
         let mut server = mockito::Server::new_async().await;
 
         let mock = server
-            .mock("GET", "/TEST-123")
+            .mock("GET", "/issue/TEST-123")
             .with_status(404)
             .with_header("content-type", "application/json")
             .with_body("Not Found")
             .create_async()
             .await;
 
-        let base_url = format!("{}/", server.url());
-        let username = String::from("user");
-        let password = String::from("password");
-
-        let result = get_from(&*base_url, "TEST-123", &username, &password).await;
+        let client = Client::new();
+        let result = get(client, &server.url(), "TEST-123", "user", "password").await;
         assert!(result.is_err());
 
         mock.assert_async().await;

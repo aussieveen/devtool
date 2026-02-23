@@ -1,4 +1,5 @@
 use crate::config::model::Config;
+use crate::error::model::ConfigError;
 use std::fs;
 use std::path::PathBuf;
 
@@ -7,7 +8,7 @@ pub struct ConfigLoader {
 }
 
 impl ConfigLoader {
-    pub fn new(folder: String, config_file: String) -> ConfigLoader {
+    pub fn new(folder: &str, config_file: &str) -> ConfigLoader {
         let home_dir = dirs::home_dir().expect("Could not find home directory");
         ConfigLoader {
             file_path: home_dir.join(folder).join(config_file),
@@ -19,9 +20,9 @@ impl ConfigLoader {
         ConfigLoader { file_path }
     }
 
-    pub fn read_config(self) -> Config {
-        let config = fs::read_to_string(&self.file_path).expect("Unable to read content to string");
-        serde_yaml::from_str(config.as_str()).expect("File does not match expected format")
+    pub fn read_config(self) -> Result<Config, ConfigError> {
+        let config = fs::read_to_string(&self.file_path)?;
+        Ok(serde_yaml::from_str(config.as_str())?)
     }
 }
 
@@ -55,7 +56,7 @@ mod tests {
         );
         assert_eq!(
             status.get_from_env(&Environment::Local),
-            "http://production.test.com"
+            "http://staging.test.com"
         );
     }
 
@@ -109,6 +110,7 @@ tokengenerator:
           client_id: def
           client_secret: 789
 jira:
+    url: url
     email: email
     token: token";
 
@@ -118,7 +120,7 @@ jira:
 
         let config_loader = ConfigLoader::from_path(file_path);
 
-        let config = config_loader.read_config();
+        let config = config_loader.read_config().unwrap();
         let servicestatus = &config.servicestatus[0];
         assert_eq!(servicestatus.name, "My Api");
         assert_eq!(servicestatus.staging, "https://myapi.staging.com/");
@@ -162,23 +164,27 @@ jira:
     }
 
     #[test]
-    #[should_panic(expected = "Unable to read content to string")]
-    fn read_config_panics_when_unable_to_read_file_content() {
+    fn read_config_returns_error_when_unable_to_read_file_content() {
         let dir = TempDir::new().unwrap();
         let file_path = temp_loader_path(&dir);
         let config_loader = ConfigLoader::from_path(file_path);
-        config_loader.read_config();
+        assert!(matches!(
+            config_loader.read_config(),
+            Err(ConfigError::Read(_))
+        ));
     }
 
     #[test]
-    #[should_panic(expected = "File does not match expected format")]
-    fn read_config_panics_when_unable_to_decode_yaml() {
+    fn read_config_returns_error_when_unable_to_decode_yaml() {
         let dir = TempDir::new().unwrap();
         let file_path = temp_loader_path(&dir);
         let json = "{}";
         fs::write(&file_path, json).expect("Unable to write to temp file");
         let config_loader = ConfigLoader::from_path(file_path);
-        config_loader.read_config();
+        assert!(matches!(
+            config_loader.read_config(),
+            Err(ConfigError::Parse(_))
+        ));
     }
 
     fn temp_loader_path(dir: &TempDir) -> PathBuf {

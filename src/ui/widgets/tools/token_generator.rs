@@ -61,7 +61,7 @@ pub fn render(
             };
             ListItem::new(Line::from(vec![
                 Span::styled(prefix, prefix_style),
-                Span::raw(format!(" {}", c.env.as_str())),
+                Span::raw(format!(" {}", c.env)),
             ]))
         },
     ))
