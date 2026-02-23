@@ -54,7 +54,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
                 ),
             ]));
             lines.push(Line::from(""));
-            ListItem::from(lines).style(list_style(selected_ticket.map_or(true, |i| i == index)))
+            ListItem::from(lines).style(list_style(selected_ticket.is_none_or(|i| i == index)))
         })
         .collect();
 

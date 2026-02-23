@@ -12,7 +12,6 @@ pub struct KeyEventMap {
     dynamic_events: HashMap<KeyContext, KeyHandler>,
 }
 
-
 impl KeyEventMap {
     pub fn add_static(
         &mut self,

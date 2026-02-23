@@ -34,7 +34,9 @@ impl AppState {
             tool_list: ToolList {
                 items: {
                     let mut items = vec![Tool::ServiceStatus, Tool::TokenGenerator];
-                    if config.jira.is_some() { items.push(Tool::Jira); }
+                    if config.jira.is_some() {
+                        items.push(Tool::Jira);
+                    }
                     items
                 },
                 list_state: ListState::default().with_selected(Some(0)),

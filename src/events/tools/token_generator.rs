@@ -71,16 +71,15 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .get_token_for_selected_service_env();
             if matches!(token, Token::Ready(_))
                 && let Some(value) = token.value()
+                && let Err(e) = copy_to_clipboard(value)
             {
-                if let Err(e) = copy_to_clipboard(value){
-                    let sender = app.event_sender.clone();
-                    sender.send(SystemError(Error {
-                        title: "Failed to copy to clipboard".to_string(),
-                        originating_event: "CopyToClipboard".to_string(),
-                        tool: "Token Generator".to_string(),
-                        description: e,
-                    }));
-                }
+                let sender = app.event_sender.clone();
+                sender.send(SystemError(Error {
+                    title: "Failed to copy to clipboard".to_string(),
+                    originating_event: "CopyToClipboard".to_string(),
+                    tool: "Token Generator".to_string(),
+                    description: e,
+                }));
             }
         }
         _ => {}

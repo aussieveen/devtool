@@ -5,12 +5,10 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 
-#[derive(Clone)]
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct JiraFile {
     file: PersistenceFile,
 }
-
 
 impl JiraFile {
     #[cfg(test)]
@@ -45,7 +43,7 @@ impl Default for PersistenceFile {
     }
 }
 
-impl PersistenceFile{
+impl PersistenceFile {
     #[cfg(test)]
     pub fn new_from_path(file_path: PathBuf) -> PersistenceFile {
         PersistenceFile { file_path }
@@ -60,7 +58,9 @@ impl PersistenceFile{
         let persistence_yaml = match fs::read_to_string(&self.file_path) {
             Ok(contents) => contents,
             Err(e) if e.kind() == ErrorKind::NotFound => {
-                let default = Persistence { jira: Jira::default() };
+                let default = Persistence {
+                    jira: Jira::default(),
+                };
                 self.write_persistence(default.clone())?;
                 return Ok(default);
             }

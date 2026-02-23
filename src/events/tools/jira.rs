@@ -1,6 +1,9 @@
 use crate::app::App;
 use crate::error::model::Error;
-use crate::events::event::AppEvent::{AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp, RemoveTicket, RemoveTicketIdChar, SubmitTicketId, SystemError, TicketRetrieved};
+use crate::events::event::AppEvent::{
+    AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp,
+    RemoveTicket, RemoveTicketIdChar, SubmitTicketId, SystemError, TicketRetrieved,
+};
 use crate::events::event::{AppEvent, Direction};
 use crate::state::app::AppFocus;
 use crate::utils::update_list_state;
@@ -63,18 +66,15 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             app.event_sender.send(JiraTicketListUpdate);
         }
         JiraTicketListUpdate => {
-            if let Err(e) = app.state.jira.jira_file.write_jira(&app.state.jira.tickets){
+            if let Err(e) = app.state.jira.jira_file.write_jira(&app.state.jira.tickets) {
                 let sender = app.event_sender.clone();
-                sender.send(SystemError(
-                    Error{
-                        title: "Unable to persist jira tickets".to_string(),
-                        originating_event: "JiraTicketListUpdate".to_string(),
-                        tool: "Jira".to_string(),
-                        description: e.to_string(),
-                    }
-                ))
+                sender.send(SystemError(Error {
+                    title: "Unable to persist jira tickets".to_string(),
+                    originating_event: "JiraTicketListUpdate".to_string(),
+                    tool: "Jira".to_string(),
+                    description: e.to_string(),
+                }))
             }
-
         }
         _ => {}
     }

@@ -1,10 +1,10 @@
 use crate::client::healthcheck::healthcheck_client;
 use crate::config::model::ServiceStatus;
 use crate::environment::Environment;
+use crate::error::model::ClientError;
 use crate::events::event::AppEvent::{GetCommitRefErrored, GetCommitRefOk};
 use crate::events::sender::EventSender;
 use reqwest::Client;
-use crate::error::model::ClientError;
 
 pub trait HealthcheckApi {
     fn get_commit_ref(

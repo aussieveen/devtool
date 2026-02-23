@@ -123,7 +123,7 @@ pub enum CommitRefStatus {
     CommitMissing,
 }
 
-impl Default for Service{
+impl Default for Service {
     fn default() -> Self {
         Self {
             staging: Commit::Empty,

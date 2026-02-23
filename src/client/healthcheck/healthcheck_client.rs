@@ -97,7 +97,7 @@ mod tests {
             .with_body("Not Found")
             .create_async()
             .await;
-        
+
         let client = Client::new();
         let result = get(client, server.url().as_str()).await;
 

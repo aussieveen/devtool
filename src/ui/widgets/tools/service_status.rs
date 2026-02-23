@@ -139,16 +139,12 @@ pub fn render(
         .table_state
         .selected()
         .and_then(|idx| state.services.get(idx))
+        && service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
     {
-        match service.commit_ref_status() {
-            CommitRefStatus::StagingPreprodMatch => {
-                service_action_text.push(Span::styled("[o]", key));
-                service_action_text.push(Span::styled(" to Open in browser  ", desc));
-                service_action_text.push(Span::styled("[c]", key));
-                service_action_text.push(Span::styled(" to Copy the url", desc));
-            }
-            _ => {}
-        }
+        service_action_text.push(Span::styled("[o]", key));
+        service_action_text.push(Span::styled(" to Open in browser  ", desc));
+        service_action_text.push(Span::styled("[c]", key));
+        service_action_text.push(Span::styled(" to Copy the url", desc));
     }
 
     frame.render_widget(
