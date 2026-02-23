@@ -2,7 +2,6 @@ use crate::client::healthcheck::models::Healthcheck;
 use crate::error::model::ClientError;
 use reqwest::header::{ACCEPT, USER_AGENT};
 use reqwest::{Client, StatusCode};
-use std::error::Error;
 use std::time::Duration;
 
 pub async fn get(client: Client, base_url: String) -> Result<Healthcheck, ClientError> {
@@ -26,7 +25,7 @@ pub async fn get(client: Client, base_url: String) -> Result<Healthcheck, Client
     match response.status() {
         StatusCode::OK => Ok(response.json::<Healthcheck>().await?),
         StatusCode::SERVICE_UNAVAILABLE => Err(ClientError::Api(format!("{}.", response.status()))),
-        status => Err(ClientError::Api(format!("{}", status.to_string()))),
+        status => Err(ClientError::Api(format!("{}", status))),
     }
 }
 

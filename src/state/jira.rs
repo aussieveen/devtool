@@ -1,5 +1,4 @@
 use crate::client::jira::models::TicketResponse;
-use crate::error::model::PersistenceError;
 use crate::events::event::Direction;
 use crate::persistence;
 use crate::persistence::persister::JiraFile;
