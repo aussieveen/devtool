@@ -124,7 +124,7 @@ impl App {
                 ServiceStatus => service_status::handle_event(self, OpenInBrowser),
                 Jira => jira::handle_event(self, OpenInBrowser),
                 _ => {}
-            }
+            },
 
             // service status events
             e @ ServiceStatusListMove(..)
