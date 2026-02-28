@@ -184,6 +184,7 @@ mod tests {
                     name: "In Progress".to_string(),
                 },
                 summary: "Testing".to_string(),
+                description: None
             },
         });
 
@@ -224,6 +225,7 @@ mod tests {
                     name: "completed".to_string(),
                 },
                 summary: "Title 1".to_string(),
+                description: None
             },
         });
 
@@ -249,6 +251,7 @@ mod tests {
                     name: "in progress".to_string(),
                 },
                 summary: "title 1".to_string(),
+                description: None
             },
         });
 
@@ -272,6 +275,7 @@ mod tests {
                     name: "ready for dev".to_string(),
                 },
                 summary: "title 3".to_string(),
+                description: None
             },
         });
 

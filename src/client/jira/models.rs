@@ -11,6 +11,7 @@ pub struct Fields {
     pub assignee: Option<Assignee>,
     pub status: Status,
     pub summary: String,
+    pub description: Option<Description>
 }
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
@@ -23,6 +24,25 @@ pub struct Assignee {
 #[serde(rename_all = "camelCase")]
 pub struct Status {
     pub name: String,
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+pub struct Description {
+    pub content: Vec<Content>
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+pub struct Content {
+    pub r#type: String,
+    pub text: Option<String>,
+    pub content: Option<Vec<Content>>,
+    pub marks: Option<Vec<Content>>,
+    pub attrs: Option<Attributes>
+}
+
+#[derive(Deserialize, Clone, Debug, PartialEq)]
+pub struct Attributes{
+    pub url: Option<String>
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -49,14 +69,60 @@ mod tests {
             "fields": {
                 "assignee": { "displayName": "Alice" },
                 "status": { "name": "Done" },
-                "summary": "A ticket"
+                "summary": "A ticket",
+                "description": {
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "this is some text",
+                                    "attrs": {
+                                        "url": "https://someurl.com"
+                                    },
+                                    "marks": [
+                                        {
+                                            "type": "strong"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
             }
         }"#;
         let ticket: TicketResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(ticket.key, "PROJ-123");
-        assert_eq!(ticket.fields.summary, "A ticket");
-        assert_eq!(ticket.fields.status.name, "Done");
-        assert_eq!(ticket.fields.assignee.unwrap().display_name, "Alice");
+        assert_eq!(ticket, TicketResponse{
+            key: "PROJ-123".to_string(),
+            fields: Fields {
+                assignee: Some(Assignee{ display_name: "Alice".to_string() }),
+                status: Status { name: "Done".to_string() },
+                summary: "A ticket".to_string(),
+                description: Some(Description{ content: vec![
+                    Content{
+                        r#type: "paragraph".to_string(),
+                        text: None,
+                        content: Some(vec![Content{
+                            r#type: "text".to_string(),
+                            text: Some("this is some text".to_string()),
+                            content: None,
+                            marks: Some(vec![Content{
+                                r#type: "strong".to_string(),
+                                text: None,
+                                content: None,
+                                marks: None,
+                                attrs: None,
+                            }]),
+                            attrs: Some(Attributes{ url: Some("https://someurl.com".to_string()) }),
+                        }]),
+                        marks: None,
+                        attrs: None,
+                    }
+                ] }),
+            },
+        });
     }
 
     #[test]
