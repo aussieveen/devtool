@@ -2,10 +2,12 @@ use crate::app::App;
 use crate::error::model::Error;
 use crate::events::event::AppEvent::{
     AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp,
-    RemoveTicket, RemoveTicketIdChar, SubmitTicketId, SystemError, TicketRetrieved,
+    OpenInBrowser, RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, SystemError,
+    TicketRetrieved,
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::state::app::AppFocus;
+use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
@@ -39,9 +41,18 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             }
         }
         TicketRetrieved(ticket_response) => {
-            app.state.jira.add_ticket(ticket_response);
-            app.state.jira.new_ticket_id = None;
-            app.event_sender.send(JiraTicketListUpdate);
+            if app.state.jira.tickets_pending_scan > 0 {
+                app.state.jira.update_ticket(ticket_response);
+                app.state.jira.tickets_pending_scan =
+                    app.state.jira.tickets_pending_scan.saturating_sub(1);
+                if app.state.jira.tickets_pending_scan == 0 {
+                    app.event_sender.send(JiraTicketListUpdate)
+                }
+            } else {
+                app.state.jira.add_ticket(ticket_response);
+                app.state.jira.new_ticket_id = None;
+                app.event_sender.send(JiraTicketListUpdate);
+            }
         }
         RemoveTicket => {
             app.state.jira.remove_ticket();
@@ -74,6 +85,41 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                     tool: "Jira".to_string(),
                     description: e.to_string(),
                 }))
+            }
+        }
+        ScanTickets => {
+            // If there are no tickets or a previous scan is still running
+            if app.state.jira.tickets.is_empty() || app.state.jira.tickets_pending_scan > 0 {
+                return;
+            }
+            if let Some(config) = app.config.jira.clone() {
+                app.state.jira.tickets_pending_scan = app.state.jira.tickets.len();
+                for t in app.state.jira.tickets.iter() {
+                    app.jira_api.fetch_ticket(
+                        t.id.clone(),
+                        config.clone(),
+                        app.event_sender.clone(),
+                    );
+                }
+            }
+        }
+        OpenInBrowser => {
+            if let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
+                && let Some(config) = app.config.jira.clone()
+            {
+                let link = format!(
+                    "{}/browse/{}",
+                    config.url, app.state.jira.tickets[jira_ticket_idx].id
+                );
+                if let Err(e) = open_link_in_browser(link.as_str()) {
+                    let sender = app.event_sender.clone();
+                    sender.send(SystemError(Error {
+                        title: "Fail to open in browser".to_string(),
+                        originating_event: "OpenInBrowser".to_string(),
+                        tool: "Jira".to_string(),
+                        description: e,
+                    }))
+                }
             }
         }
         _ => {}

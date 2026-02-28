@@ -70,6 +70,7 @@ impl App {
             loop {
                 interval.tick().await; // This should go first.
                 async_sender.send(ScanServices);
+                async_sender.send(ScanTickets);
             }
         });
 
@@ -119,11 +120,11 @@ impl App {
                 TokenGenerator => token_generator::handle_event(self, CopyToClipboard),
                 _ => {}
             },
-            OpenInBrowser => {
-                if self.state.current_tool == ServiceStatus {
-                    service_status::handle_event(self, OpenInBrowser)
-                }
-            }
+            OpenInBrowser => match self.state.current_tool {
+                ServiceStatus => service_status::handle_event(self, OpenInBrowser),
+                Jira => jira::handle_event(self, OpenInBrowser),
+                _ => {}
+            },
 
             // service status events
             e @ ServiceStatusListMove(..)
@@ -147,7 +148,8 @@ impl App {
             | e @ TicketRetrieved(..)
             | e @ RemoveTicket
             | e @ JiraTicketMove(..)
-            | e @ JiraTicketListUpdate => jira::handle_event(self, e),
+            | e @ JiraTicketListUpdate
+            | e @ ScanTickets => jira::handle_event(self, e),
         }
     }
 

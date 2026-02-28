@@ -13,7 +13,6 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let new_ticket_pop_up = state.new_ticket_popup;
     let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
 
-    // ── 1. Split into header row + grid ─────────────────────────────────────────────
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -77,6 +76,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     if selected_ticket.is_some() {
         action_text.push(Span::styled("[x]", key));
         action_text.push(Span::styled(" to remove ticket  ", desc));
+        action_text.push(Span::styled("[o]", key));
+        action_text.push(Span::styled(" to Open in browser  ", desc));
         action_text.push(Span::styled("[shift + ↑ ↓]", key));
         action_text.push(Span::styled(" to move tickets  ", desc));
     }

@@ -13,6 +13,7 @@ pub struct Jira {
     pub new_ticket_popup: bool,
     pub new_ticket_id: Option<String>,
     pub jira_file: JiraFile,
+    pub tickets_pending_scan: usize,
 }
 
 impl Jira {
@@ -31,6 +32,7 @@ impl Jira {
             new_ticket_popup: false,
             new_ticket_id: None,
             jira_file,
+            tickets_pending_scan: 0,
         }
     }
 
@@ -42,6 +44,7 @@ impl Jira {
             new_ticket_popup: false,
             new_ticket_id: None,
             jira_file,
+            tickets_pending_scan: 0,
         }
     }
 
@@ -60,23 +63,26 @@ impl Jira {
         }
     }
 
-    pub fn add_ticket(&mut self, ticket: TicketResponse) {
-        self.tickets.push(Ticket::new(
-            ticket.key,
-            ticket.fields.summary,
-            ticket.fields.status.name,
-            match ticket.fields.assignee {
-                Some(assignee) => assignee.display_name,
-                None => "Unassigned".to_string(),
-            },
-        ));
-        self.persist_tickets();
+    pub fn add_ticket(&mut self, ticket_response: TicketResponse) {
+        self.tickets
+            .push(self.ticket_response_to_ticket(ticket_response));
     }
 
     pub fn remove_ticket(&mut self) {
         if let Some(ticket_index) = self.list_state.selected() {
             self.tickets.remove(ticket_index);
-            self.persist_tickets()
+        }
+    }
+
+    pub fn update_ticket(&mut self, ticket_response: TicketResponse) {
+        let ticket = self.ticket_response_to_ticket(ticket_response);
+        // Exact match - No need to update
+        if self.tickets.contains(&ticket) {
+            return;
+        }
+
+        if let Some(t) = self.tickets.iter_mut().find(|t| t.id == ticket.id) {
+            *t = ticket;
         }
     }
 
@@ -90,14 +96,19 @@ impl Jira {
             let ticket = self.tickets.remove(ticket_index);
             self.tickets.insert(new_index, ticket);
             self.list_state.select(Some(new_index));
-            self.persist_tickets();
         }
     }
 
-    fn persist_tickets(&mut self) {
-        if let Err(e) = self.jira_file.write_jira(&self.tickets) {
-            log::error!("Failed to persist tickets: {}", e);
-        }
+    fn ticket_response_to_ticket(&self, ticket: TicketResponse) -> Ticket {
+        Ticket::new(
+            ticket.key,
+            ticket.fields.summary,
+            ticket.fields.status.name,
+            match ticket.fields.assignee {
+                Some(assignee) => assignee.display_name,
+                None => "Unassigned".to_string(),
+            },
+        )
     }
 }
 
@@ -150,6 +161,7 @@ mod tests {
             new_ticket_popup: false,
             new_ticket_id: None,
             jira_file: JiraFile::new_from_path(path),
+            tickets_pending_scan: 0,
         }
     }
 
@@ -196,6 +208,77 @@ mod tests {
     }
 
     #[test]
+    fn jira_update_ticket_updates_existing_ticket() {
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
+
+        jira.update_ticket(TicketResponse {
+            key: "1".to_string(),
+            fields: Fields {
+                assignee: Some(Assignee {
+                    display_name: "jane".to_string(),
+                }),
+                status: Status {
+                    name: "completed".to_string(),
+                },
+                summary: "Title 1".to_string(),
+            },
+        });
+
+        assert_eq!(jira.tickets[0].title, "Title 1");
+        assert_eq!(jira.tickets[0].status, "completed");
+        assert_eq!(jira.tickets[0].assignee, "jane");
+    }
+
+    #[test]
+    fn jira_update_ticket_does_not_update_if_ticket_has_not_changed() {
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
+
+        jira.update_ticket(TicketResponse {
+            key: "1".to_string(),
+            fields: Fields {
+                assignee: Some(Assignee {
+                    display_name: "john".to_string(),
+                }),
+                status: Status {
+                    name: "in progress".to_string(),
+                },
+                summary: "title 1".to_string(),
+            },
+        });
+
+        assert_tickets_have_not_changed(jira);
+    }
+
+    #[test]
+    fn jira_update_ticket_does_not_update_if_passed_unknown_ticket() {
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_file_path(&dir);
+
+        let mut jira = get_jira_with_path(file_path);
+
+        jira.update_ticket(TicketResponse {
+            key: "3".to_string(),
+            fields: Fields {
+                assignee: Some(Assignee {
+                    display_name: "john".to_string(),
+                }),
+                status: Status {
+                    name: "ready for dev".to_string(),
+                },
+                summary: "title 3".to_string(),
+            },
+        });
+
+        assert_tickets_have_not_changed(jira);
+    }
+
+    #[test]
     fn jira_add_char_to_ticket_id_adds_char() {
         let dir = TempDir::new().unwrap();
         let file_path = temp_file_path(&dir);
@@ -230,23 +313,7 @@ mod tests {
         jira.list_state.select(Some(0));
 
         jira.swap_tickets(Direction::Up);
-        assert_eq!(
-            jira.tickets,
-            vec![
-                Ticket {
-                    id: "1".to_string(),
-                    title: "title 1".to_string(),
-                    status: "in progress".to_string(),
-                    assignee: "john".to_string(),
-                },
-                Ticket {
-                    id: "2".to_string(),
-                    title: "title 2".to_string(),
-                    status: "complete".to_string(),
-                    assignee: "jane".to_string(),
-                }
-            ]
-        )
+        assert_tickets_have_not_changed(jira);
     }
 
     #[test]
@@ -258,23 +325,7 @@ mod tests {
         jira.list_state.select(Some(1));
 
         jira.swap_tickets(Direction::Down);
-        assert_eq!(
-            jira.tickets,
-            vec![
-                Ticket {
-                    id: "1".to_string(),
-                    title: "title 1".to_string(),
-                    status: "in progress".to_string(),
-                    assignee: "john".to_string(),
-                },
-                Ticket {
-                    id: "2".to_string(),
-                    title: "title 2".to_string(),
-                    status: "complete".to_string(),
-                    assignee: "jane".to_string(),
-                }
-            ]
-        )
+        assert_tickets_have_not_changed(jira);
     }
 
     #[test]
@@ -324,6 +375,26 @@ mod tests {
                     title: "title 1".to_string(),
                     status: "in progress".to_string(),
                     assignee: "john".to_string(),
+                }
+            ]
+        )
+    }
+
+    fn assert_tickets_have_not_changed(jira: Jira) {
+        assert_eq!(
+            jira.tickets,
+            vec![
+                Ticket {
+                    id: "1".to_string(),
+                    title: "title 1".to_string(),
+                    status: "in progress".to_string(),
+                    assignee: "john".to_string(),
+                },
+                Ticket {
+                    id: "2".to_string(),
+                    title: "title 2".to_string(),
+                    status: "complete".to_string(),
+                    assignee: "jane".to_string(),
                 }
             ]
         )

@@ -11,7 +11,7 @@ pub async fn get(
     username: &str,
     password: &str,
 ) -> Result<TicketResponse, ClientError> {
-    let url = format!("{}/issue/{}", base_url, ticket_id);
+    let url = format!("{}/rest/api/3/issue/{}", base_url, ticket_id);
     let request = client.get(url).basic_auth(username, Some(password));
 
     let response = request.send().await?;
@@ -49,7 +49,7 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/issue/TEST-123")
+            .mock("GET", "/rest/api/3/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(ticket_response)
@@ -83,7 +83,7 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/issue/TEST-123")
+            .mock("GET", "/rest/api/3/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(ticket_response)
@@ -115,7 +115,7 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/issue/TEST-123")
+            .mock("GET", "/rest/api/3/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(error)
@@ -143,7 +143,7 @@ mod tests {
         .to_string();
 
         let mock = server
-            .mock("GET", "/issue/TEST-123")
+            .mock("GET", "/rest/api/3/issue/TEST-123")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(error)
@@ -166,7 +166,7 @@ mod tests {
         let mut server = mockito::Server::new_async().await;
 
         let mock = server
-            .mock("GET", "/issue/TEST-123")
+            .mock("GET", "/rest/api/3/issue/TEST-123")
             .with_status(404)
             .with_header("content-type", "application/json")
             .with_body("Not Found")
