@@ -13,7 +13,6 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let new_ticket_pop_up = state.new_ticket_popup;
     let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
 
-    // ── 1. Split into header row + grid ─────────────────────────────────────────────
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([

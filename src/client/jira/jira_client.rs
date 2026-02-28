@@ -11,7 +11,7 @@ pub async fn get(
     username: &str,
     password: &str,
 ) -> Result<TicketResponse, ClientError> {
-    let url = format!("{}/issue/{}", base_url, ticket_id);
+    let url = format!("{}/rest/api/3/issue/{}", base_url, ticket_id);
     let request = client.get(url).basic_auth(username, Some(password));
 
     let response = request.send().await?;

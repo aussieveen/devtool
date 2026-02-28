@@ -70,6 +70,7 @@ impl App {
             loop {
                 interval.tick().await; // This should go first.
                 async_sender.send(ScanServices);
+                async_sender.send(ScanTickets);
             }
         });
 
@@ -147,7 +148,8 @@ impl App {
             | e @ TicketRetrieved(..)
             | e @ RemoveTicket
             | e @ JiraTicketMove(..)
-            | e @ JiraTicketListUpdate => jira::handle_event(self, e),
+            | e @ JiraTicketListUpdate
+            | e @ ScanTickets => jira::handle_event(self, e),
         }
     }
 

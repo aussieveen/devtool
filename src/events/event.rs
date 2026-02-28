@@ -56,6 +56,7 @@ pub enum AppEvent {
     JiraTicketMove(Direction), // Move selected ticket up and down list
     TicketRetrieved(TicketResponse),
     JiraTicketListUpdate,
+    ScanTickets,
 
     // Generic Events
     SetFocus(AppFocus),
