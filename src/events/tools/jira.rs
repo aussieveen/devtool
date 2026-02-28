@@ -2,10 +2,12 @@ use crate::app::App;
 use crate::error::model::Error;
 use crate::events::event::AppEvent::{
     AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp,
-    RemoveTicket, RemoveTicketIdChar, SubmitTicketId, SystemError, TicketRetrieved,ScanTickets
+    RemoveTicket, RemoveTicketIdChar, SubmitTicketId, SystemError, TicketRetrieved,ScanTickets,
+    OpenInBrowser
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::state::app::AppFocus;
+use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
 pub fn handle_event(app: &mut App, app_event: AppEvent) {
@@ -96,6 +98,21 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 }
             }
 
+        }
+        OpenInBrowser => {
+            if let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
+                && let Some(config) = app.config.jira.clone() {
+                let link = format!("{}/browse/{}", config.url, app.state.jira.tickets[jira_ticket_idx].id);
+                if let Err(e) = open_link_in_browser(link.as_str()){
+                    let sender = app.event_sender.clone();
+                    sender.send(SystemError(Error {
+                        title: "Fail to open in browser".to_string(),
+                        originating_event: "OpenInBrowser".to_string(),
+                        tool: "Jira".to_string(),
+                        description: e,
+                    }))
+                }
+            }
         }
         _ => {}
     }

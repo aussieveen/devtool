@@ -120,10 +120,10 @@ impl App {
                 TokenGenerator => token_generator::handle_event(self, CopyToClipboard),
                 _ => {}
             },
-            OpenInBrowser => {
-                if self.state.current_tool == ServiceStatus {
-                    service_status::handle_event(self, OpenInBrowser)
-                }
+            OpenInBrowser => match self.state.current_tool {
+                ServiceStatus => service_status::handle_event(self, OpenInBrowser),
+                Jira => jira::handle_event(self, OpenInBrowser),
+                _ => {}
             }
 
             // service status events
