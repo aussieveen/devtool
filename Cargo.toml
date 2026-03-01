@@ -23,6 +23,7 @@ strum_macros = "0.28.0"
 log = "0.4.29"
 serde_json = "1"
 thiserror = "2.0.18"
+tui-markdown = "0.3.7"
 
 [dev-dependencies]
 tempfile = "3"

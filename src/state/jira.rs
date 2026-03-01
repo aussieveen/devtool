@@ -1,4 +1,4 @@
-use crate::client::jira::models::TicketResponse;
+use crate::client::jira::models::{Description, TicketResponse};
 use crate::events::event::Direction;
 use crate::persistence;
 use crate::persistence::persister::JiraFile;
@@ -108,6 +108,7 @@ impl Jira {
                 Some(assignee) => assignee.display_name,
                 None => "Unassigned".to_string(),
             },
+            ticket.fields.description
         )
     }
 }
@@ -118,15 +119,23 @@ pub struct Ticket {
     pub title: String,
     pub status: String,
     pub assignee: String,
+    pub description: Option<Description>
 }
 
 impl Ticket {
-    pub fn new(id: String, title: String, status: String, assignee: String) -> Ticket {
+    pub fn new(
+        id: String,
+        title: String,
+        status: String,
+        assignee: String,
+        description: Option<Description>
+    ) -> Ticket {
         Self {
             id,
             title,
             status,
             assignee,
+            description
         }
     }
 }
@@ -149,12 +158,14 @@ mod tests {
                     title: "title 1".to_string(),
                     status: "in progress".to_string(),
                     assignee: "john".to_string(),
+                    description: None
                 },
                 Ticket {
                     id: "2".to_string(),
                     title: "title 2".to_string(),
                     status: "complete".to_string(),
                     assignee: "jane".to_string(),
+                    description: None
                 },
             ],
             list_state: Default::default(),
@@ -347,12 +358,14 @@ mod tests {
                     title: "title 2".to_string(),
                     status: "complete".to_string(),
                     assignee: "jane".to_string(),
+                    description: None
                 },
                 Ticket {
                     id: "1".to_string(),
                     title: "title 1".to_string(),
                     status: "in progress".to_string(),
                     assignee: "john".to_string(),
+                    description: None
                 }
             ]
         )
@@ -373,12 +386,14 @@ mod tests {
                     title: "title 2".to_string(),
                     status: "complete".to_string(),
                     assignee: "jane".to_string(),
+                    description: None
                 },
                 Ticket {
                     id: "1".to_string(),
                     title: "title 1".to_string(),
                     status: "in progress".to_string(),
                     assignee: "john".to_string(),
+                    description: None
                 }
             ]
         )
@@ -393,12 +408,14 @@ mod tests {
                     title: "title 1".to_string(),
                     status: "in progress".to_string(),
                     assignee: "john".to_string(),
+                    description: None
                 },
                 Ticket {
                     id: "2".to_string(),
                     title: "title 2".to_string(),
                     status: "complete".to_string(),
                     assignee: "jane".to_string(),
+                    description: None
                 }
             ]
         )

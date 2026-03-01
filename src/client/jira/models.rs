@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Clone, Debug, PartialEq)]
 pub struct TicketResponse {
@@ -26,12 +26,12 @@ pub struct Status {
     pub name: String,
 }
 
-#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Description {
     pub content: Vec<Content>
 }
 
-#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Content {
     pub r#type: String,
     pub text: Option<String>,
@@ -40,12 +40,12 @@ pub struct Content {
     pub attrs: Option<Attributes>
 }
 
-#[derive(Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Attributes{
     pub url: Option<String>
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ErrorResponse {
     pub error_messages: Vec<String>,

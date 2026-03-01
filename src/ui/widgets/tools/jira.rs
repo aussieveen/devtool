@@ -7,17 +7,28 @@ use ratatui::prelude::Span;
 use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
+use crate::utils::adf_parser::parse;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
-    let selected_ticket = state.list_state.selected();
+    let selected_ticket_idx = state.list_state.selected();
     let new_ticket_pop_up = state.new_ticket_popup;
     let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
+
+    let description_height = match state.list_state.selected() {
+        Some(i) if state.tickets[i].description.is_some() => 7,
+        _ => 0
+    };
+    let action_height = 2;
+    let max_list_height = area.height.saturating_sub(description_height + action_height);
+    let list_height = ((state.tickets.len() * 3) as u16).min(max_list_height);
 
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),    // tickets
-            Constraint::Length(2), // additional actions
+            Constraint::Length(list_height),        // tickets
+            Constraint::Length(description_height), // description
+            Constraint::Min(0),                     // Filler - absorbing space to push actions to bottom
+            Constraint::Length(action_height),      // additional actions
         ])
         .split(area);
 
@@ -53,7 +64,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
                 ),
             ]));
             lines.push(Line::from(""));
-            ListItem::from(lines).style(list_style(selected_ticket.is_none_or(|i| i == index)))
+            ListItem::from(lines).style(list_style(selected_ticket_idx.is_none_or(|i| i == index)))
         })
         .collect();
 
@@ -63,7 +74,17 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
         &mut state.list_state,
     );
 
-    let action_area = vertical[1];
+    let description_area = vertical[1];
+    if let Some(ticket_idx) = selected_ticket_idx && let Some(description) = state.tickets[ticket_idx].clone().description {
+        let lines = [vec![Line::from("Description:")], parse(description, Some(description_height.into()))].concat();
+        frame.render_widget(
+            Paragraph::new(lines).wrap(Wrap { trim: false }),
+            description_area
+        );
+    }
+
+
+    let action_area = vertical[3];
 
     let key = key_style();
     let desc = key_desc_style();
@@ -73,7 +94,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
         Span::styled(" to add ticket  ", desc),
     ];
 
-    if selected_ticket.is_some() {
+    if selected_ticket_idx.is_some() {
         action_text.push(Span::styled("[x]", key));
         action_text.push(Span::styled(" to remove ticket  ", desc));
         action_text.push(Span::styled("[o]", key));

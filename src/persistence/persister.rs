@@ -87,6 +87,7 @@ mod tests {
             "Test ticket".to_string(),
             "In Progress".to_string(),
             "Alice".to_string(),
+            None
         )
     }
 
@@ -188,6 +189,7 @@ mod tests {
             title: String::from("OVERWRITTEN"),
             assignee: String::from("John"),
             status: String::from("COMPLETED"),
+            description: None
         };
 
         JiraFile::new_from_path(path.clone())
@@ -213,6 +215,7 @@ mod tests {
             title: "Second Ticket".to_string(),
             status: "Breaking prod".to_string(),
             assignee: "Not me".to_string(),
+            description: None
         };
         JiraFile::new_from_path(path.clone())
             .write_jira(&[sample_ticket(), second_ticket])
