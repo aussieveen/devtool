@@ -95,7 +95,7 @@ pub fn render(
                 Cell::from(preprod_text).style(Style::default().fg(preprod_color)),
                 Cell::from(prod_text).style(Style::default().fg(prod_color)),
             ])
-                .style(row_style(is_active))
+            .style(row_style(is_active))
         })
         .collect();
 
@@ -108,8 +108,8 @@ pub fn render(
             Constraint::Percentage(24),
         ],
     )
-        .block(Block::default())
-        .header(headers);
+    .block(Block::default())
+    .header(headers);
 
     frame.render_stateful_widget(table, table_area, &mut state.table_state);
 
