@@ -27,6 +27,12 @@ impl ImmediateAuthZeroApi {
     }
 }
 
+impl Default for ImmediateAuthZeroApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AuthZeroApi for ImmediateAuthZeroApi {
     fn fetch_token(
         &self,

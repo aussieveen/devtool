@@ -3,13 +3,13 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Clone, PartialEq)]
 pub(crate) struct Config {
-    pub servicestatus: Vec<ServiceStatus>,
+    pub servicestatus: Vec<ServiceStatusConfig>,
     pub tokengenerator: TokenGenerator,
     pub jira: Option<JiraConfig>,
 }
 
 #[derive(Deserialize, Clone, PartialEq)]
-pub(crate) struct ServiceStatus {
+pub(crate) struct ServiceStatusConfig {
     pub name: String,
     pub staging: String,
     pub preproduction: String,
@@ -17,7 +17,7 @@ pub(crate) struct ServiceStatus {
     pub repo: String,
 }
 
-impl ServiceStatus {
+impl ServiceStatusConfig {
     pub fn get_from_env(&self, env: &Environment) -> &str {
         match env {
             Environment::Local => &self.staging,

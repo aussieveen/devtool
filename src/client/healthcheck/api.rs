@@ -1,5 +1,5 @@
 use crate::client::healthcheck::healthcheck_client;
-use crate::config::model::ServiceStatus;
+use crate::config::model::ServiceStatusConfig;
 use crate::environment::Environment;
 use crate::error::model::ClientError;
 use crate::events::event::AppEvent::{GetCommitRefErrored, GetCommitRefOk};
@@ -11,7 +11,7 @@ pub trait HealthcheckApi {
         &self,
         service_idx: usize,
         env: Environment,
-        config: Vec<ServiceStatus>,
+        config: Vec<ServiceStatusConfig>,
         sender: EventSender,
     );
 }
@@ -28,12 +28,18 @@ impl ImmediateHealthcheckApi {
     }
 }
 
+impl Default for ImmediateHealthcheckApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HealthcheckApi for ImmediateHealthcheckApi {
     fn get_commit_ref(
         &self,
         service_idx: usize,
         env: Environment,
-        config: Vec<ServiceStatus>,
+        config: Vec<ServiceStatusConfig>,
         sender: EventSender,
     ) {
         let client = self.client.clone();
@@ -54,7 +60,7 @@ async fn get_commit_ref(
     client: Client,
     service_idx: usize,
     env: &Environment,
-    config: Vec<ServiceStatus>,
+    config: Vec<ServiceStatusConfig>,
 ) -> Result<String, ClientError> {
     let healthcheck_response =
         healthcheck_client::get(client, config[service_idx].get_from_env(env)).await?;

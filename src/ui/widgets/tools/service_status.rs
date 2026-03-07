@@ -1,4 +1,4 @@
-use crate::config::model::ServiceStatus as ServiceStatusConfig;
+use crate::config::model::ServiceStatusConfig;
 use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
 use crate::ui::styles::{key_desc_style, key_style, row_style};
 use ratatui::Frame;
@@ -29,20 +29,23 @@ pub fn render(
 
     let selected_service_idx = state.table_state.selected();
 
+    let table_length = (state.services.len() + 2) as u16; // Service count + header
+
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Min(0),    // table
-            Constraint::Min(0),    // request errors
-            Constraint::Length(2), // color legend
-            Constraint::Length(2), // additional actions
+            Constraint::Length(table_length), // table
+            Constraint::Length(6),            // request errors
+            Constraint::Min(0),               // filler
+            Constraint::Length(2),            // color legend
+            Constraint::Length(2),            // additional actions
         ])
         .split(area);
 
     let table_area = vertical[0];
     let error_area = vertical[1];
-    let legend_area = vertical[2];
-    let action_area = vertical[3];
+    let legend_area = vertical[3];
+    let action_area = vertical[4];
 
     let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
     let rows: Vec<Row> = state

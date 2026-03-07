@@ -104,11 +104,8 @@ fn get_link_url(app: &App) -> Option<String> {
     if !app.state.service_status.has_link() {
         return None;
     }
-    if let Some(service_idx) = app.state.service_status.get_selected_service_idx() {
-        return app
-            .state
-            .service_status
-            .get_link(&app.config.servicestatus[service_idx].repo);
-    }
-    None
+    let service_idx = app.state.service_status.get_selected_service_idx()?;
+    app.state
+        .service_status
+        .get_link(&app.config.servicestatus[service_idx].repo)
 }

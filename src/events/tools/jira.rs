@@ -56,19 +56,17 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         RemoveTicket => {
             app.state.jira.remove_ticket();
-            let max_select = match app.state.jira.tickets.len() {
-                0 | 1 => 0,
-                value => value.saturating_sub(1),
-            };
-
-            if let Some(ticket_idx) = app.state.jira.list_state.selected()
-                && ticket_idx > max_select
-            {
-                update_list_state::update_list(
-                    &mut app.state.jira.list_state,
-                    Direction::Up,
-                    app.state.jira.tickets.len(),
-                )
+            if app.state.jira.tickets.is_empty() {
+                app.state.jira.list_state.select(None);
+            } else if let Some(ticket_idx) = app.state.jira.list_state.selected() {
+                let max_select = app.state.jira.tickets.len().saturating_sub(1);
+                if ticket_idx > max_select {
+                    update_list_state::update_list(
+                        &mut app.state.jira.list_state,
+                        Direction::Up,
+                        app.state.jira.tickets.len(),
+                    )
+                }
             }
             app.event_sender.send(JiraTicketListUpdate);
         }
