@@ -34,11 +34,11 @@ pub fn render(
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(table_length),    // table
-            Constraint::Length(6), // request errors
-            Constraint::Min(0),   // filler
-            Constraint::Length(2), // color legend
-            Constraint::Length(2), // additional actions
+            Constraint::Length(table_length), // table
+            Constraint::Length(6),            // request errors
+            Constraint::Min(0),               // filler
+            Constraint::Length(2),            // color legend
+            Constraint::Length(2),            // additional actions
         ])
         .split(area);
 

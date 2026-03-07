@@ -1,4 +1,5 @@
-use crate::client::jira::models::{Description, TicketResponse};
+use crate::client::jira::adf::description::Description;
+use crate::client::jira::models::TicketResponse;
 use crate::events::event::Direction;
 use crate::persistence;
 use crate::persistence::persister::JiraFile;
@@ -108,7 +109,7 @@ impl Jira {
                 Some(assignee) => assignee.display_name,
                 None => "Unassigned".to_string(),
             },
-            ticket.fields.description
+            ticket.fields.description,
         )
     }
 }
@@ -119,7 +120,7 @@ pub struct Ticket {
     pub title: String,
     pub status: String,
     pub assignee: String,
-    pub description: Option<Description>
+    pub description: Option<Description>,
 }
 
 impl Ticket {
@@ -128,14 +129,14 @@ impl Ticket {
         title: String,
         status: String,
         assignee: String,
-        description: Option<Description>
+        description: Option<Description>,
     ) -> Ticket {
         Self {
             id,
             title,
             status,
             assignee,
-            description
+            description,
         }
     }
 }
@@ -158,14 +159,14 @@ mod tests {
                     title: "title 1".to_string(),
                     status: "in progress".to_string(),
                     assignee: "john".to_string(),
-                    description: None
+                    description: None,
                 },
                 Ticket {
                     id: "2".to_string(),
                     title: "title 2".to_string(),
                     status: "complete".to_string(),
                     assignee: "jane".to_string(),
-                    description: None
+                    description: None,
                 },
             ],
             list_state: Default::default(),
@@ -195,7 +196,7 @@ mod tests {
                     name: "In Progress".to_string(),
                 },
                 summary: "Testing".to_string(),
-                description: None
+                description: None,
             },
         });
 
@@ -236,7 +237,7 @@ mod tests {
                     name: "completed".to_string(),
                 },
                 summary: "Title 1".to_string(),
-                description: None
+                description: None,
             },
         });
 
@@ -262,7 +263,7 @@ mod tests {
                     name: "in progress".to_string(),
                 },
                 summary: "title 1".to_string(),
-                description: None
+                description: None,
             },
         });
 
@@ -286,7 +287,7 @@ mod tests {
                     name: "ready for dev".to_string(),
                 },
                 summary: "title 3".to_string(),
-                description: None
+                description: None,
             },
         });
 

@@ -38,7 +38,7 @@ impl Default for PersistenceFile {
     fn default() -> PersistenceFile {
         let home_dir = dirs::home_dir().expect("Could not find home directory");
         PersistenceFile {
-            file_path: home_dir.join(".devtool").join("persistence.yaml"),
+            file_path: home_dir.join(".devtool").join("persistence_clone.yaml"),
         }
     }
 }
@@ -87,7 +87,7 @@ mod tests {
             "Test ticket".to_string(),
             "In Progress".to_string(),
             "Alice".to_string(),
-            None
+            None,
         )
     }
 
@@ -189,7 +189,7 @@ mod tests {
             title: String::from("OVERWRITTEN"),
             assignee: String::from("John"),
             status: String::from("COMPLETED"),
-            description: None
+            description: None,
         };
 
         JiraFile::new_from_path(path.clone())
@@ -215,7 +215,7 @@ mod tests {
             title: "Second Ticket".to_string(),
             status: "Breaking prod".to_string(),
             assignee: "Not me".to_string(),
-            description: None
+            description: None,
         };
         JiraFile::new_from_path(path.clone())
             .write_jira(&[sample_ticket(), second_ticket])

@@ -1,3 +1,4 @@
+use crate::client::jira::adf::traits::ToMarkdown;
 use crate::state::jira::Jira;
 use crate::ui::styles::{key_desc_style, key_style, list_style};
 use crate::utils::popup::popup_area;
@@ -7,7 +8,6 @@ use ratatui::prelude::Span;
 use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
-use crate::utils::adf_parser::parse;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let selected_ticket_idx = state.list_state.selected();
@@ -16,19 +16,21 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
 
     let description_height = match state.list_state.selected() {
         Some(i) if state.tickets[i].description.is_some() => 7,
-        _ => 0
+        _ => 0,
     };
     let action_height = 2;
-    let max_list_height = area.height.saturating_sub(description_height + action_height);
+    let max_list_height = area
+        .height
+        .saturating_sub(description_height + action_height);
     let list_height = ((state.tickets.len() * 3) as u16).min(max_list_height);
 
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(list_height),        // tickets
-            Constraint::Length(description_height), // description
-            Constraint::Min(0),                     // Filler - absorbing space to push actions to bottom
-            Constraint::Length(action_height),      // additional actions
+            Constraint::Length(description_height), // adf
+            Constraint::Min(0), // Filler - absorbing space to push actions to bottom
+            Constraint::Length(action_height), // additional actions
         ])
         .split(area);
 
@@ -75,14 +77,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     );
 
     let description_area = vertical[1];
-    if let Some(ticket_idx) = selected_ticket_idx && let Some(description) = state.tickets[ticket_idx].clone().description {
-        let lines = [vec![Line::from("Description:")], parse(description, Some(description_height.into()))].concat();
+    if let Some(ticket_idx) = selected_ticket_idx
+        && let Some(description) = state.tickets[ticket_idx].clone().description
+    {
+        let md = format!(
+            "Description:  \n{}",
+            tui_markdown::from_str(&description.to_markdown())
+        );
         frame.render_widget(
-            Paragraph::new(lines).wrap(Wrap { trim: false }),
-            description_area
+            Paragraph::new(md).wrap(Wrap { trim: false }),
+            description_area,
         );
     }
-
 
     let action_area = vertical[3];
 
