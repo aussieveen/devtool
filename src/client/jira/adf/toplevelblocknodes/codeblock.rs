@@ -32,8 +32,6 @@ impl ToMarkdown for CodeBlock {
 mod tests {
     use super::*;
 
-    // NOTE: missing newline after opening fence (bug 6).
-    // Should produce "```rust\ncode\n```" but currently produces "```rustcode\n```".
     #[test]
     fn test_with_language_and_content() {
         let block = CodeBlock {
