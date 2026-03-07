@@ -22,3 +22,28 @@ impl ToMarkdown for Date {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_timestamp() {
+        let date = Date { attrs: Attributes { timestamp: "0".to_string() } };
+        assert_eq!(date.to_markdown(), "Thu, 1 Jan 1970 00:00:00 +0000");
+    }
+
+    #[test]
+    fn test_out_of_range_timestamp_falls_back_to_raw() {
+        let ts = i64::MAX.to_string();
+        let date = Date { attrs: Attributes { timestamp: ts.clone() } };
+        assert_eq!(date.to_markdown(), ts);
+    }
+
+    #[test]
+    fn test_unparseable_string_uses_epoch() {
+        // Non-numeric strings parse to 0 (unwrap_or_default), showing epoch date
+        let date = Date { attrs: Attributes { timestamp: "not-a-number".to_string() } };
+        assert_eq!(date.to_markdown(), "Thu, 1 Jan 1970 00:00:00 +0000");
+    }
+}

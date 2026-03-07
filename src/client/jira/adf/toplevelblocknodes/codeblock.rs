@@ -18,11 +18,46 @@ impl ToMarkdown for CodeBlock {
     fn to_markdown(&self) -> String {
         let mut md = format!("```{}", self.attrs.language);
         if let Some(v) = &self.content {
+            md.push_str("\n");
             for node in v {
                 md.push_str(node.to_markdown().as_str());
             }
         }
         md.push_str("\n```");
         md
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // NOTE: missing newline after opening fence (bug 6).
+    // Should produce "```rust\ncode\n```" but currently produces "```rustcode\n```".
+    #[test]
+    fn test_with_language_and_content() {
+        let block = CodeBlock {
+            attrs: Attributes { language: "rust".to_string() },
+            content: Some(vec![Text { text: "fn main() {}".to_string(), marks: None }]),
+        };
+        assert_eq!(block.to_markdown(), "```rust\nfn main() {}\n```");
+    }
+
+    #[test]
+    fn test_no_content() {
+        let block = CodeBlock {
+            attrs: Attributes { language: "".to_string() },
+            content: None,
+        };
+        assert_eq!(block.to_markdown(), "```\n```");
+    }
+
+    #[test]
+    fn test_no_language() {
+        let block = CodeBlock {
+            attrs: Attributes { language: "".to_string() },
+            content: Some(vec![Text { text: "x = 1".to_string(), marks: None }]),
+        };
+        assert_eq!(block.to_markdown(), "```\nx = 1\n```");
     }
 }

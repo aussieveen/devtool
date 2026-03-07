@@ -17,3 +17,14 @@ impl ToMarkdown for Status {
         self.attrs.text.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_markdown() {
+        let status = Status { attrs: Attributes { text: "In Progress".to_string() } };
+        assert_eq!(status.to_markdown(), "In Progress");
+    }
+}

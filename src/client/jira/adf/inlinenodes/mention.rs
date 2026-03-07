@@ -17,3 +17,14 @@ impl ToMarkdown for Mention {
         self.attrs.text.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_markdown() {
+        let mention = Mention { attrs: Attributes { text: "@john.doe".to_string() } };
+        assert_eq!(mention.to_markdown(), "@john.doe");
+    }
+}

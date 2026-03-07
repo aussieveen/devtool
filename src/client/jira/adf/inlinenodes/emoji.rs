@@ -17,3 +17,14 @@ impl ToMarkdown for Emoji {
         self.attrs.text.clone()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_markdown() {
+        let emoji = Emoji { attrs: Attributes { text: "😀".to_string() } };
+        assert_eq!(emoji.to_markdown(), "😀");
+    }
+}

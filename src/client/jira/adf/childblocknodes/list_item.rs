@@ -18,3 +18,30 @@ impl ToMarkdown for ListItem {
         md
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::client::jira::adf::inlinenodes::text::Text;
+    use crate::client::jira::adf::nodes::InlineNode;
+    use crate::client::jira::adf::toplevelblocknodes::paragraph::Paragraph;
+
+    #[test]
+    fn test_single_paragraph() {
+        let item = ListItem {
+            content: vec![Paragraph {
+                content: Some(vec![InlineNode::Text(Text {
+                    text: "item text".to_string(),
+                    marks: None,
+                })]),
+            }],
+        };
+        assert_eq!(item.to_markdown(), "item text\n");
+    }
+
+    #[test]
+    fn test_empty_paragraph() {
+        let item = ListItem { content: vec![Paragraph { content: None }] };
+        assert_eq!(item.to_markdown(), "\n");
+    }
+}

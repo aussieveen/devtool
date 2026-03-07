@@ -69,3 +69,32 @@ impl ToMarkdown for InlineNode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::client::jira::adf::inlinenodes::text::Text;
+    use crate::client::jira::adf::toplevelblocknodes::paragraph::Paragraph;
+
+    #[test]
+    fn test_rule_renders_hr() {
+        assert_eq!(TopLevelBlockNode::Rule.to_markdown(), "---\n\n");
+    }
+
+    #[test]
+    fn test_top_level_node_appends_double_newline() {
+        let node = TopLevelBlockNode::Paragraph(Paragraph { content: None });
+        assert_eq!(node.to_markdown(), "\n\n");
+    }
+
+    #[test]
+    fn test_hard_break() {
+        assert_eq!(InlineNode::HardBreak.to_markdown(), "  \n");
+    }
+
+    #[test]
+    fn test_inline_text_delegates() {
+        let node = InlineNode::Text(Text { text: "hello".to_string(), marks: None });
+        assert_eq!(node.to_markdown(), "hello");
+    }
+}

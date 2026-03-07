@@ -21,3 +21,26 @@ impl Subsup {
         symbol.to_string()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sub_symbol() {
+        let subsup = Subsup { attrs: Attributes { r#type: "sub".to_string() } };
+        assert_eq!(subsup.get_symbol(), "^");
+    }
+
+    #[test]
+    fn test_sup_symbol() {
+        let subsup = Subsup { attrs: Attributes { r#type: "sup".to_string() } };
+        assert_eq!(subsup.get_symbol(), "~");
+    }
+
+    #[test]
+    fn test_unknown_symbol() {
+        let subsup = Subsup { attrs: Attributes { r#type: "other".to_string() } };
+        assert_eq!(subsup.get_symbol(), "");
+    }
+}

@@ -17,3 +17,14 @@ impl Apply for Link {
         format!("{}({})", string, self.attrs.href)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_apply() {
+        let link = Link { attrs: Attributes { href: "https://example.com".to_string() } };
+        assert_eq!(link.apply("click here"), "click here(https://example.com)");
+    }
+}

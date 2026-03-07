@@ -17,3 +17,14 @@ impl ToMarkdown for InlineCard {
         String::from(&self.attrs.url)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_markdown() {
+        let card = InlineCard { attrs: Attributes { url: "https://example.com".to_string() } };
+        assert_eq!(card.to_markdown(), "https://example.com");
+    }
+}
