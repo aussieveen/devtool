@@ -10,7 +10,15 @@ pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
         return pipe_to("pbcopy", &[], text);
     }
 
-    Ok(())
+    if which::which("xclip").is_ok() {
+        return pipe_to("xclip", &["-selection", "clipboard"], text);
+    }
+
+    if which::which("xsel").is_ok() {
+        return pipe_to("xsel", &["--clipboard", "--input"], text);
+    }
+
+    Err("No clipboard tool found. Install wl-copy (Wayland), xclip, or xsel (X11).".to_string())
 }
 
 fn pipe_to(cmd: &str, args: &[&str], text: &str) -> Result<(), String> {

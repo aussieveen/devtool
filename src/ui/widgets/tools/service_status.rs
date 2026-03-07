@@ -1,4 +1,4 @@
-use crate::config::model::ServiceStatus as ServiceStatusConfig;
+use crate::config::model::ServiceStatusConfig;
 use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
 use crate::ui::styles::{key_desc_style, key_style, row_style};
 use ratatui::Frame;

@@ -29,13 +29,13 @@ impl ConfigLoader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::model::{Auth0Config, ServiceStatus};
+    use crate::config::model::{Auth0Config, ServiceStatusConfig};
     use crate::environment::Environment;
     use tempfile::TempDir;
 
     #[test]
     fn service_status_get_from_env() {
-        let status = ServiceStatus {
+        let status = ServiceStatusConfig {
             name: "test_service_status".to_string(),
             staging: "http://staging.test.com".to_string(),
             preproduction: "http://preproduction.test.com".to_string(),

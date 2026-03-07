@@ -7,7 +7,7 @@ pub struct TokenResponse {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct ErrorResponse {
-    pub error: i16,
+    pub error: u16,
     pub error_description: String,
 }
 

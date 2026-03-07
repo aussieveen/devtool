@@ -22,7 +22,7 @@ pub fn render(
         .constraints([Constraint::Min(0), Constraint::Length(2)])
         .split(area);
 
-    let inner_horizonal = Layout::default()
+    let inner_horizontal = Layout::default()
         .spacing(1)
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -44,7 +44,7 @@ pub fn render(
             .title_alignment(Alignment::Center),
     );
 
-    frame.render_stateful_widget(services, inner_horizonal[0], &mut state.service_list_state);
+    frame.render_stateful_widget(services, inner_horizontal[0], &mut state.service_list_state);
 
     let (service_idx, _env_idx) = state.get_selected_service_env();
 
@@ -76,7 +76,7 @@ pub fn render(
             .title_alignment(Alignment::Center),
     );
 
-    frame.render_stateful_widget(environments, inner_horizonal[1], &mut state.env_list_state);
+    frame.render_stateful_widget(environments, inner_horizontal[1], &mut state.env_list_state);
 
     let key = key_style();
     let desc = key_desc_style();

@@ -22,6 +22,12 @@ impl ImmediateJiraApi {
     }
 }
 
+impl Default for ImmediateJiraApi {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JiraApi for ImmediateJiraApi {
     fn fetch_ticket(&self, ticket_id: String, jira_config: JiraConfig, sender: EventSender) {
         let client = self.client.clone();
