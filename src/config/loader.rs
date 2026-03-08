@@ -22,7 +22,7 @@ impl ConfigLoader {
 
     pub fn read_config(self) -> Result<Config, ConfigError> {
         let config = fs::read_to_string(&self.file_path)?;
-        Ok(serde_yaml::from_str(config.as_str())?)
+        Ok(serde_yaml::from_str::<Config>(config.as_str())?.normalize())
     }
 }
 
@@ -123,12 +123,12 @@ jira:
         let config = config_loader.read_config().unwrap();
         let servicestatus = &config.servicestatus[0];
         assert_eq!(servicestatus.name, "My Api");
-        assert_eq!(servicestatus.staging, "https://myapi.staging.com/");
-        assert_eq!(servicestatus.preproduction, "https://myapi.preprod.com/");
-        assert_eq!(servicestatus.production, "https://myapi.prod.com/");
-        assert_eq!(servicestatus.repo, "https://github.com/myapi/");
+        assert_eq!(servicestatus.staging, "https://myapi.staging.com");
+        assert_eq!(servicestatus.preproduction, "https://myapi.preprod.com");
+        assert_eq!(servicestatus.production, "https://myapi.prod.com");
+        assert_eq!(servicestatus.repo, "https://github.com/myapi");
 
-        let tokengen = &config.tokengenerator;
+        let tokengen = config.tokengenerator;
         assert_eq!(tokengen.auth0.local, "local_auth0");
         assert_eq!(tokengen.auth0.staging, "staging_auth0");
         assert_eq!(tokengen.auth0.preproduction, "preproduction_auth0");
