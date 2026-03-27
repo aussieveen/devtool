@@ -8,6 +8,35 @@ pub(crate) struct Config {
     pub jira: Option<JiraConfig>,
 }
 
+impl Config {
+    pub fn normalize(mut self) -> Self {
+        for service in &mut self.servicestatus {
+            service.staging = Self::strip_trailing_slash(&service.staging);
+            service.preproduction = Self::strip_trailing_slash(&service.preproduction);
+            service.production = Self::strip_trailing_slash(&service.production);
+            service.repo = Self::strip_trailing_slash(&service.repo);
+        }
+
+        self.tokengenerator.auth0.local =
+            Self::strip_trailing_slash(&self.tokengenerator.auth0.local);
+        self.tokengenerator.auth0.staging =
+            Self::strip_trailing_slash(&self.tokengenerator.auth0.staging);
+        self.tokengenerator.auth0.preproduction =
+            Self::strip_trailing_slash(&self.tokengenerator.auth0.preproduction);
+        self.tokengenerator.auth0.production =
+            Self::strip_trailing_slash(&self.tokengenerator.auth0.production);
+
+        if let Some(ref mut jira) = self.jira {
+            jira.url = Self::strip_trailing_slash(&jira.url);
+        }
+        self
+    }
+
+    fn strip_trailing_slash(s: &str) -> String {
+        s.trim_end_matches('/').to_string()
+    }
+}
+
 #[derive(Deserialize, Clone, PartialEq)]
 pub(crate) struct ServiceStatusConfig {
     pub name: String,
