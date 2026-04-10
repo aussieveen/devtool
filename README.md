@@ -29,12 +29,12 @@ The **footer** is the key legend. It updates contextually based on what is focus
 │ [1] Tools                │ Service Status                                               │
 │                          │                                                              │
 │ ▶ Service Status         │  Service            Staging      Preproduction   Production  │
-│   Token Generator        │  ─────────────────────────────────────────────────────────  │
+│   Token Generator        │  ─────────────────────────────────────────────────────────   │
 │   Jira Tickets           │  ▍  api-gateway     a1b2c3d      a1b2c3d         e4f5g6h     │
 │                          │  ▍  auth-service    9x8y7z6      1a2b3c4         1a2b3c4     │
 │ [2] Config               │  ▍  user-service    …            …               …           │
 │   ☑ Service Status       │                                                              │
-│   ☐ Token Generator      │  ▍ Up to date   ▍ New version in pipeline                   │
+│   ☐ Token Generator      │  ▍ Up to date   ▍ New version in pipeline                    │
 │                          │  ▍ Pending production deployment   ▍ Requires maintenance    │
 └──────────────────────────┴──────────────────────────────────────────────────────────────┘
  ──────────────────────────────────────────────────────────────────────────────────────────
