@@ -12,7 +12,7 @@ use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    Error, Global, List, Editing, TokenGen, ToolConfigEditing, ToolIgnore,
+    Editing, Error, Global, List, TokenGen, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
@@ -174,10 +174,10 @@ impl App {
             }
             OpenToolConfig(_) => {
                 // Use the config editor's currently selected tool rather than the event payload
-                if let Some(idx) = self.state.config_editor.list_state.selected() {
-                    if let Some(item) = self.state.config_editor.items.get(idx) {
-                        self.state.focus = AppFocus::ToolConfig(item.tool);
-                    }
+                if let Some(idx) = self.state.config_editor.list_state.selected()
+                    && let Some(item) = self.state.config_editor.items.get(idx)
+                {
+                    self.state.focus = AppFocus::ToolConfig(item.tool);
                 }
             }
             CloseToolConfig => {
@@ -236,12 +236,10 @@ impl App {
                     state.select(None);
                 } else {
                     match direction {
-                        crate::events::event::Direction::Up => {
-                            match state.selected() {
-                                None | Some(0) => state.select(None),
-                                _ => state.select_previous(),
-                            }
-                        }
+                        crate::events::event::Direction::Up => match state.selected() {
+                            None | Some(0) => state.select(None),
+                            _ => state.select_previous(),
+                        },
                         crate::events::event::Direction::Down => {
                             let next = state.selected().map(|i| i + 1).unwrap_or(0);
                             state.select(Some(next.min(len - 1)));
@@ -253,12 +251,16 @@ impl App {
                 editor.open_form();
             }
             OpenEditService => {
-                if let Some(idx) = self.state.service_status_config_editor.table_state.selected() {
-                    if let Some(svc) = self.config.servicestatus.get(idx) {
-                        self.state
-                            .service_status_config_editor
-                            .open_edit_form(idx, svc);
-                    }
+                if let Some(idx) = self
+                    .state
+                    .service_status_config_editor
+                    .table_state
+                    .selected()
+                    && let Some(svc) = self.config.servicestatus.get(idx)
+                {
+                    self.state
+                        .service_status_config_editor
+                        .open_edit_form(idx, svc);
                 }
             }
             ServiceStatusFormNextField => {
@@ -282,54 +284,59 @@ impl App {
                 }
             }
             SubmitServiceConfig => {
-                if let Some(form) = self.state.service_status_config_editor.form.take() {
-                    if form.is_valid() {
-                        let service = crate::config::model::ServiceStatusConfig {
-                            name: form.name.trim().to_string(),
-                            staging: form.staging.trim().to_string(),
-                            preproduction: form.preprod.trim().to_string(),
-                            production: form.prod.trim().to_string(),
-                            repo: form.repo.trim().to_string(),
-                        };
-                        if let Some(idx) = form.edit_index {
-                            // Edit existing
-                            if let Some(existing) = self.config.servicestatus.get_mut(idx) {
-                                *existing = service;
-                            }
-                        } else {
-                            // Add new
-                            self.config.servicestatus.push(service);
+                if let Some(form) = self.state.service_status_config_editor.form.take()
+                    && form.is_valid()
+                {
+                    let service = crate::config::model::ServiceStatusConfig {
+                        name: form.name.trim().to_string(),
+                        staging: form.staging.trim().to_string(),
+                        preproduction: form.preprod.trim().to_string(),
+                        production: form.prod.trim().to_string(),
+                        repo: form.repo.trim().to_string(),
+                    };
+                    if let Some(idx) = form.edit_index {
+                        // Edit existing
+                        if let Some(existing) = self.config.servicestatus.get_mut(idx) {
+                            *existing = service;
                         }
-                        self.state.service_status =
-                            crate::state::service_status::ServiceStatus::new(
-                                self.config.servicestatus.len(),
-                            );
-                        let _ = self.config_loader.write_config(&self.config);
+                    } else {
+                        // Add new
+                        self.config.servicestatus.push(service);
                     }
-                    // If invalid, just close the form without saving
+                    self.state.service_status = crate::state::service_status::ServiceStatus::new(
+                        self.config.servicestatus.len(),
+                    );
+                    let _ = self.config_loader.write_config(&self.config);
                 }
+                // If invalid, just close the form without saving
             }
             RemoveService => {
-                if let Some(idx) = self.state.service_status_config_editor.table_state.selected() {
-                    if idx < self.config.servicestatus.len() {
-                        self.config.servicestatus.remove(idx);
-                        self.state.service_status =
-                            crate::state::service_status::ServiceStatus::new(
-                                self.config.servicestatus.len(),
-                            );
-                        // Clamp selection
-                        let new_len = self.config.servicestatus.len();
-                        if new_len == 0 {
-                            self.state.service_status_config_editor.table_state.select(None);
-                        } else {
-                            let clamped = idx.min(new_len - 1);
-                            self.state
-                                .service_status_config_editor
-                                .table_state
-                                .select(Some(clamped));
-                        }
-                        let _ = self.config_loader.write_config(&self.config);
+                if let Some(idx) = self
+                    .state
+                    .service_status_config_editor
+                    .table_state
+                    .selected()
+                    && idx < self.config.servicestatus.len()
+                {
+                    self.config.servicestatus.remove(idx);
+                    self.state.service_status = crate::state::service_status::ServiceStatus::new(
+                        self.config.servicestatus.len(),
+                    );
+                    // Clamp selection
+                    let new_len = self.config.servicestatus.len();
+                    if new_len == 0 {
+                        self.state
+                            .service_status_config_editor
+                            .table_state
+                            .select(None);
+                    } else {
+                        let clamped = idx.min(new_len - 1);
+                        self.state
+                            .service_status_config_editor
+                            .table_state
+                            .select(Some(clamped));
                     }
+                    let _ = self.config_loader.write_config(&self.config);
                 }
             }
             _ => {}
@@ -390,17 +397,19 @@ impl App {
                     None => {}
                 }
             }
-            TokenGenConfigFormChar(c) => {
-                match &mut self.state.token_generator_config_editor.form {
-                    Some(ActiveEdit::Auth0(p)) => p.active_field_value_mut().push(c),
-                    Some(ActiveEdit::Service(p)) => p.active_field_value_mut().push(c),
-                    None => {}
-                }
-            }
+            TokenGenConfigFormChar(c) => match &mut self.state.token_generator_config_editor.form {
+                Some(ActiveEdit::Auth0(p)) => p.active_field_value_mut().push(c),
+                Some(ActiveEdit::Service(p)) => p.active_field_value_mut().push(c),
+                None => {}
+            },
             TokenGenConfigFormBackspace => {
                 match &mut self.state.token_generator_config_editor.form {
-                    Some(ActiveEdit::Auth0(p)) => { p.active_field_value_mut().pop(); }
-                    Some(ActiveEdit::Service(p)) => { p.active_field_value_mut().pop(); }
+                    Some(ActiveEdit::Auth0(p)) => {
+                        p.active_field_value_mut().pop();
+                    }
+                    Some(ActiveEdit::Service(p)) => {
+                        p.active_field_value_mut().pop();
+                    }
                     None => {}
                 }
             }
@@ -410,7 +419,8 @@ impl App {
                         ActiveEdit::Auth0(p) => {
                             self.config.tokengenerator.auth0.local = p.local.trim().to_string();
                             self.config.tokengenerator.auth0.staging = p.staging.trim().to_string();
-                            self.config.tokengenerator.auth0.preproduction = p.preprod.trim().to_string();
+                            self.config.tokengenerator.auth0.preproduction =
+                                p.preprod.trim().to_string();
                             self.config.tokengenerator.auth0.production = p.prod.trim().to_string();
                             let _ = self.config_loader.write_config(&self.config);
                         }
@@ -429,9 +439,10 @@ impl App {
                             } else {
                                 self.config.tokengenerator.services.push(svc);
                             }
-                            self.state.token_generator = crate::state::token_generator::TokenGenerator::new(
-                                &self.config.tokengenerator.services,
-                            );
+                            self.state.token_generator =
+                                crate::state::token_generator::TokenGenerator::new(
+                                    &self.config.tokengenerator.services,
+                                );
                             let _ = self.config_loader.write_config(&self.config);
                         }
                         _ => {} // invalid service form — close without saving
@@ -444,27 +455,25 @@ impl App {
                     .token_generator_config_editor
                     .table_state
                     .selected()
+                    && idx < self.config.tokengenerator.services.len()
                 {
-                    if idx < self.config.tokengenerator.services.len() {
-                        self.config.tokengenerator.services.remove(idx);
-                        self.state.token_generator =
-                            crate::state::token_generator::TokenGenerator::new(
-                                &self.config.tokengenerator.services,
-                            );
-                        let new_len = self.config.tokengenerator.services.len();
-                        if new_len == 0 {
-                            self.state
-                                .token_generator_config_editor
-                                .table_state
-                                .select(None);
-                        } else {
-                            self.state
-                                .token_generator_config_editor
-                                .table_state
-                                .select(Some(idx.min(new_len - 1)));
-                        }
-                        let _ = self.config_loader.write_config(&self.config);
+                    self.config.tokengenerator.services.remove(idx);
+                    self.state.token_generator = crate::state::token_generator::TokenGenerator::new(
+                        &self.config.tokengenerator.services,
+                    );
+                    let new_len = self.config.tokengenerator.services.len();
+                    if new_len == 0 {
+                        self.state
+                            .token_generator_config_editor
+                            .table_state
+                            .select(None);
+                    } else {
+                        self.state
+                            .token_generator_config_editor
+                            .table_state
+                            .select(Some(idx.min(new_len - 1)));
                     }
+                    let _ = self.config_loader.write_config(&self.config);
                 }
             }
             TgConfigEdit => {
@@ -483,13 +492,12 @@ impl App {
                             .token_generator_config_editor
                             .table_state
                             .selected()
+                            && let Some(svc) = self.config.tokengenerator.services.get(idx)
                         {
-                            if let Some(svc) = self.config.tokengenerator.services.get(idx) {
-                                let svc = svc.clone();
-                                self.state
-                                    .token_generator_config_editor
-                                    .open_edit_service_form(idx, &svc);
-                            }
+                            let svc = svc.clone();
+                            self.state
+                                .token_generator_config_editor
+                                .open_edit_service_form(idx, &svc);
                         }
                     }
                 }
@@ -636,9 +644,7 @@ impl App {
                         && self.state.token_generator_config_editor.form.is_some()
                     {
                         stack.push(Editing(TokenGenerator));
-                    } else if tool == Jira
-                        && self.state.jira_config_editor.form.is_some()
-                    {
+                    } else if tool == Jira && self.state.jira_config_editor.form.is_some() {
                         stack.push(ToolConfigEditing(Jira));
                     } else {
                         stack.push(KeyContext::ToolConfig(tool));

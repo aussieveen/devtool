@@ -29,11 +29,9 @@ fn render_table(
 ) {
     if config.is_empty() {
         frame.render_widget(
-            Paragraph::new(Line::from(
-                "No services yet — press [a] to add one.",
-            ))
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::DarkGray)),
+            Paragraph::new(Line::from("No services yet — press [a] to add one."))
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(Color::DarkGray)),
             area,
         );
         return;
@@ -84,15 +82,35 @@ fn render_inline_edit(frame: &mut Frame, area: Rect, form: &AddServiceForm) {
     frame.render_widget(block, area);
 
     let lines = vec![
-        field_line("Name        ", &form.name, form.active_field == FormField::Name),
+        field_line(
+            "Name        ",
+            &form.name,
+            form.active_field == FormField::Name,
+        ),
         Line::from(""),
-        field_line("Staging URL ", &form.staging, form.active_field == FormField::Staging),
+        field_line(
+            "Staging URL ",
+            &form.staging,
+            form.active_field == FormField::Staging,
+        ),
         Line::from(""),
-        field_line("Preprod URL ", &form.preprod, form.active_field == FormField::Preprod),
+        field_line(
+            "Preprod URL ",
+            &form.preprod,
+            form.active_field == FormField::Preprod,
+        ),
         Line::from(""),
-        field_line("Prod URL    ", &form.prod, form.active_field == FormField::Prod),
+        field_line(
+            "Prod URL    ",
+            &form.prod,
+            form.active_field == FormField::Prod,
+        ),
         Line::from(""),
-        field_line("Repo URL    ", &form.repo, form.active_field == FormField::Repo),
+        field_line(
+            "Repo URL    ",
+            &form.repo,
+            form.active_field == FormField::Repo,
+        ),
         Line::from(""),
         Line::from(Span::styled(
             "  [enter] Save   [esc] Cancel   [tab] Next field   [shift+tab] Prev field",
@@ -100,10 +118,7 @@ fn render_inline_edit(frame: &mut Frame, area: Rect, form: &AddServiceForm) {
         )),
     ];
 
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {

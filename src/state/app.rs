@@ -2,10 +2,10 @@ use crate::config::model::Config;
 use crate::error::model::Error;
 use crate::state::config_editor::ConfigEditor;
 use crate::state::jira::Jira;
+use crate::state::jira_config::JiraConfigEditor;
 use crate::state::service_status::ServiceStatus;
 use crate::state::service_status_config::ServiceStatusConfigEditor;
 use crate::state::token_generator::TokenGenerator;
-use crate::state::jira_config::JiraConfigEditor;
 use crate::state::token_generator_config::TokenGeneratorConfigEditor;
 pub(crate) use crate::state::tools::Tool;
 use crate::state::tools::ToolList;
@@ -210,7 +210,11 @@ mod tests {
         state.tool_list.items = vec![];
         state.tool_list.list_state.select(None);
         // Re-enable everything
-        state.config_editor.items.iter_mut().for_each(|i| i.enabled = true);
+        state
+            .config_editor
+            .items
+            .iter_mut()
+            .for_each(|i| i.enabled = true);
 
         state.rebuild_tool_list(true);
 

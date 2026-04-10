@@ -13,9 +13,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 
     let (line1, line2) = build_lines(state, key, desc);
 
-    let footer = Paragraph::new(vec![line1, line2]).block(
-        Block::default().borders(Borders::TOP),
-    );
+    let footer = Paragraph::new(vec![line1, line2]).block(Block::default().borders(Borders::TOP));
 
     frame.render_widget(footer, area);
 }
@@ -134,11 +132,13 @@ fn build_lines<'a>(
             if state.service_status_config_editor.form.is_some() {
                 edit_form_lines(key, desc)
             } else {
-                let line2 = if state.service_status_config_editor.table_state.selected().is_some() {
-                    hints(&[
-                        ("[e]", key, " Edit  ", desc),
-                        ("[x]", key, " Remove", desc),
-                    ])
+                let line2 = if state
+                    .service_status_config_editor
+                    .table_state
+                    .selected()
+                    .is_some()
+                {
+                    hints(&[("[e]", key, " Edit  ", desc), ("[x]", key, " Remove", desc)])
                 } else {
                     Line::from("")
                 };
@@ -169,11 +169,13 @@ fn build_lines<'a>(
                         hints(&[("[e]", key, " Edit", desc)]),
                     ),
                     ConfigFocus::Services => {
-                        let line2 = if state.token_generator_config_editor.table_state.selected().is_some() {
-                            hints(&[
-                                ("[e]", key, " Edit  ", desc),
-                                ("[x]", key, " Remove", desc),
-                            ])
+                        let line2 = if state
+                            .token_generator_config_editor
+                            .table_state
+                            .selected()
+                            .is_some()
+                        {
+                            hints(&[("[e]", key, " Edit  ", desc), ("[x]", key, " Remove", desc)])
                         } else {
                             Line::from("")
                         };
@@ -225,7 +227,14 @@ fn edit_form_lines<'a>(
 }
 
 /// Build a Line from a sequence of (key_text, key_style, desc_text, desc_style) tuples.
-fn hints<'a>(items: &[(&'a str, ratatui::style::Style, &'a str, ratatui::style::Style)]) -> Line<'a> {
+fn hints<'a>(
+    items: &[(
+        &'a str,
+        ratatui::style::Style,
+        &'a str,
+        ratatui::style::Style,
+    )],
+) -> Line<'a> {
     let spans: Vec<Span<'a>> = items
         .iter()
         .flat_map(|(k, ks, d, ds)| [Span::styled(*k, *ks), Span::styled(*d, *ds)])

@@ -198,7 +198,11 @@ impl ServiceForm {
         let pairs = [
             (Environment::Local, &self.local_id, &self.local_secret),
             (Environment::Staging, &self.staging_id, &self.staging_secret),
-            (Environment::Preproduction, &self.preprod_id, &self.preprod_secret),
+            (
+                Environment::Preproduction,
+                &self.preprod_id,
+                &self.preprod_secret,
+            ),
             (Environment::Production, &self.prod_id, &self.prod_secret),
         ];
         for (env, id, secret) in pairs {

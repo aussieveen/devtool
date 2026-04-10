@@ -1,23 +1,21 @@
 use crate::app::AppFocus;
 use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::events::event::AppEvent::{
-    AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissError,
-    GenerateToken, JiraConfigFormBackspace, JiraConfigFormChar, JiraConfigFormNextField,
-    JiraConfigFormPrevField, JiraTicketListMove, JiraTicketMove, ListMove, NewJiraTicket,
-    OpenAddService, OpenAddTokenGenService, OpenEditService,
-    OpenInBrowser, OpenJiraConfigEdit, OpenToolConfig, Quit,
-    RemoveService, RemoveTicket, RemoveTicketIdChar, RemoveTokenGenService, ScanServices,
-    ServiceStatusConfigListMove, ServiceStatusListMove, ServiceStatusFormBackspace,
-    ServiceStatusFormChar, ServiceStatusFormNextField, ServiceStatusFormPrevField, SetFocus,
+    AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissError, GenerateToken,
+    JiraConfigFormBackspace, JiraConfigFormChar, JiraConfigFormNextField, JiraConfigFormPrevField,
+    JiraTicketListMove, JiraTicketMove, ListMove, NewJiraTicket, OpenAddService,
+    OpenAddTokenGenService, OpenEditService, OpenInBrowser, OpenJiraConfigEdit, OpenToolConfig,
+    Quit, RemoveService, RemoveTicket, RemoveTicketIdChar, RemoveTokenGenService, ScanServices,
+    ServiceStatusConfigListMove, ServiceStatusFormBackspace, ServiceStatusFormChar,
+    ServiceStatusFormNextField, ServiceStatusFormPrevField, ServiceStatusListMove, SetFocus,
     SetTokenGenFocus, SubmitJiraConfig, SubmitServiceConfig, SubmitTicketId, SubmitTokenGenConfig,
-    TgConfigEdit, TgConfigSwitchFocus, ToggleFeature, TokenGenConfigListMove,
-    TokenGenConfigFormBackspace, TokenGenConfigFormChar, TokenGenConfigFormNextField,
-    TokenGenConfigFormPrevField, TokenGenEnvListMove, TokenGenServiceListMove,
+    TgConfigEdit, TgConfigSwitchFocus, ToggleFeature, TokenGenConfigFormBackspace,
+    TokenGenConfigFormChar, TokenGenConfigFormNextField, TokenGenConfigFormPrevField,
+    TokenGenConfigListMove, TokenGenEnvListMove, TokenGenServiceListMove,
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
-    Config, Error, Global, List, Editing, TokenGen, Tool, ToolConfig, ToolConfigEditing,
-    ToolIgnore,
+    Config, Editing, Error, Global, List, TokenGen, Tool, ToolConfig, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::token_generator::Focus;
@@ -51,12 +49,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyModifiers::NONE,
         OpenInBrowser,
     );
-    key_event_map.add_static(
-        Error,
-        KeyCode::Char('d'),
-        KeyModifiers::NONE,
-        DismissError,
-    );
+    key_event_map.add_static(Error, KeyCode::Char('d'), KeyModifiers::NONE, DismissError);
 
     // CONFIG EVENTS
     key_event_map.add_static(
@@ -518,7 +511,9 @@ mod tests {
     use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
     use crate::events::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
-    use crate::input::key_context::KeyContext::{Config, Global, List, Editing, TokenGen, Tool, ToolConfig, ToolIgnore};
+    use crate::input::key_context::KeyContext::{
+        Config, Editing, Global, List, TokenGen, Tool, ToolConfig, ToolIgnore,
+    };
     use crate::state::token_generator::Focus;
     use test_case::test_case;
 
@@ -596,7 +591,10 @@ mod tests {
     #[test]
     fn popup_dynamic_handler_returns_none_for_non_char() {
         let map = registered_map();
-        let result = map.resolve(Editing(Jira), KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        let result = map.resolve(
+            Editing(Jira),
+            KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE),
+        );
         assert_eq!(result, None);
     }
 }

@@ -27,25 +27,23 @@ fn render_values_section(frame: &mut Frame, area: Rect, config: Option<&JiraConf
     };
 
     // Mask the token in display mode — shown in full only when editing.
-    let token_display = if token.is_empty() { "" } else { "••••••••" };
+    let token_display = if token.is_empty() {
+        ""
+    } else {
+        "••••••••"
+    };
 
     let lines = vec![
         display_line("URL  ", url),
         display_line("Email", email),
         display_line("Token", token_display),
     ];
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        area,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), area);
 }
 
 fn display_line(label: &str, value: &str) -> Line<'static> {
     Line::from(vec![
-        Span::styled(
-            format!("{label}: "),
-            Style::default().fg(Color::Gray),
-        ),
+        Span::styled(format!("{label}: "), Style::default().fg(Color::Gray)),
         Span::styled(
             if value.is_empty() {
                 "(not set)".to_string()
@@ -83,20 +81,21 @@ fn render_inline_edit(
         hint_line(),
     ];
 
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
     let label_style = if active {
-        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::Gray)
     };
     let value_style = if active {
-        Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::White)
     };

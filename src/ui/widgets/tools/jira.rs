@@ -74,12 +74,12 @@ fn render_add_ticket_input(frame: &mut Frame, area: Rect, value: &str) {
     frame.render_widget(block, area);
 
     frame.render_widget(
-        Paragraph::new(Line::from(vec![
-            Span::styled(
-                format!("{value}_"),
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD),
-            ),
-        ])),
+        Paragraph::new(Line::from(vec![Span::styled(
+            format!("{value}_"),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )])),
         inner,
     );
 }

@@ -39,16 +39,19 @@ pub fn render(
         }
     };
 
-
     let table_length = (state.services.len() + 1) as u16; // services + header row
 
     // Count error lines for the selected service to size the error area dynamically.
     let error_line_count = if let Some(idx) = state.table_state.selected() {
         if let Some(service) = state.services.get(idx) {
-            [&service.staging, &service.preproduction, &service.production]
-                .iter()
-                .filter(|c| c.get_error().is_some())
-                .count() as u16
+            [
+                &service.staging,
+                &service.preproduction,
+                &service.production,
+            ]
+            .iter()
+            .filter(|c| c.get_error().is_some())
+            .count() as u16
         } else {
             0
         }
@@ -59,7 +62,7 @@ pub fn render(
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(table_length),    // table
+            Constraint::Length(table_length),     // table
             Constraint::Length(error_line_count), // request errors (0 when none)
             Constraint::Min(0),                   // filler
             Constraint::Length(2),                // color legend

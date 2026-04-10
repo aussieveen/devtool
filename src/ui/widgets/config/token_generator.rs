@@ -24,10 +24,7 @@ pub fn render(
 
     let vertical = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(auth0_height),
-            Constraint::Min(0),
-        ])
+        .constraints([Constraint::Length(auth0_height), Constraint::Min(0)])
         .split(area);
 
     let auth0_area = vertical[0];
@@ -35,14 +32,24 @@ pub fn render(
 
     if let Some(ActiveEdit::Auth0(p)) = &state.form {
         let p = p.clone();
-        render_auth0_inline(frame, auth0_area, &p, state.config_focus == ConfigFocus::Auth0);
+        render_auth0_inline(
+            frame,
+            auth0_area,
+            &p,
+            state.config_focus == ConfigFocus::Auth0,
+        );
         render_services_section(frame, services_area, state, services);
     } else if let Some(ActiveEdit::Service(p)) = &state.form {
         let p = p.clone();
         render_auth0_section(frame, auth0_area, auth0, false);
         render_service_inline(frame, services_area, &p);
     } else {
-        render_auth0_section(frame, auth0_area, auth0, state.config_focus == ConfigFocus::Auth0);
+        render_auth0_section(
+            frame,
+            auth0_area,
+            auth0,
+            state.config_focus == ConfigFocus::Auth0,
+        );
         render_services_section(frame, services_area, state, services);
     }
 }
@@ -60,20 +67,18 @@ fn render_auth0_section(frame: &mut Frame, area: Rect, auth0: &Auth0Config, focu
         auth0_display_line("Preprod    ", &auth0.preproduction),
         auth0_display_line("Production ", &auth0.production),
     ];
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 fn auth0_display_line(label: &str, value: &str) -> Line<'static> {
     Line::from(vec![
+        Span::styled(format!("{label}: "), Style::default().fg(Color::Gray)),
         Span::styled(
-            format!("{label}: "),
-            Style::default().fg(Color::Gray),
-        ),
-        Span::styled(
-            if value.is_empty() { "(not set)".to_string() } else { value.to_string() },
+            if value.is_empty() {
+                "(not set)".to_string()
+            } else {
+                value.to_string()
+            },
             if value.is_empty() {
                 Style::default().fg(Color::DarkGray)
             } else {
@@ -143,26 +148,43 @@ fn render_auth0_inline(
 ) {
     let block = Block::bordered()
         .title(" Auth0 Endpoints ")
-        .border_style(if focused { edit_border_style() } else { block_style(false) });
+        .border_style(if focused {
+            edit_border_style()
+        } else {
+            block_style(false)
+        });
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     let lines = vec![
-        field_line("Local      ", &form.local, form.active_field == Auth0Field::Local),
+        field_line(
+            "Local      ",
+            &form.local,
+            form.active_field == Auth0Field::Local,
+        ),
         Line::from(""),
-        field_line("Staging    ", &form.staging, form.active_field == Auth0Field::Staging),
+        field_line(
+            "Staging    ",
+            &form.staging,
+            form.active_field == Auth0Field::Staging,
+        ),
         Line::from(""),
-        field_line("Preprod    ", &form.preprod, form.active_field == Auth0Field::Preprod),
+        field_line(
+            "Preprod    ",
+            &form.preprod,
+            form.active_field == Auth0Field::Preprod,
+        ),
         Line::from(""),
-        field_line("Production ", &form.prod, form.active_field == Auth0Field::Prod),
+        field_line(
+            "Production ",
+            &form.prod,
+            form.active_field == Auth0Field::Prod,
+        ),
         Line::from(""),
         hint_line(),
     ];
 
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 // ── Service inline edit ───────────────────────────────────────────────────────
@@ -191,40 +213,73 @@ fn render_service_inline(
         field_line("Audience  ", &form.audience, af == ServiceField::Audience),
         Line::from(""),
         divider_line("Local"),
-        field_line("Client ID ", &form.local_id, af == ServiceField::LocalClientId),
-        field_line("Client Sec", &form.local_secret, af == ServiceField::LocalClientSecret),
+        field_line(
+            "Client ID ",
+            &form.local_id,
+            af == ServiceField::LocalClientId,
+        ),
+        field_line(
+            "Client Sec",
+            &form.local_secret,
+            af == ServiceField::LocalClientSecret,
+        ),
         Line::from(""),
         divider_line("Staging"),
-        field_line("Client ID ", &form.staging_id, af == ServiceField::StagingClientId),
-        field_line("Client Sec", &form.staging_secret, af == ServiceField::StagingClientSecret),
+        field_line(
+            "Client ID ",
+            &form.staging_id,
+            af == ServiceField::StagingClientId,
+        ),
+        field_line(
+            "Client Sec",
+            &form.staging_secret,
+            af == ServiceField::StagingClientSecret,
+        ),
         Line::from(""),
         divider_line("Preprod"),
-        field_line("Client ID ", &form.preprod_id, af == ServiceField::PreprodClientId),
-        field_line("Client Sec", &form.preprod_secret, af == ServiceField::PreprodClientSecret),
+        field_line(
+            "Client ID ",
+            &form.preprod_id,
+            af == ServiceField::PreprodClientId,
+        ),
+        field_line(
+            "Client Sec",
+            &form.preprod_secret,
+            af == ServiceField::PreprodClientSecret,
+        ),
         Line::from(""),
         divider_line("Production"),
-        field_line("Client ID ", &form.prod_id, af == ServiceField::ProdClientId),
-        field_line("Client Sec", &form.prod_secret, af == ServiceField::ProdClientSecret),
+        field_line(
+            "Client ID ",
+            &form.prod_id,
+            af == ServiceField::ProdClientId,
+        ),
+        field_line(
+            "Client Sec",
+            &form.prod_secret,
+            af == ServiceField::ProdClientSecret,
+        ),
         Line::from(""),
         hint_line(),
     ];
 
-    frame.render_widget(
-        Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
-    );
+    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
     let label_style = if active {
-        Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::Gray)
     };
     let value_style = if active {
-        Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD)
     } else {
         Style::default().fg(Color::White)
     };

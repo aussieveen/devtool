@@ -64,9 +64,7 @@ impl JiraConfigForm {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.url.trim().is_empty()
-            && self.email.trim().is_empty()
-            && self.token.trim().is_empty()
+        self.url.trim().is_empty() && self.email.trim().is_empty() && self.token.trim().is_empty()
     }
 }
 
