@@ -2,7 +2,7 @@ use crate::config::model::ServiceStatusConfig;
 use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
 use crate::ui::styles::{key_desc_style, key_style, row_style};
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
@@ -13,6 +13,18 @@ pub fn render(
     state: &mut ServiceStatus,
     config: &[ServiceStatusConfig],
 ) {
+    if config.is_empty() {
+        frame.render_widget(
+            Paragraph::new(Line::from(
+                "No services configured — press [2] then Enter on Service Status to configure.",
+            ))
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::DarkGray)),
+            area,
+        );
+        return;
+    }
+
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;
     const PREPROD_PROD_MATCH: Color = Color::Cyan;

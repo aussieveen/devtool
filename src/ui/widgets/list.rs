@@ -16,7 +16,7 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
         Block::default()
             .borders(Borders::ALL)
             .border_style(style)
-            .title(" Tools "),
+            .title(" [1] Tools "),
     );
 
     frame.render_stateful_widget(menu, area, &mut state.tool_list.list_state);

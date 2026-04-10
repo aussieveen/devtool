@@ -6,8 +6,11 @@ pub enum KeyContext {
     ErrorPopUp,
     Global,
     List,
+    Config,
+    ToolConfig(Tool),
     Tool(Tool),
     ToolIgnore(Tool),
     Popup(Tool),
+    ToolConfigPopup(Tool),
     TokenGen(TokenFocus),
 }

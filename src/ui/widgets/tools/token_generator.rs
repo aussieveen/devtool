@@ -1,6 +1,6 @@
 use crate::config::model::ServiceConfig;
 use crate::state::token_generator::{Focus, Token, TokenGenerator};
-use crate::ui::styles::{key_desc_style, key_style, list_style};
+use crate::ui::styles::{block_style, key_desc_style, key_style, list_style};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
@@ -23,22 +23,23 @@ pub fn render(
         .split(area);
 
     let inner_horizontal = Layout::default()
-        .spacing(1)
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(vertical_break[0]);
 
+    let service_focused = matches!(state.focus, Focus::Service);
+    let env_focused = matches!(state.focus, Focus::Env);
+
     let selected_service = state.service_list_state.selected();
-    let service_title_style = list_style(matches!(state.focus, Focus::Service));
     let services = List::new(service_configs.iter().enumerate().map(|(idx, s)| {
         ListItem::new(s.name.clone()).style(list_style(selected_service.is_none_or(|i| i == idx)))
     }))
     .block(
         Block::new()
-            .borders(Borders::NONE)
+            .borders(Borders::ALL)
             .title(" Services ")
-            .title_style(service_title_style)
-            .title_alignment(Alignment::Center),
+            .title_alignment(Alignment::Center)
+            .border_style(block_style(service_focused)),
     );
 
     frame.render_stateful_widget(services, inner_horizontal[0], &mut state.service_list_state);
@@ -48,7 +49,6 @@ pub fn render(
     let service_config = &service_configs[service_idx];
 
     let selected_env = state.env_list_state.selected();
-    let env_title_style = list_style(matches!(state.focus, Focus::Env));
     let environments = List::new(service_config.credentials.iter().enumerate().map(
         |(env_idx, c)| {
             let token = &state.tokens[service_idx][env_idx];
@@ -67,10 +67,10 @@ pub fn render(
     ))
     .block(
         Block::new()
-            .borders(Borders::NONE)
+            .borders(Borders::ALL)
             .title(" Environments ")
-            .title_style(env_title_style)
-            .title_alignment(Alignment::Center),
+            .title_alignment(Alignment::Center)
+            .border_style(block_style(env_focused)),
     );
 
     frame.render_stateful_widget(environments, inner_horizontal[1], &mut state.env_list_state);

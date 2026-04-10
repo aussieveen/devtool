@@ -14,7 +14,7 @@ pub fn list_has_focus(focus: AppFocus) -> bool {
 }
 
 pub fn tool_has_focus(focus: AppFocus) -> bool {
-    matches!(focus, AppFocus::Tool)
+    matches!(focus, AppFocus::Tool | AppFocus::ToolConfig(_))
 }
 
 pub fn list_style(active: bool) -> Style {
@@ -67,6 +67,7 @@ mod tests {
 
     #[test_case(AppFocus::List, false)]
     #[test_case(AppFocus::Tool, true)]
+    #[test_case(AppFocus::ToolConfig(crate::app::Tool::ServiceStatus), true)]
     fn tool_has_focus_returns_expected(focus: AppFocus, expected: bool) {
         assert_eq!(tool_has_focus(focus), expected)
     }

@@ -63,6 +63,42 @@ pub enum AppEvent {
     Quit,
     OpenInBrowser,
     CopyToClipboard,
+
+    // Config events
+    ConfigListMove(Direction),
+    ToggleFeature,
+    OpenToolConfig(Tool),
+    CloseToolConfig,
+
+    // Service Status config events
+    ServiceStatusConfigListMove(Direction),
+    OpenAddServicePopup,
+    OpenEditServicePopup,
+    ServiceStatusPopupNextField,
+    ServiceStatusPopupPrevField,
+    ServiceStatusPopupChar(char),
+    ServiceStatusPopupBackspace,
+    SubmitServiceConfig,
+    RemoveService,
+
+    // Token Generator config events
+    TokenGenConfigListMove(Direction),
+    OpenAddTokenGenServicePopup,
+    TokenGenConfigPopupNextField,
+    TokenGenConfigPopupPrevField,
+    TokenGenConfigPopupChar(char),
+    TokenGenConfigPopupBackspace,
+    SubmitTokenGenConfig,
+    RemoveTokenGenService,
+    TgConfigSwitchFocus,
+    TgConfigEdit,
+    // Jira config events
+    OpenJiraConfigPopup,
+    JiraConfigPopupNextField,
+    JiraConfigPopupPrevField,
+    JiraConfigPopupChar(char),
+    JiraConfigPopupBackspace,
+    SubmitJiraConfig,
 }
 
 #[derive(PartialEq, Clone, Debug)]

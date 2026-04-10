@@ -1,11 +1,37 @@
 use crate::environment::Environment;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Clone, PartialEq)]
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub(crate) struct Config {
     pub servicestatus: Vec<ServiceStatusConfig>,
     pub tokengenerator: TokenGenerator,
     pub jira: Option<JiraConfig>,
+    #[serde(default)]
+    pub features: Features,
+}
+
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
+pub struct Features {
+    #[serde(default = "default_true")]
+    pub service_status: bool,
+    #[serde(default = "default_true")]
+    pub token_generator: bool,
+    #[serde(default = "default_true")]
+    pub jira: bool,
+}
+
+impl Default for Features {
+    fn default() -> Self {
+        Self {
+            service_status: true,
+            token_generator: true,
+            jira: true,
+        }
+    }
 }
 
 impl Config {
@@ -37,7 +63,7 @@ impl Config {
     }
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub(crate) struct ServiceStatusConfig {
     pub name: String,
     pub staging: String,
@@ -57,13 +83,13 @@ impl ServiceStatusConfig {
     }
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub(crate) struct TokenGenerator {
     pub auth0: Auth0Config,
     pub services: Vec<ServiceConfig>,
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct Auth0Config {
     pub local: String,
     pub staging: String,
@@ -82,21 +108,21 @@ impl Auth0Config {
     }
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct ServiceConfig {
     pub name: String,
     pub audience: String,
     pub credentials: Vec<Credentials>,
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct Credentials {
     pub env: Environment,
     pub client_id: String,
     pub client_secret: String,
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct JiraConfig {
     pub url: String,
     pub email: String,

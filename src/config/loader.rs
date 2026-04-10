@@ -16,13 +16,19 @@ impl ConfigLoader {
     }
 
     #[cfg(test)]
-    fn from_path(file_path: PathBuf) -> ConfigLoader {
+    pub(crate) fn from_path(file_path: PathBuf) -> ConfigLoader {
         ConfigLoader { file_path }
     }
 
-    pub fn read_config(self) -> Result<Config, ConfigError> {
+    pub fn read_config(&self) -> Result<Config, ConfigError> {
         let config = fs::read_to_string(&self.file_path)?;
         Ok(serde_yaml::from_str::<Config>(config.as_str())?.normalize())
+    }
+
+    pub fn write_config(&self, config: &Config) -> Result<(), ConfigError> {
+        let yaml = serde_yaml::to_string(config)?;
+        fs::write(&self.file_path, yaml)?;
+        Ok(())
     }
 }
 
