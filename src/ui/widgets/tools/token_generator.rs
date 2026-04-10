@@ -30,15 +30,9 @@ pub fn render(
 
     let selected_service = state.service_list_state.selected();
     let service_title_style = list_style(matches!(state.focus, Focus::Service));
-    let services = List::new(
-        service_configs
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| {
-                ListItem::new(s.name.clone())
-                    .style(list_style(selected_service.is_none_or(|i| i == idx)))
-            }),
-    )
+    let services = List::new(service_configs.iter().enumerate().map(|(idx, s)| {
+        ListItem::new(s.name.clone()).style(list_style(selected_service.is_none_or(|i| i == idx)))
+    }))
     .block(
         Block::new()
             .borders(Borders::NONE)
