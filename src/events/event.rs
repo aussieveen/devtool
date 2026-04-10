@@ -28,7 +28,7 @@ pub enum AppEvent {
     ListMove(Direction), // Move up and down tool List
     ListSelect(Tool),    // Select item on tool list
     SystemError(Error),
-    DismissPopup,
+    DismissError,
 
     // Tool events
     // ServiceStatus
@@ -48,7 +48,7 @@ pub enum AppEvent {
 
     // Jira
     JiraTicketListMove(Direction), // Move down ticket list
-    NewJiraTicketPopUp,
+    NewJiraTicket,
     AddTicketIdChar(char),
     RemoveTicketIdChar,
     SubmitTicketId,
@@ -63,6 +63,42 @@ pub enum AppEvent {
     Quit,
     OpenInBrowser,
     CopyToClipboard,
+
+    // Config events
+    ConfigListMove(Direction),
+    ToggleFeature,
+    OpenToolConfig(Tool),
+    CloseToolConfig,
+
+    // Service Status config events
+    ServiceStatusConfigListMove(Direction),
+    OpenAddService,
+    OpenEditService,
+    ServiceStatusFormNextField,
+    ServiceStatusFormPrevField,
+    ServiceStatusFormChar(char),
+    ServiceStatusFormBackspace,
+    SubmitServiceConfig,
+    RemoveService,
+
+    // Token Generator config events
+    TokenGenConfigListMove(Direction),
+    OpenAddTokenGenService,
+    TokenGenConfigFormNextField,
+    TokenGenConfigFormPrevField,
+    TokenGenConfigFormChar(char),
+    TokenGenConfigFormBackspace,
+    SubmitTokenGenConfig,
+    RemoveTokenGenService,
+    TgConfigSwitchFocus,
+    TgConfigEdit,
+    // Jira config events
+    OpenJiraConfigEdit,
+    JiraConfigFormNextField,
+    JiraConfigFormPrevField,
+    JiraConfigFormChar(char),
+    JiraConfigFormBackspace,
+    SubmitJiraConfig,
 }
 
 #[derive(PartialEq, Clone, Debug)]

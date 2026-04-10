@@ -3,11 +3,14 @@ use crate::state::token_generator::Focus as TokenFocus;
 
 #[derive(Eq, Hash, PartialEq, Clone)]
 pub enum KeyContext {
-    ErrorPopUp,
+    Error,
     Global,
     List,
+    Config,
+    ToolConfig(Tool),
     Tool(Tool),
     ToolIgnore(Tool),
-    Popup(Tool),
+    Editing(Tool),
+    ToolConfigEditing(Tool),
     TokenGen(TokenFocus),
 }

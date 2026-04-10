@@ -1,9 +1,9 @@
 use crate::config::model::ServiceStatusConfig;
 use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
-use crate::ui::styles::{key_desc_style, key_style, row_style};
+use crate::ui::styles::selection_highlight;
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
@@ -13,6 +13,18 @@ pub fn render(
     state: &mut ServiceStatus,
     config: &[ServiceStatusConfig],
 ) {
+    if config.is_empty() {
+        frame.render_widget(
+            Paragraph::new(Line::from(
+                "No services configured — press [2] then Enter on Service Status to configure.",
+            ))
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::DarkGray)),
+            area,
+        );
+        return;
+    }
+
     const ALL_MATCH: Color = Color::Green;
     const NONE_MATCH: Color = Color::Red;
     const PREPROD_PROD_MATCH: Color = Color::Cyan;
@@ -27,25 +39,39 @@ pub fn render(
         }
     };
 
-    let selected_service_idx = state.table_state.selected();
+    let table_length = (state.services.len() + 1) as u16; // services + header row
 
-    let table_length = (state.services.len() + 2) as u16; // Service count + header
+    // Count error lines for the selected service to size the error area dynamically.
+    let error_line_count = if let Some(idx) = state.table_state.selected() {
+        if let Some(service) = state.services.get(idx) {
+            [
+                &service.staging,
+                &service.preproduction,
+                &service.production,
+            ]
+            .iter()
+            .filter(|c| c.get_error().is_some())
+            .count() as u16
+        } else {
+            0
+        }
+    } else {
+        0
+    };
 
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(table_length), // table
-            Constraint::Length(6),            // request errors
-            Constraint::Min(0),               // filler
-            Constraint::Length(2),            // color legend
-            Constraint::Length(2),            // additional actions
+            Constraint::Length(table_length),     // table
+            Constraint::Length(error_line_count), // request errors (0 when none)
+            Constraint::Min(0),                   // filler
+            Constraint::Length(2),                // color legend
         ])
         .split(area);
 
     let table_area = vertical[0];
     let error_area = vertical[1];
     let legend_area = vertical[3];
-    let action_area = vertical[4];
 
     let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
     let rows: Vec<Row> = state
@@ -79,19 +105,9 @@ pub fn render(
                 ),
             };
 
-            let is_active = selected_service_idx.is_none_or(|s| s == service_idx);
-
             let (staging_text, staging_color) = commit_cell(&service.staging, staging_ok);
             let (preprod_text, preprod_color) = commit_cell(&service.preproduction, preprod_ok);
             let (prod_text, prod_color) = commit_cell(&service.production, prod_ok);
-
-            let commit_cell_style = |color| {
-                if is_active {
-                    Style::default().fg(color)
-                } else {
-                    Style::default().fg(color).add_modifier(Modifier::DIM)
-                }
-            };
 
             Row::new([
                 Cell::from(Line::from(vec![
@@ -99,11 +115,10 @@ pub fn render(
                     Span::raw(" "),
                     Span::styled(config[service_idx].name.clone(), Style::default()),
                 ])),
-                Cell::from(staging_text).style(commit_cell_style(staging_color)),
-                Cell::from(preprod_text).style(commit_cell_style(preprod_color)),
-                Cell::from(prod_text).style(commit_cell_style(prod_color)),
+                Cell::from(staging_text).style(Style::default().fg(staging_color)),
+                Cell::from(preprod_text).style(Style::default().fg(preprod_color)),
+                Cell::from(prod_text).style(Style::default().fg(prod_color)),
             ])
-            .style(row_style(is_active))
         })
         .collect();
 
@@ -116,6 +131,7 @@ pub fn render(
             Constraint::Percentage(24),
         ],
     )
+    .row_highlight_style(selection_highlight())
     .block(Block::default())
     .header(headers);
 
@@ -138,30 +154,6 @@ pub fn render(
         }
         frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), error_area);
     }
-
-    let key = key_style();
-    let desc = key_desc_style();
-    let mut service_action_text = vec![
-        Span::styled("[s]", key),
-        Span::styled(" to scan the services  ", desc),
-    ];
-
-    if let Some(service) = state
-        .table_state
-        .selected()
-        .and_then(|idx| state.services.get(idx))
-        && service.commit_ref_status() == CommitRefStatus::StagingPreprodMatch
-    {
-        service_action_text.push(Span::styled("[o]", key));
-        service_action_text.push(Span::styled(" to Open in browser  ", desc));
-        service_action_text.push(Span::styled("[c]", key));
-        service_action_text.push(Span::styled(" to Copy the url", desc));
-    }
-
-    frame.render_widget(
-        Paragraph::new(Line::from(service_action_text)).wrap(Wrap { trim: false }),
-        action_area,
-    );
 
     let legend_text = Line::from(vec![
         Span::styled("▍ ", Style::default().bg(ALL_MATCH)),

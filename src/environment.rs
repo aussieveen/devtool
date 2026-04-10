@@ -1,6 +1,6 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize, Debug)]
 pub enum Environment {
     Local,
     Staging,

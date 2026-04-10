@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::error::model::Error;
 use crate::events::event::AppEvent::{
-    AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicketPopUp,
+    AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicket,
     OpenInBrowser, RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, SystemError,
     TicketRetrieved,
 };
@@ -20,9 +20,9 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 list_len,
             );
         }
-        NewJiraTicketPopUp => {
-            app.state.jira.new_ticket_popup = true;
-            app.state.focus = AppFocus::PopUp
+        NewJiraTicket => {
+            app.state.jira.adding_ticket = true;
+            app.state.focus = AppFocus::JiraInput
         }
         AddTicketIdChar(char) => app.state.jira.add_char_to_ticket_id(char),
         RemoveTicketIdChar => {
@@ -32,7 +32,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             if let Some(config) = app.config.jira.clone()
                 && let Some(new_ticket_id) = app.state.jira.new_ticket_id.clone()
             {
-                app.state.jira.new_ticket_popup = false;
+                app.state.jira.adding_ticket = false;
                 app.state.focus = AppFocus::Tool;
 
                 let sender = app.event_sender.clone();

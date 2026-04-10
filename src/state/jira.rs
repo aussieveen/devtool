@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 pub struct Jira {
     pub tickets: Vec<Ticket>,
     pub list_state: ListState,
-    pub new_ticket_popup: bool,
+    pub adding_ticket: bool,
     pub new_ticket_id: Option<String>,
     pub jira_file: JiraFile,
     pub tickets_pending_scan: usize,
@@ -29,7 +29,7 @@ impl Jira {
         Self {
             tickets,
             list_state: ListState::default().with_selected(None),
-            new_ticket_popup: false,
+            adding_ticket: false,
             new_ticket_id: None,
             jira_file,
             tickets_pending_scan: 0,
@@ -41,7 +41,7 @@ impl Jira {
         Self {
             tickets: Vec::new(),
             list_state: ListState::default().with_selected(None),
-            new_ticket_popup: false,
+            adding_ticket: false,
             new_ticket_id: None,
             jira_file,
             tickets_pending_scan: 0,
@@ -158,7 +158,7 @@ mod tests {
                 },
             ],
             list_state: Default::default(),
-            new_ticket_popup: false,
+            adding_ticket: false,
             new_ticket_id: None,
             jira_file: JiraFile::new_from_path(path),
             tickets_pending_scan: 0,

@@ -1,11 +1,11 @@
 use crate::config::model::ServiceConfig;
 use crate::state::token_generator::{Focus, Token, TokenGenerator};
-use crate::ui::styles::{key_desc_style, key_style, list_style};
+use crate::ui::styles::{block_style, selection_highlight};
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem};
 
 pub fn render(
     frame: &mut Frame,
@@ -17,28 +17,25 @@ pub fn render(
     const ERROR_COLOR: Color = Color::Red;
     const REQUESTING_COLOR: Color = Color::Yellow;
 
-    let vertical_break = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(2)])
-        .split(area);
-
     let inner_horizontal = Layout::default()
-        .spacing(1)
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(vertical_break[0]);
+        .split(area);
 
-    let selected_service = state.service_list_state.selected();
-    let service_title_style = list_style(matches!(state.focus, Focus::Service));
-    let services = List::new(service_configs.iter().enumerate().map(|(idx, s)| {
-        ListItem::new(s.name.clone()).style(list_style(selected_service.is_none_or(|i| i == idx)))
-    }))
+    let service_focused = matches!(state.focus, Focus::Service);
+    let env_focused = matches!(state.focus, Focus::Env);
+
+    let services = List::new(
+        service_configs
+            .iter()
+            .map(|s| ListItem::new(s.name.clone())),
+    )
+    .highlight_style(selection_highlight())
     .block(
         Block::new()
-            .borders(Borders::NONE)
+            .borders(Borders::ALL)
             .title(" Services ")
-            .title_style(service_title_style)
-            .title_alignment(Alignment::Center),
+            .border_style(block_style(service_focused)),
     );
 
     frame.render_stateful_widget(services, inner_horizontal[0], &mut state.service_list_state);
@@ -47,8 +44,6 @@ pub fn render(
 
     let service_config = &service_configs[service_idx];
 
-    let selected_env = state.env_list_state.selected();
-    let env_title_style = list_style(matches!(state.focus, Focus::Env));
     let environments = List::new(service_config.credentials.iter().enumerate().map(
         |(env_idx, c)| {
             let token = &state.tokens[service_idx][env_idx];
@@ -62,43 +57,15 @@ pub fn render(
                 Span::styled(prefix, prefix_style),
                 Span::raw(format!(" {}", c.env)),
             ]))
-            .style(list_style(selected_env.is_none_or(|i| i == env_idx)))
         },
     ))
+    .highlight_style(selection_highlight())
     .block(
         Block::new()
-            .borders(Borders::NONE)
+            .borders(Borders::ALL)
             .title(" Environments ")
-            .title_style(env_title_style)
-            .title_alignment(Alignment::Center),
+            .border_style(block_style(env_focused)),
     );
 
     frame.render_stateful_widget(environments, inner_horizontal[1], &mut state.env_list_state);
-
-    let key = key_style();
-    let desc = key_desc_style();
-
-    let token_text = match state.get_token_for_selected_service_env() {
-        Token::Idle => {
-            vec![
-                Span::styled("[Return]", key),
-                Span::styled(" to generate token  ", desc),
-            ]
-        }
-        Token::Requesting => {
-            vec![Span::from("Generating token")]
-        }
-        Token::Ready(_) => {
-            vec![
-                Span::from("Token available: "),
-                Span::styled("[c]", key),
-                Span::styled(" to Copy the token value", desc),
-            ]
-        }
-        Token::Error => {
-            vec![Span::from("Error when attempting to get the token")]
-        }
-    };
-
-    frame.render_widget(Paragraph::new(Line::from(token_text)), vertical_break[1]);
 }

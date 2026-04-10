@@ -1,33 +1,33 @@
 use crate::state::jira::Jira;
-use crate::ui::styles::{key_desc_style, key_style, list_style};
-use crate::utils::popup::popup_area;
+use crate::ui::styles::{edit_border_style, selection_highlight};
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Span;
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
+use ratatui::widgets::{Block, List, ListItem, Paragraph};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
-    let selected_ticket = state.list_state.selected();
-    let new_ticket_pop_up = state.new_ticket_popup;
+    let adding_ticket = state.adding_ticket;
     let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
 
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(0),    // tickets
-            Constraint::Length(2), // additional actions
-        ])
-        .split(area);
-
-    let ticket_area = vertical[0];
+    // When adding a ticket, reserve 3 rows for the inline input; otherwise use full area.
+    let ticket_area = if adding_ticket {
+        let vertical = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(0), Constraint::Length(3)])
+            .split(area);
+        let input_area = vertical[1];
+        render_add_ticket_input(frame, input_area, &new_ticket_id);
+        vertical[0]
+    } else {
+        area
+    };
 
     let list_items: Vec<ListItem> = state
         .tickets
         .iter()
-        .enumerate()
-        .map(|(index, ticket)| {
+        .map(|ticket| {
             let status_color = match ticket.status.to_lowercase().as_str() {
                 s if s.contains("complete") => Color::Green,
                 s if s.contains("release") => Color::Magenta,
@@ -53,48 +53,33 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
                 ),
             ]));
             lines.push(Line::from(""));
-            ListItem::from(lines).style(list_style(selected_ticket.is_none_or(|i| i == index)))
+            ListItem::from(lines)
         })
         .collect();
 
     frame.render_stateful_widget(
-        List::new(list_items).block(Block::default()),
+        List::new(list_items)
+            .highlight_style(selection_highlight())
+            .block(Block::default()),
         ticket_area,
         &mut state.list_state,
     );
+}
 
-    let action_area = vertical[1];
-
-    let key = key_style();
-    let desc = key_desc_style();
-
-    let mut action_text = vec![
-        Span::styled("[a]", key),
-        Span::styled(" to add ticket  ", desc),
-    ];
-
-    if selected_ticket.is_some() {
-        action_text.push(Span::styled("[x]", key));
-        action_text.push(Span::styled(" to remove ticket  ", desc));
-        action_text.push(Span::styled("[o]", key));
-        action_text.push(Span::styled(" to Open in browser  ", desc));
-        action_text.push(Span::styled("[shift + ↑ ↓]", key));
-        action_text.push(Span::styled(" to move tickets  ", desc));
-    }
+fn render_add_ticket_input(frame: &mut Frame, area: Rect, value: &str) {
+    let block = Block::bordered()
+        .title(" Add Jira Ticket ")
+        .border_style(edit_border_style());
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
     frame.render_widget(
-        Paragraph::new(Line::from(action_text)).wrap(Wrap { trim: false }),
-        action_area,
+        Paragraph::new(Line::from(vec![Span::styled(
+            format!("{value}_"),
+            Style::default()
+                .fg(Color::White)
+                .add_modifier(Modifier::BOLD),
+        )])),
+        inner,
     );
-
-    if new_ticket_pop_up {
-        let block = Block::bordered().title("Add Jira Ticket");
-        let paragraph = Paragraph::new(new_ticket_id)
-            .block(block)
-            .alignment(Alignment::Center);
-
-        let area = popup_area(frame.area(), 20, 3);
-        frame.render_widget(Clear, area);
-        frame.render_widget(paragraph, area);
-    }
 }
