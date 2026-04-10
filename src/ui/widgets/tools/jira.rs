@@ -1,5 +1,5 @@
 use crate::state::jira::Jira;
-use crate::ui::styles::{key_desc_style, key_style, list_style};
+use crate::ui::styles::{key_desc_style, key_style, selection_highlight};
 use crate::utils::popup::popup_area;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -9,7 +9,6 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
-    let selected_ticket = state.list_state.selected();
     let new_ticket_pop_up = state.new_ticket_popup;
     let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
 
@@ -26,8 +25,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let list_items: Vec<ListItem> = state
         .tickets
         .iter()
-        .enumerate()
-        .map(|(index, ticket)| {
+        .map(|ticket| {
             let status_color = match ticket.status.to_lowercase().as_str() {
                 s if s.contains("complete") => Color::Green,
                 s if s.contains("release") => Color::Magenta,
@@ -53,12 +51,14 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
                 ),
             ]));
             lines.push(Line::from(""));
-            ListItem::from(lines).style(list_style(selected_ticket.is_none_or(|i| i == index)))
+            ListItem::from(lines)
         })
         .collect();
 
     frame.render_stateful_widget(
-        List::new(list_items).block(Block::default()),
+        List::new(list_items)
+            .highlight_style(selection_highlight())
+            .block(Block::default()),
         ticket_area,
         &mut state.list_state,
     );
@@ -68,6 +68,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let key = key_style();
     let desc = key_desc_style();
 
+    let selected_ticket = state.list_state.selected();
     let mut action_text = vec![
         Span::styled("[a]", key),
         Span::styled(" to add ticket  ", desc),

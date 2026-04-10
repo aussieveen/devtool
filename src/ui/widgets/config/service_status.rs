@@ -1,6 +1,6 @@
 use crate::config::model::ServiceStatusConfig;
 use crate::state::service_status_config::{AddServicePopup, PopupField, ServiceStatusConfigEditor};
-use crate::ui::styles::{key_desc_style, key_style, list_style};
+use crate::ui::styles::{key_desc_style, key_style, selection_highlight};
 use crate::utils::popup::popup_area;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -39,9 +39,7 @@ pub fn render(
 
         let rows: Vec<Row> = config
             .iter()
-            .enumerate()
-            .map(|(idx, s)| {
-                let is_active = selected.is_none_or(|i| i == idx);
+            .map(|s| {
                 Row::new([
                     Cell::from(s.name.clone()),
                     Cell::from(truncate(&s.staging, 20)),
@@ -49,7 +47,6 @@ pub fn render(
                     Cell::from(truncate(&s.production, 20)),
                     Cell::from(truncate(&s.repo, 20)),
                 ])
-                .style(list_style(is_active))
             })
             .collect();
 
@@ -64,6 +61,7 @@ pub fn render(
             ],
         )
         .header(header)
+        .row_highlight_style(selection_highlight())
         .block(Block::default());
 
         frame.render_stateful_widget(table, list_area, &mut state.table_state);

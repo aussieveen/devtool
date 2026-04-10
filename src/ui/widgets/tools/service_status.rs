@@ -1,9 +1,9 @@
 use crate::config::model::ServiceStatusConfig;
 use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
-use crate::ui::styles::{key_desc_style, key_style, row_style};
+use crate::ui::styles::{key_desc_style, key_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
@@ -39,7 +39,6 @@ pub fn render(
         }
     };
 
-    let selected_service_idx = state.table_state.selected();
 
     let table_length = (state.services.len() + 2) as u16; // Service count + header
 
@@ -91,19 +90,9 @@ pub fn render(
                 ),
             };
 
-            let is_active = selected_service_idx.is_none_or(|s| s == service_idx);
-
             let (staging_text, staging_color) = commit_cell(&service.staging, staging_ok);
             let (preprod_text, preprod_color) = commit_cell(&service.preproduction, preprod_ok);
             let (prod_text, prod_color) = commit_cell(&service.production, prod_ok);
-
-            let commit_cell_style = |color| {
-                if is_active {
-                    Style::default().fg(color)
-                } else {
-                    Style::default().fg(color).add_modifier(Modifier::DIM)
-                }
-            };
 
             Row::new([
                 Cell::from(Line::from(vec![
@@ -111,11 +100,10 @@ pub fn render(
                     Span::raw(" "),
                     Span::styled(config[service_idx].name.clone(), Style::default()),
                 ])),
-                Cell::from(staging_text).style(commit_cell_style(staging_color)),
-                Cell::from(preprod_text).style(commit_cell_style(preprod_color)),
-                Cell::from(prod_text).style(commit_cell_style(prod_color)),
+                Cell::from(staging_text).style(Style::default().fg(staging_color)),
+                Cell::from(preprod_text).style(Style::default().fg(preprod_color)),
+                Cell::from(prod_text).style(Style::default().fg(prod_color)),
             ])
-            .style(row_style(is_active))
         })
         .collect();
 
@@ -128,6 +116,7 @@ pub fn render(
             Constraint::Percentage(24),
         ],
     )
+    .row_highlight_style(selection_highlight())
     .block(Block::default())
     .header(headers);
 

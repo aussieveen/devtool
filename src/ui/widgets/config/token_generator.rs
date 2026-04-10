@@ -2,7 +2,7 @@ use crate::config::model::{Auth0Config, ServiceConfig};
 use crate::state::token_generator_config::{
     ActivePopup, Auth0Field, ConfigFocus, ServiceField, TokenGeneratorConfigEditor,
 };
-use crate::ui::styles::{block_style, key_desc_style, key_style, list_style};
+use crate::ui::styles::{block_style, key_desc_style, key_style, selection_highlight};
 use crate::utils::popup::popup_area;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -101,8 +101,6 @@ fn render_services_section(
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let selected = state.table_state.selected();
-
     if services.is_empty() {
         frame.render_widget(
             Paragraph::new(Line::from("No services yet — press [a] to add one."))
@@ -116,15 +114,12 @@ fn render_services_section(
     let header = Row::new(["Name", "Audience", "Envs"]);
     let rows: Vec<Row> = services
         .iter()
-        .enumerate()
-        .map(|(idx, s)| {
-            let is_active = selected.is_none_or(|i| i == idx);
+        .map(|s| {
             Row::new([
                 Cell::from(s.name.clone()),
                 Cell::from(truncate(&s.audience, 30)),
                 Cell::from(s.credentials.len().to_string()),
             ])
-            .style(list_style(is_active))
         })
         .collect();
 
@@ -137,6 +132,7 @@ fn render_services_section(
         ],
     )
     .header(header)
+    .row_highlight_style(selection_highlight())
     .block(Block::default());
 
     frame.render_stateful_widget(table, inner, &mut state.table_state);

@@ -1,6 +1,6 @@
 use crate::config::model::ServiceConfig;
 use crate::state::token_generator::{Focus, Token, TokenGenerator};
-use crate::ui::styles::{block_style, key_desc_style, key_style, list_style};
+use crate::ui::styles::{block_style, key_desc_style, key_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
@@ -30,10 +30,12 @@ pub fn render(
     let service_focused = matches!(state.focus, Focus::Service);
     let env_focused = matches!(state.focus, Focus::Env);
 
-    let selected_service = state.service_list_state.selected();
-    let services = List::new(service_configs.iter().enumerate().map(|(idx, s)| {
-        ListItem::new(s.name.clone()).style(list_style(selected_service.is_none_or(|i| i == idx)))
-    }))
+    let services = List::new(
+        service_configs
+            .iter()
+            .map(|s| ListItem::new(s.name.clone())),
+    )
+    .highlight_style(selection_highlight())
     .block(
         Block::new()
             .borders(Borders::ALL)
@@ -48,7 +50,6 @@ pub fn render(
 
     let service_config = &service_configs[service_idx];
 
-    let selected_env = state.env_list_state.selected();
     let environments = List::new(service_config.credentials.iter().enumerate().map(
         |(env_idx, c)| {
             let token = &state.tokens[service_idx][env_idx];
@@ -62,9 +63,9 @@ pub fn render(
                 Span::styled(prefix, prefix_style),
                 Span::raw(format!(" {}", c.env)),
             ]))
-            .style(list_style(selected_env.is_none_or(|i| i == env_idx)))
         },
     ))
+    .highlight_style(selection_highlight())
     .block(
         Block::new()
             .borders(Borders::ALL)
