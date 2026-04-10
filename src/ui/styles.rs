@@ -36,7 +36,7 @@ pub fn row_style(active: bool) -> Style {
     if active {
         Style::default()
     } else {
-        Style::default().add_modifier(Modifier::DIM)
+        Style::default().fg(Color::DarkGray)
     }
 }
 
@@ -80,6 +80,20 @@ mod tests {
     #[test]
     fn list_style_returns_active_style() {
         let actual = list_style(true);
+        assert!(actual.fg.is_none());
+    }
+
+    #[test]
+    fn row_style_returns_inactive_style() {
+        use crate::ui::styles::row_style;
+        let actual = row_style(false);
+        assert_eq!(actual.fg.unwrap(), Color::DarkGray);
+    }
+
+    #[test]
+    fn row_style_returns_active_style() {
+        use crate::ui::styles::row_style;
+        let actual = row_style(true);
         assert!(actual.fg.is_none());
     }
 }

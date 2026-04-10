@@ -7,23 +7,25 @@ use ratatui::{
 
 pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState) {
     let style = styles::block_style(styles::list_has_focus(state.effective_focus()));
+    let selected = state.tool_list.list_state.selected();
 
     let menu = List::new(
         state
             .tool_list
             .items
             .iter()
-            .map(|i| ListItem::new(i.menu_entry())),
+            .enumerate()
+            .map(|(idx, i)| {
+                ListItem::new(i.menu_entry())
+                    .style(styles::list_style(selected.is_none_or(|s| s == idx)))
+            }),
     )
     .block(
         Block::default()
             .borders(Borders::ALL)
             .border_style(style)
             .title(" Tools "),
-    )
-    .highlight_style(ratatui::style::Style::default().reversed())
-    .highlight_symbol("▶ ")
-    .repeat_highlight_symbol(true);
+    );
 
     frame.render_stateful_widget(menu, area, &mut state.tool_list.list_state);
 }

@@ -3,7 +3,7 @@ use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
 use crate::ui::styles::{key_desc_style, key_style, row_style};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
@@ -85,15 +85,23 @@ pub fn render(
             let (preprod_text, preprod_color) = commit_cell(&service.preproduction, preprod_ok);
             let (prod_text, prod_color) = commit_cell(&service.production, prod_ok);
 
+            let commit_cell_style = |color| {
+                if is_active {
+                    Style::default().fg(color)
+                } else {
+                    Style::default().fg(color).add_modifier(Modifier::DIM)
+                }
+            };
+
             Row::new([
                 Cell::from(Line::from(vec![
                     Span::styled("▍ ", Style::default().bg(service_color)),
                     Span::raw(" "),
                     Span::styled(config[service_idx].name.clone(), Style::default()),
                 ])),
-                Cell::from(staging_text).style(Style::default().fg(staging_color)),
-                Cell::from(preprod_text).style(Style::default().fg(preprod_color)),
-                Cell::from(prod_text).style(Style::default().fg(prod_color)),
+                Cell::from(staging_text).style(commit_cell_style(staging_color)),
+                Cell::from(preprod_text).style(commit_cell_style(preprod_color)),
+                Cell::from(prod_text).style(commit_cell_style(prod_color)),
             ])
             .style(row_style(is_active))
         })
