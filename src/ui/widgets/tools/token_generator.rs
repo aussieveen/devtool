@@ -1,11 +1,11 @@
 use crate::config::model::ServiceConfig;
 use crate::state::token_generator::{Focus, Token, TokenGenerator};
-use crate::ui::styles::{block_style, key_desc_style, key_style, selection_highlight};
+use crate::ui::styles::{block_style, selection_highlight};
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, List, ListItem};
 
 pub fn render(
     frame: &mut Frame,
@@ -17,15 +17,10 @@ pub fn render(
     const ERROR_COLOR: Color = Color::Red;
     const REQUESTING_COLOR: Color = Color::Yellow;
 
-    let vertical_break = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(2)])
-        .split(area);
-
     let inner_horizontal = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-        .split(vertical_break[0]);
+        .split(area);
 
     let service_focused = matches!(state.focus, Focus::Service);
     let env_focused = matches!(state.focus, Focus::Env);
@@ -40,7 +35,6 @@ pub fn render(
         Block::new()
             .borders(Borders::ALL)
             .title(" Services ")
-            .title_alignment(Alignment::Center)
             .border_style(block_style(service_focused)),
     );
 
@@ -70,36 +64,8 @@ pub fn render(
         Block::new()
             .borders(Borders::ALL)
             .title(" Environments ")
-            .title_alignment(Alignment::Center)
             .border_style(block_style(env_focused)),
     );
 
     frame.render_stateful_widget(environments, inner_horizontal[1], &mut state.env_list_state);
-
-    let key = key_style();
-    let desc = key_desc_style();
-
-    let token_text = match state.get_token_for_selected_service_env() {
-        Token::Idle => {
-            vec![
-                Span::styled("[Return]", key),
-                Span::styled(" to generate token  ", desc),
-            ]
-        }
-        Token::Requesting => {
-            vec![Span::from("Generating token")]
-        }
-        Token::Ready(_) => {
-            vec![
-                Span::from("Token available: "),
-                Span::styled("[c]", key),
-                Span::styled(" to Copy the token value", desc),
-            ]
-        }
-        Token::Error => {
-            vec![Span::from("Error when attempting to get the token")]
-        }
-    };
-
-    frame.render_widget(Paragraph::new(Line::from(token_text)), vertical_break[1]);
 }

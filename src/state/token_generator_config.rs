@@ -78,9 +78,10 @@ impl ServiceField {
     }
 }
 
-// ── Popup structs ─────────────────────────────────────────────────────────────
+// ── Inline edit form structs ─────────────────────────────────────────────────────────────
 
-pub struct Auth0Popup {
+#[derive(Clone)]
+pub struct Auth0Form {
     pub local: String,
     pub staging: String,
     pub preprod: String,
@@ -88,7 +89,7 @@ pub struct Auth0Popup {
     pub active_field: Auth0Field,
 }
 
-impl Auth0Popup {
+impl Auth0Form {
     pub fn from_existing(config: &Auth0Config) -> Self {
         Self {
             local: config.local.clone(),
@@ -109,7 +110,8 @@ impl Auth0Popup {
     }
 }
 
-pub struct ServicePopup {
+#[derive(Clone)]
+pub struct ServiceForm {
     pub name: String,
     pub audience: String,
     pub local_id: String,
@@ -125,7 +127,7 @@ pub struct ServicePopup {
     pub edit_index: Option<usize>,
 }
 
-impl ServicePopup {
+impl ServiceForm {
     pub fn new() -> Self {
         Self {
             name: String::new(),
@@ -222,14 +224,14 @@ pub enum ConfigFocus {
 
 // ── Editor ────────────────────────────────────────────────────────────────────
 
-pub enum ActivePopup {
-    Auth0(Auth0Popup),
-    Service(ServicePopup),
+pub enum ActiveEdit {
+    Auth0(Auth0Form),
+    Service(ServiceForm),
 }
 
 pub struct TokenGeneratorConfigEditor {
     pub table_state: TableState,
-    pub popup: Option<ActivePopup>,
+    pub form: Option<ActiveEdit>,
     pub config_focus: ConfigFocus,
 }
 
@@ -237,21 +239,21 @@ impl TokenGeneratorConfigEditor {
     pub fn new() -> Self {
         Self {
             table_state: TableState::default(),
-            popup: None,
+            form: None,
             config_focus: ConfigFocus::Auth0,
         }
     }
 
-    pub fn open_auth0_popup(&mut self, config: &Auth0Config) {
-        self.popup = Some(ActivePopup::Auth0(Auth0Popup::from_existing(config)));
+    pub fn open_auth0_form(&mut self, config: &Auth0Config) {
+        self.form = Some(ActiveEdit::Auth0(Auth0Form::from_existing(config)));
     }
 
-    pub fn open_add_service_popup(&mut self) {
-        self.popup = Some(ActivePopup::Service(ServicePopup::new()));
+    pub fn open_add_service_form(&mut self) {
+        self.form = Some(ActiveEdit::Service(ServiceForm::new()));
     }
 
-    pub fn open_edit_service_popup(&mut self, idx: usize, svc: &ServiceConfig) {
-        self.popup = Some(ActivePopup::Service(ServicePopup::from_existing(idx, svc)));
+    pub fn open_edit_service_form(&mut self, idx: usize, svc: &ServiceConfig) {
+        self.form = Some(ActiveEdit::Service(ServiceForm::from_existing(idx, svc)));
     }
 }
 
@@ -286,25 +288,25 @@ mod tests {
     }
 
     #[test]
-    fn service_popup_to_credentials_omits_empty_envs() {
-        let mut popup = ServicePopup::new();
-        popup.name = "svc".to_string();
-        popup.staging_id = "id".to_string();
-        popup.staging_secret = "sec".to_string();
+    fn service_form_to_credentials_omits_empty_envs() {
+        let mut form = ServiceForm::new();
+        form.name = "svc".to_string();
+        form.staging_id = "id".to_string();
+        form.staging_secret = "sec".to_string();
 
-        let creds = popup.to_credentials();
+        let creds = form.to_credentials();
         assert_eq!(creds.len(), 1);
         assert_eq!(creds[0].env, Environment::Staging);
     }
 
     #[test]
-    fn service_popup_is_invalid_when_name_empty() {
-        let popup = ServicePopup::new();
-        assert!(!popup.is_valid());
+    fn service_form_is_invalid_when_name_empty() {
+        let form = ServiceForm::new();
+        assert!(!form.is_valid());
     }
 
     #[test]
-    fn service_popup_from_existing_populates_fields() {
+    fn service_form_from_existing_populates_fields() {
         let svc = ServiceConfig {
             name: "my-svc".to_string(),
             audience: "https://api".to_string(),
@@ -314,10 +316,10 @@ mod tests {
                 client_secret: "csec".to_string(),
             }],
         };
-        let popup = ServicePopup::from_existing(0, &svc);
-        assert_eq!(popup.name, "my-svc");
-        assert_eq!(popup.staging_id, "cid");
-        assert_eq!(popup.local_id, "");
-        assert_eq!(popup.edit_index, Some(0));
+        let form = ServiceForm::from_existing(0, &svc);
+        assert_eq!(form.name, "my-svc");
+        assert_eq!(form.staging_id, "cid");
+        assert_eq!(form.local_id, "");
+        assert_eq!(form.edit_index, Some(0));
     }
 }

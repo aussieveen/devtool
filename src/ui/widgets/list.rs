@@ -2,11 +2,19 @@ use crate::{state::app::AppState, ui::styles};
 // ui/tools
 use ratatui::{
     Frame,
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem},
 };
 
 pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState) {
     let style = styles::block_style(styles::list_has_focus(state.effective_focus()));
+    let shortcut = styles::panel_shortcut_style();
+
+    let title = Line::from(vec![
+        Span::raw(" "),
+        Span::styled("[1]", shortcut),
+        Span::raw(" Tools "),
+    ]);
 
     let menu = List::new(
         state
@@ -20,7 +28,7 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
         Block::default()
             .borders(Borders::ALL)
             .border_style(style)
-            .title(" [1] Tools "),
+            .title(title),
     );
 
     frame.render_stateful_widget(menu, area, &mut state.tool_list.list_state);

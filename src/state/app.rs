@@ -17,7 +17,7 @@ pub enum AppFocus {
     Tool,
     Config,
     ToolConfig(Tool),
-    PopUp,
+    JiraInput,
 }
 
 pub struct AppState {
@@ -63,7 +63,7 @@ impl AppState {
 
     pub fn effective_focus(&self) -> AppFocus {
         if self.error.is_some() {
-            AppFocus::PopUp
+            AppFocus::JiraInput
         } else {
             self.focus
         }
@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn focus_is_popup_when_error_set() {
+    fn focus_is_jira_input_when_error_set() {
         let mut app_state = AppState::build(&test_config(), test_jira());
         app_state.error = Some(Error {
             title: "".to_string(),
@@ -161,7 +161,7 @@ mod tests {
             description: "".to_string(),
         });
 
-        assert_eq!(app_state.effective_focus(), AppFocus::PopUp);
+        assert_eq!(app_state.effective_focus(), AppFocus::JiraInput);
     }
 
     #[test]

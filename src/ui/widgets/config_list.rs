@@ -1,12 +1,20 @@
 use crate::state::app::{AppFocus, AppState};
-use crate::ui::styles::{block_style, selection_highlight};
+use crate::ui::styles::{block_style, panel_shortcut_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::Rect;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
     let is_focused = matches!(state.effective_focus(), AppFocus::Config);
     let border_style = block_style(is_focused);
+    let shortcut = panel_shortcut_style();
+
+    let title = Line::from(vec![
+        Span::raw(" "),
+        Span::styled("[2]", shortcut),
+        Span::raw(" Config "),
+    ]);
 
     let items = state.config_editor.items.iter().map(|item| {
         let checkbox = if item.enabled { "[✓]" } else { "[ ]" };
@@ -20,7 +28,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(border_style)
-                .title(" [2] Config "),
+                .title(title),
         );
 
     frame.render_stateful_widget(list, area, &mut state.config_editor.list_state);

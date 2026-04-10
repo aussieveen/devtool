@@ -4,7 +4,7 @@ use crate::ui::styles;
 use crate::ui::widgets::config;
 use ratatui::prelude::Alignment;
 use ratatui::style::{Color, Style};
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
@@ -30,8 +30,7 @@ pub fn render(
                 let pane = Block::default()
                     .borders(Borders::ALL)
                     .border_style(content_block_border_style)
-                    .title(title)
-                    .title_alignment(Alignment::Center);
+                    .title(title);
                 let inner = pane.inner(area);
                 frame.render_widget(pane, area);
                 match tool {
@@ -76,8 +75,7 @@ pub fn render(
         let pane = Block::default()
             .borders(Borders::ALL)
             .border_style(content_block_border_style)
-            .title(title)
-            .title_alignment(Alignment::Center);
+            .title(title);
         let inner = pane.inner(area);
         frame.render_widget(pane, area);
 
@@ -119,9 +117,12 @@ pub fn render(
         let inner = pane.inner(area);
         frame.render_widget(pane, area);
         frame.render_widget(
-            Paragraph::new(Line::from("No tools enabled — press [2] to configure."))
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::DarkGray)),
+            Paragraph::new(Line::from(vec![
+                Span::styled("No tools enabled — press ", Style::default().fg(Color::DarkGray)),
+                Span::styled("[2]", styles::key_style()),
+                Span::styled(" to configure.", Style::default().fg(Color::DarkGray)),
+            ]))
+            .alignment(Alignment::Center),
             inner,
         );
         return;
@@ -130,8 +131,7 @@ pub fn render(
     let pane = Block::default()
         .borders(Borders::ALL)
         .border_style(content_block_border_style)
-        .title(format!(" {} ", state.current_tool.title()))
-        .title_alignment(Alignment::Center);
+        .title(format!(" {} ", state.current_tool.title()));
 
     let inner = pane.inner(area);
 

@@ -21,7 +21,7 @@ pub fn main(area: Rect) -> Areas {
 
     let sidebar = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints([Constraint::Min(0), Constraint::Length(8)])
         .split(chunks[0]);
 
     Areas {

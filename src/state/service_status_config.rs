@@ -1,7 +1,7 @@
 use ratatui::widgets::TableState;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub enum PopupField {
+pub enum FormField {
     Name,
     Staging,
     Preprod,
@@ -9,7 +9,7 @@ pub enum PopupField {
     Repo,
 }
 
-impl PopupField {
+impl FormField {
     pub fn next(self) -> Self {
         match self {
             Self::Name => Self::Staging,
@@ -31,18 +31,19 @@ impl PopupField {
     }
 }
 
-pub struct AddServicePopup {
+#[derive(Clone)]
+pub struct AddServiceForm {
     pub name: String,
     pub staging: String,
     pub preprod: String,
     pub prod: String,
     pub repo: String,
-    pub active_field: PopupField,
+    pub active_field: FormField,
     /// If Some, this is an edit of the item at that index; if None, it's a new add.
     pub edit_index: Option<usize>,
 }
 
-impl AddServicePopup {
+impl AddServiceForm {
     pub fn new() -> Self {
         Self {
             name: String::new(),
@@ -50,7 +51,7 @@ impl AddServicePopup {
             preprod: String::new(),
             prod: String::new(),
             repo: String::new(),
-            active_field: PopupField::Name,
+            active_field: FormField::Name,
             edit_index: None,
         }
     }
@@ -62,18 +63,18 @@ impl AddServicePopup {
             preprod: svc.preproduction.clone(),
             prod: svc.production.clone(),
             repo: svc.repo.clone(),
-            active_field: PopupField::Name,
+            active_field: FormField::Name,
             edit_index: Some(idx),
         }
     }
 
     pub fn active_field_value_mut(&mut self) -> &mut String {
         match self.active_field {
-            PopupField::Name => &mut self.name,
-            PopupField::Staging => &mut self.staging,
-            PopupField::Preprod => &mut self.preprod,
-            PopupField::Prod => &mut self.prod,
-            PopupField::Repo => &mut self.repo,
+            FormField::Name => &mut self.name,
+            FormField::Staging => &mut self.staging,
+            FormField::Preprod => &mut self.preprod,
+            FormField::Prod => &mut self.prod,
+            FormField::Repo => &mut self.repo,
         }
     }
 
@@ -85,23 +86,23 @@ impl AddServicePopup {
 
 pub struct ServiceStatusConfigEditor {
     pub table_state: TableState,
-    pub popup: Option<AddServicePopup>,
+    pub form: Option<AddServiceForm>,
 }
 
 impl ServiceStatusConfigEditor {
     pub fn new() -> Self {
         Self {
             table_state: TableState::default(),
-            popup: None,
+            form: None,
         }
     }
 
-    pub fn open_popup(&mut self) {
-        self.popup = Some(AddServicePopup::new());
+    pub fn open_form(&mut self) {
+        self.form = Some(AddServiceForm::new());
     }
 
-    pub fn open_edit_popup(&mut self, idx: usize, svc: &crate::config::model::ServiceStatusConfig) {
-        self.popup = Some(AddServicePopup::from_existing(idx, svc));
+    pub fn open_edit_form(&mut self, idx: usize, svc: &crate::config::model::ServiceStatusConfig) {
+        self.form = Some(AddServiceForm::from_existing(idx, svc));
     }
 }
 
@@ -110,27 +111,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn popup_field_next_wraps() {
-        assert_eq!(PopupField::Repo.next(), PopupField::Name);
-        assert_eq!(PopupField::Name.next(), PopupField::Staging);
+    fn form_field_next_wraps() {
+        assert_eq!(FormField::Repo.next(), FormField::Name);
+        assert_eq!(FormField::Name.next(), FormField::Staging);
     }
 
     #[test]
-    fn popup_field_prev_wraps() {
-        assert_eq!(PopupField::Name.prev(), PopupField::Repo);
-        assert_eq!(PopupField::Staging.prev(), PopupField::Name);
+    fn form_field_prev_wraps() {
+        assert_eq!(FormField::Name.prev(), FormField::Repo);
+        assert_eq!(FormField::Staging.prev(), FormField::Name);
     }
 
     #[test]
-    fn popup_is_invalid_when_name_empty() {
-        let popup = AddServicePopup::new();
-        assert!(!popup.is_valid());
+    fn form_is_invalid_when_name_empty() {
+        let form = AddServiceForm::new();
+        assert!(!form.is_valid());
     }
 
     #[test]
-    fn popup_is_valid_when_name_set() {
-        let mut popup = AddServicePopup::new();
-        popup.name = "my-svc".to_string();
-        assert!(popup.is_valid());
+    fn form_is_valid_when_name_set() {
+        let mut form = AddServiceForm::new();
+        form.name = "my-svc".to_string();
+        assert!(form.is_valid());
     }
 }

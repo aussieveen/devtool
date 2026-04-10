@@ -1,12 +1,11 @@
 use crate::config::model::JiraConfig;
 use crate::state::jira_config::{JiraConfigEditor, JiraField};
-use crate::ui::styles::{block_style, key_desc_style, key_style};
-use crate::utils::popup::popup_area;
+use crate::ui::styles::edit_border_style;
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Paragraph, Wrap};
 
 pub fn render(
     frame: &mut Frame,
@@ -14,40 +13,30 @@ pub fn render(
     state: &mut JiraConfigEditor,
     config: Option<&JiraConfig>,
 ) {
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(2)])
-        .split(area);
-
-    render_values_section(frame, vertical[0], config);
-    render_action_bar(frame, vertical[1]);
-
-    if let Some(popup) = &state.popup {
-        render_popup(frame, frame.area(), popup);
+    if let Some(form) = &state.form {
+        render_inline_edit(frame, area, form);
+    } else {
+        render_values_section(frame, area, config);
     }
 }
 
 fn render_values_section(frame: &mut Frame, area: Rect, config: Option<&JiraConfig>) {
-    let block = Block::bordered()
-        .title(" Jira Connection ")
-        .title_alignment(Alignment::Center)
-        .border_style(block_style(true));
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
-
     let (url, email, token) = match config {
         Some(c) => (c.url.as_str(), c.email.as_str(), c.token.as_str()),
         None => ("", "", ""),
     };
 
+    // Mask the token in display mode — shown in full only when editing.
+    let token_display = if token.is_empty() { "" } else { "••••••••" };
+
     let lines = vec![
         display_line("URL  ", url),
         display_line("Email", email),
-        display_line("Token", token),
+        display_line("Token", token_display),
     ];
     frame.render_widget(
         Paragraph::new(lines).wrap(Wrap { trim: false }),
-        inner,
+        area,
     );
 }
 
@@ -72,43 +61,24 @@ fn display_line(label: &str, value: &str) -> Line<'static> {
     ])
 }
 
-fn render_action_bar(frame: &mut Frame, area: Rect) {
-    let key = key_style();
-    let desc = key_desc_style();
-    let actions = vec![
-        Span::styled("[e]", key),
-        Span::styled(" Edit  ", desc),
-        Span::styled("[←]", key),
-        Span::styled(" Back to config  ", desc),
-    ];
-    frame.render_widget(
-        Paragraph::new(Line::from(actions)).wrap(Wrap { trim: false }),
-        area,
-    );
-}
-
-fn render_popup(
+fn render_inline_edit(
     frame: &mut Frame,
     area: Rect,
-    popup: &crate::state::jira_config::JiraConfigPopup,
+    form: &crate::state::jira_config::JiraConfigForm,
 ) {
-    let popup_rect = popup_area(area, 55, 11);
-    frame.render_widget(Clear, popup_rect);
-
     let block = Block::bordered()
-        .title(" Edit Jira Connection ")
-        .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(popup_rect);
-    frame.render_widget(block, popup_rect);
+        .title(" Edit Jira Config ")
+        .border_style(edit_border_style());
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
-    let af = popup.active_field;
+    let af = form.active_field;
     let lines = vec![
-        field_line("URL  ", &popup.url, af == JiraField::Url),
+        field_line("URL  ", &form.url, af == JiraField::Url),
         Line::from(""),
-        field_line("Email", &popup.email, af == JiraField::Email),
+        field_line("Email", &form.email, af == JiraField::Email),
         Line::from(""),
-        field_line("Token", &popup.token, af == JiraField::Token),
+        field_line("Token", &form.token, af == JiraField::Token),
         Line::from(""),
         hint_line(),
     ];

@@ -43,6 +43,20 @@ pub fn key_desc_style() -> Style {
     Style::default().add_modifier(Modifier::DIM)
 }
 
+/// Style for `[1]`/`[2]` panel shortcut labels in sidebar titles.
+pub fn panel_shortcut_style() -> Style {
+    Style::default()
+        .fg(ACTIVE_BORDER)
+        .add_modifier(Modifier::BOLD)
+}
+
+/// Consistent border style for all active inline edit forms.
+/// Uses the active border colour — when an inline edit form is active, its parent panel
+/// loses focus (White border), making the edit form the sole Green element.
+pub fn edit_border_style() -> Style {
+    Style::default().fg(ACTIVE_BORDER)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::app::AppFocus;

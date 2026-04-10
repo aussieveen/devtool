@@ -1,14 +1,13 @@
 use crate::config::model::{Auth0Config, ServiceConfig};
 use crate::state::token_generator_config::{
-    ActivePopup, Auth0Field, ConfigFocus, ServiceField, TokenGeneratorConfigEditor,
+    ActiveEdit, Auth0Field, ConfigFocus, ServiceField, TokenGeneratorConfigEditor,
 };
-use crate::ui::styles::{block_style, key_desc_style, key_style, selection_highlight};
-use crate::utils::popup::popup_area;
+use crate::ui::styles::{block_style, edit_border_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Cell, Clear, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
 pub fn render(
     frame: &mut Frame,
@@ -17,43 +16,40 @@ pub fn render(
     auth0: &Auth0Config,
     services: &[ServiceConfig],
 ) {
-    // Split into: auth0 section (top), services section (middle), action bar (bottom)
+    let auth0_editing = matches!(&state.form, Some(ActiveEdit::Auth0(_)));
+
+    // Auth0 section height: 7 for display (4 lines + 1 blank + 2 borders),
+    // 11 for inline edit (4 fields + 4 separators + 1 hint + 2 borders).
+    let auth0_height = if auth0_editing { 11 } else { 7 };
+
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(7),  // auth0 section
-            Constraint::Min(0),     // services table
-            Constraint::Length(2),  // action bar
+            Constraint::Length(auth0_height),
+            Constraint::Min(0),
         ])
         .split(area);
 
     let auth0_area = vertical[0];
     let services_area = vertical[1];
-    let action_area = vertical[2];
 
-    render_auth0_section(frame, auth0_area, auth0, state.config_focus == ConfigFocus::Auth0);
-    render_services_section(frame, services_area, state, services);
-    render_action_bar(
-        frame,
-        action_area,
-        state.config_focus,
-        state.table_state.selected(),
-        services,
-    );
-
-    // Popups
-    if let Some(popup) = &state.popup {
-        match popup {
-            ActivePopup::Auth0(p) => render_auth0_popup(frame, frame.area(), p),
-            ActivePopup::Service(p) => render_service_popup(frame, frame.area(), p),
-        }
+    if let Some(ActiveEdit::Auth0(p)) = &state.form {
+        let p = p.clone();
+        render_auth0_inline(frame, auth0_area, &p, state.config_focus == ConfigFocus::Auth0);
+        render_services_section(frame, services_area, state, services);
+    } else if let Some(ActiveEdit::Service(p)) = &state.form {
+        let p = p.clone();
+        render_auth0_section(frame, auth0_area, auth0, false);
+        render_service_inline(frame, services_area, &p);
+    } else {
+        render_auth0_section(frame, auth0_area, auth0, state.config_focus == ConfigFocus::Auth0);
+        render_services_section(frame, services_area, state, services);
     }
 }
 
 fn render_auth0_section(frame: &mut Frame, area: Rect, auth0: &Auth0Config, focused: bool) {
     let block = Block::bordered()
         .title(" Auth0 Endpoints ")
-        .title_alignment(Alignment::Center)
         .border_style(block_style(focused));
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -96,7 +92,6 @@ fn render_services_section(
     let services_focused = state.config_focus == ConfigFocus::Services;
     let block = Block::bordered()
         .title(" Services ")
-        .title_alignment(Alignment::Center)
         .border_style(block_style(services_focused));
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -138,67 +133,28 @@ fn render_services_section(
     frame.render_stateful_widget(table, inner, &mut state.table_state);
 }
 
-fn render_action_bar(
+// ── Auth0 inline edit ─────────────────────────────────────────────────────────
+
+fn render_auth0_inline(
     frame: &mut Frame,
     area: Rect,
-    config_focus: ConfigFocus,
-    selected: Option<usize>,
-    services: &[ServiceConfig],
+    form: &crate::state::token_generator_config::Auth0Form,
+    focused: bool,
 ) {
-    let key = key_style();
-    let desc = key_desc_style();
-    let mut actions = vec![
-        Span::styled("[a]", key),
-        Span::styled(" Add service  ", desc),
-    ];
-    match config_focus {
-        ConfigFocus::Auth0 => {
-            actions.insert(0, Span::styled(" Edit Auth0  ", desc));
-            actions.insert(0, Span::styled("[e]", key));
-        }
-        ConfigFocus::Services => {
-            if selected.is_some() && !services.is_empty() {
-                actions.push(Span::styled("[e]", key));
-                actions.push(Span::styled(" Edit selected  ", desc));
-                actions.push(Span::styled("[x]", key));
-                actions.push(Span::styled(" Remove selected  ", desc));
-            }
-        }
-    }
-    actions.push(Span::styled("[←]", key));
-    actions.push(Span::styled(" Back to config  ", desc));
-
-    frame.render_widget(
-        Paragraph::new(Line::from(actions)).wrap(Wrap { trim: false }),
-        area,
-    );
-}
-
-// ── Auth0 popup ───────────────────────────────────────────────────────────────
-
-fn render_auth0_popup(
-    frame: &mut Frame,
-    area: Rect,
-    popup: &crate::state::token_generator_config::Auth0Popup,
-) {
-    let popup_rect = popup_area(area, 55, 12);
-    frame.render_widget(Clear, popup_rect);
-
     let block = Block::bordered()
-        .title(" Edit Auth0 Endpoints ")
-        .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(popup_rect);
-    frame.render_widget(block, popup_rect);
+        .title(" Auth0 Endpoints ")
+        .border_style(if focused { edit_border_style() } else { block_style(false) });
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
     let lines = vec![
-        field_line("Local      ", &popup.local, popup.active_field == Auth0Field::Local),
+        field_line("Local      ", &form.local, form.active_field == Auth0Field::Local),
         Line::from(""),
-        field_line("Staging    ", &popup.staging, popup.active_field == Auth0Field::Staging),
+        field_line("Staging    ", &form.staging, form.active_field == Auth0Field::Staging),
         Line::from(""),
-        field_line("Preprod    ", &popup.preprod, popup.active_field == Auth0Field::Preprod),
+        field_line("Preprod    ", &form.preprod, form.active_field == Auth0Field::Preprod),
         Line::from(""),
-        field_line("Production ", &popup.prod, popup.active_field == Auth0Field::Prod),
+        field_line("Production ", &form.prod, form.active_field == Auth0Field::Prod),
         Line::from(""),
         hint_line(),
     ];
@@ -209,17 +165,14 @@ fn render_auth0_popup(
     );
 }
 
-// ── Service popup ─────────────────────────────────────────────────────────────
+// ── Service inline edit ───────────────────────────────────────────────────────
 
-fn render_service_popup(
+fn render_service_inline(
     frame: &mut Frame,
     area: Rect,
-    popup: &crate::state::token_generator_config::ServicePopup,
+    form: &crate::state::token_generator_config::ServiceForm,
 ) {
-    let popup_rect = popup_area(area, 58, 28);
-    frame.render_widget(Clear, popup_rect);
-
-    let title = if popup.edit_index.is_some() {
+    let title = if form.edit_index.is_some() {
         " Edit Service "
     } else {
         " Add Service "
@@ -227,32 +180,31 @@ fn render_service_popup(
 
     let block = Block::bordered()
         .title(title)
-        .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Cyan));
-    let inner = block.inner(popup_rect);
-    frame.render_widget(block, popup_rect);
+        .border_style(edit_border_style());
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
-    let af = popup.active_field;
+    let af = form.active_field;
     let lines = vec![
-        field_line("Name      ", &popup.name, af == ServiceField::Name),
+        field_line("Name      ", &form.name, af == ServiceField::Name),
         Line::from(""),
-        field_line("Audience  ", &popup.audience, af == ServiceField::Audience),
+        field_line("Audience  ", &form.audience, af == ServiceField::Audience),
         Line::from(""),
         divider_line("Local"),
-        field_line("Client ID ", &popup.local_id, af == ServiceField::LocalClientId),
-        field_line("Client Sec", &popup.local_secret, af == ServiceField::LocalClientSecret),
+        field_line("Client ID ", &form.local_id, af == ServiceField::LocalClientId),
+        field_line("Client Sec", &form.local_secret, af == ServiceField::LocalClientSecret),
         Line::from(""),
         divider_line("Staging"),
-        field_line("Client ID ", &popup.staging_id, af == ServiceField::StagingClientId),
-        field_line("Client Sec", &popup.staging_secret, af == ServiceField::StagingClientSecret),
+        field_line("Client ID ", &form.staging_id, af == ServiceField::StagingClientId),
+        field_line("Client Sec", &form.staging_secret, af == ServiceField::StagingClientSecret),
         Line::from(""),
         divider_line("Preprod"),
-        field_line("Client ID ", &popup.preprod_id, af == ServiceField::PreprodClientId),
-        field_line("Client Sec", &popup.preprod_secret, af == ServiceField::PreprodClientSecret),
+        field_line("Client ID ", &form.preprod_id, af == ServiceField::PreprodClientId),
+        field_line("Client Sec", &form.preprod_secret, af == ServiceField::PreprodClientSecret),
         Line::from(""),
         divider_line("Production"),
-        field_line("Client ID ", &popup.prod_id, af == ServiceField::ProdClientId),
-        field_line("Client Sec", &popup.prod_secret, af == ServiceField::ProdClientSecret),
+        field_line("Client ID ", &form.prod_id, af == ServiceField::ProdClientId),
+        field_line("Client Sec", &form.prod_secret, af == ServiceField::ProdClientSecret),
         Line::from(""),
         hint_line(),
     ];

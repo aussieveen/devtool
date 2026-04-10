@@ -1,22 +1,22 @@
 use crate::app::AppFocus;
 use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::events::event::AppEvent::{
-    AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissPopup,
-    GenerateToken, JiraConfigPopupBackspace, JiraConfigPopupChar, JiraConfigPopupNextField,
-    JiraConfigPopupPrevField, JiraTicketListMove, JiraTicketMove, ListMove, NewJiraTicketPopUp,
-    OpenAddServicePopup, OpenAddTokenGenServicePopup, OpenEditServicePopup,
-    OpenInBrowser, OpenJiraConfigPopup, OpenToolConfig, Quit,
+    AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissError,
+    GenerateToken, JiraConfigFormBackspace, JiraConfigFormChar, JiraConfigFormNextField,
+    JiraConfigFormPrevField, JiraTicketListMove, JiraTicketMove, ListMove, NewJiraTicket,
+    OpenAddService, OpenAddTokenGenService, OpenEditService,
+    OpenInBrowser, OpenJiraConfigEdit, OpenToolConfig, Quit,
     RemoveService, RemoveTicket, RemoveTicketIdChar, RemoveTokenGenService, ScanServices,
-    ServiceStatusConfigListMove, ServiceStatusListMove, ServiceStatusPopupBackspace,
-    ServiceStatusPopupChar, ServiceStatusPopupNextField, ServiceStatusPopupPrevField, SetFocus,
+    ServiceStatusConfigListMove, ServiceStatusListMove, ServiceStatusFormBackspace,
+    ServiceStatusFormChar, ServiceStatusFormNextField, ServiceStatusFormPrevField, SetFocus,
     SetTokenGenFocus, SubmitJiraConfig, SubmitServiceConfig, SubmitTicketId, SubmitTokenGenConfig,
     TgConfigEdit, TgConfigSwitchFocus, ToggleFeature, TokenGenConfigListMove,
-    TokenGenConfigPopupBackspace, TokenGenConfigPopupChar, TokenGenConfigPopupNextField,
-    TokenGenConfigPopupPrevField, TokenGenEnvListMove, TokenGenServiceListMove,
+    TokenGenConfigFormBackspace, TokenGenConfigFormChar, TokenGenConfigFormNextField,
+    TokenGenConfigFormPrevField, TokenGenEnvListMove, TokenGenServiceListMove,
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
-    Config, ErrorPopUp, Global, List, Popup, TokenGen, Tool, ToolConfig, ToolConfigPopup,
+    Config, Error, Global, List, Editing, TokenGen, Tool, ToolConfig, ToolConfigEditing,
     ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
@@ -52,10 +52,10 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         OpenInBrowser,
     );
     key_event_map.add_static(
-        ErrorPopUp,
+        Error,
         KeyCode::Char('d'),
         KeyModifiers::NONE,
-        DismissPopup,
+        DismissError,
     );
 
     // CONFIG EVENTS
@@ -102,13 +102,13 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         ToolConfig(ServiceStatus),
         KeyCode::Char('a'),
         KeyModifiers::NONE,
-        OpenAddServicePopup,
+        OpenAddService,
     );
     key_event_map.add_static(
         ToolConfig(ServiceStatus),
         KeyCode::Char('e'),
         KeyModifiers::NONE,
-        OpenEditServicePopup,
+        OpenEditService,
     );
     key_event_map.add_static(
         ToolConfig(ServiceStatus),
@@ -131,63 +131,63 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
 
     // SERVICE STATUS ADD POPUP EVENTS
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::Esc,
         KeyModifiers::NONE,
         CloseToolConfig,
     );
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::Enter,
         KeyModifiers::NONE,
         SubmitServiceConfig,
     );
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::Backspace,
         KeyModifiers::NONE,
-        ServiceStatusPopupBackspace,
+        ServiceStatusFormBackspace,
     );
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::Down,
         KeyModifiers::NONE,
-        ServiceStatusPopupNextField,
+        ServiceStatusFormNextField,
     );
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::Up,
         KeyModifiers::NONE,
-        ServiceStatusPopupPrevField,
+        ServiceStatusFormPrevField,
     );
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::Tab,
         KeyModifiers::NONE,
-        ServiceStatusPopupNextField,
+        ServiceStatusFormNextField,
     );
     key_event_map.add_static(
-        Popup(ServiceStatus),
+        Editing(ServiceStatus),
         KeyCode::BackTab,
         KeyModifiers::SHIFT,
-        ServiceStatusPopupPrevField,
+        ServiceStatusFormPrevField,
     );
-    key_event_map.add_dynamic(Popup(ServiceStatus), service_status_popup_char);
+    key_event_map.add_dynamic(Editing(ServiceStatus), service_status_form_char);
 
     // POP UP EVENTS
     key_event_map.add_static(
-        Popup(Jira),
+        Editing(Jira),
         KeyCode::Backspace,
         KeyModifiers::NONE,
         RemoveTicketIdChar,
     );
     key_event_map.add_static(
-        Popup(Jira),
+        Editing(Jira),
         KeyCode::Enter,
         KeyModifiers::NONE,
         SubmitTicketId,
     );
-    key_event_map.add_dynamic(Popup(Jira), add_ticket_id_char);
+    key_event_map.add_dynamic(Editing(Jira), add_ticket_id_char);
 
     // LIST EVENTS
     key_event_map.add_static(
@@ -308,7 +308,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         ToolConfig(TokenGenerator),
         KeyCode::Char('a'),
         KeyModifiers::NONE,
-        OpenAddTokenGenServicePopup,
+        OpenAddTokenGenService,
     );
     key_event_map.add_static(
         ToolConfig(TokenGenerator),
@@ -349,48 +349,48 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
 
     // TOKEN GENERATOR CONFIG POPUP EVENTS
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::Esc,
         KeyModifiers::NONE,
         CloseToolConfig,
     );
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::Enter,
         KeyModifiers::NONE,
         SubmitTokenGenConfig,
     );
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::Backspace,
         KeyModifiers::NONE,
-        TokenGenConfigPopupBackspace,
+        TokenGenConfigFormBackspace,
     );
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::Down,
         KeyModifiers::NONE,
-        TokenGenConfigPopupNextField,
+        TokenGenConfigFormNextField,
     );
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::Up,
         KeyModifiers::NONE,
-        TokenGenConfigPopupPrevField,
+        TokenGenConfigFormPrevField,
     );
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::Tab,
         KeyModifiers::NONE,
-        TokenGenConfigPopupNextField,
+        TokenGenConfigFormNextField,
     );
     key_event_map.add_static(
-        Popup(TokenGenerator),
+        Editing(TokenGenerator),
         KeyCode::BackTab,
         KeyModifiers::SHIFT,
-        TokenGenConfigPopupPrevField,
+        TokenGenConfigFormPrevField,
     );
-    key_event_map.add_dynamic(Popup(TokenGenerator), token_gen_config_popup_char);
+    key_event_map.add_dynamic(Editing(TokenGenerator), token_gen_config_form_char);
 
     // JIRA EVENTS
     key_event_map.add_static(
@@ -421,7 +421,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         Tool(Jira),
         KeyCode::Char('a'),
         KeyModifiers::NONE,
-        NewJiraTicketPopUp,
+        NewJiraTicket,
     );
     key_event_map.add_static(
         Tool(Jira),
@@ -435,7 +435,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         ToolConfig(Jira),
         KeyCode::Char('e'),
         KeyModifiers::NONE,
-        OpenJiraConfigPopup,
+        OpenJiraConfigEdit,
     );
     key_event_map.add_static(
         ToolConfig(Jira),
@@ -452,64 +452,64 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
 
     // JIRA CONFIG POPUP EVENTS
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::Esc,
         KeyModifiers::NONE,
         CloseToolConfig,
     );
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::Enter,
         KeyModifiers::NONE,
         SubmitJiraConfig,
     );
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::Backspace,
         KeyModifiers::NONE,
-        JiraConfigPopupBackspace,
+        JiraConfigFormBackspace,
     );
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::Down,
         KeyModifiers::NONE,
-        JiraConfigPopupNextField,
+        JiraConfigFormNextField,
     );
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::Up,
         KeyModifiers::NONE,
-        JiraConfigPopupPrevField,
+        JiraConfigFormPrevField,
     );
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::Tab,
         KeyModifiers::NONE,
-        JiraConfigPopupNextField,
+        JiraConfigFormNextField,
     );
     key_event_map.add_static(
-        ToolConfigPopup(Jira),
+        ToolConfigEditing(Jira),
         KeyCode::BackTab,
         KeyModifiers::SHIFT,
-        JiraConfigPopupPrevField,
+        JiraConfigFormPrevField,
     );
-    key_event_map.add_dynamic(ToolConfigPopup(Jira), jira_config_popup_char);
+    key_event_map.add_dynamic(ToolConfigEditing(Jira), jira_config_form_char);
 }
 
 fn add_ticket_id_char(key_event: KeyEvent) -> Option<AppEvent> {
     key_event.code.as_char().map(AddTicketIdChar)
 }
 
-fn service_status_popup_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(ServiceStatusPopupChar)
+fn service_status_form_char(key_event: KeyEvent) -> Option<AppEvent> {
+    key_event.code.as_char().map(ServiceStatusFormChar)
 }
 
-fn token_gen_config_popup_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(TokenGenConfigPopupChar)
+fn token_gen_config_form_char(key_event: KeyEvent) -> Option<AppEvent> {
+    key_event.code.as_char().map(TokenGenConfigFormChar)
 }
 
-fn jira_config_popup_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(JiraConfigPopupChar)
+fn jira_config_form_char(key_event: KeyEvent) -> Option<AppEvent> {
+    key_event.code.as_char().map(JiraConfigFormChar)
 }
 
 #[cfg(test)]
@@ -518,7 +518,7 @@ mod tests {
     use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
     use crate::events::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
-    use crate::input::key_context::KeyContext::{Config, Global, List, Popup, TokenGen, Tool, ToolConfig, ToolIgnore};
+    use crate::input::key_context::KeyContext::{Config, Global, List, Editing, TokenGen, Tool, ToolConfig, ToolIgnore};
     use crate::state::token_generator::Focus;
     use test_case::test_case;
 
@@ -534,7 +534,7 @@ mod tests {
     #[test_case(Global, KeyCode::Char('2'), KeyModifiers::NONE, SetFocus(AppFocus::Config); "2 focuses config")]
     #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
     #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
-    #[test_case(ErrorPopUp, KeyCode::Char('d'), KeyModifiers::NONE, DismissPopup; "popup dismissed")]
+    #[test_case(Error, KeyCode::Char('d'), KeyModifiers::NONE, DismissError; "error dismissed")]
     #[test_case(Config, KeyCode::Down, KeyModifiers::NONE, AppEvent::ConfigListMove(Down); "config down")]
     #[test_case(Config, KeyCode::Up, KeyModifiers::NONE, AppEvent::ConfigListMove(Up); "config up")]
     #[test_case(Config, KeyCode::Enter, KeyModifiers::NONE, ToggleFeature; "config enter toggles feature")]
@@ -542,13 +542,13 @@ mod tests {
     #[test_case(Config, KeyCode::Right, KeyModifiers::NONE, OpenToolConfig(ServiceStatus); "config right opens tool config")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, AppEvent::ServiceStatusConfigListMove(Down); "tool config down")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, AppEvent::ServiceStatusConfigListMove(Up); "tool config up")]
-    #[test_case(ToolConfig(ServiceStatus), KeyCode::Char('a'), KeyModifiers::NONE, OpenAddServicePopup; "tool config a opens add popup")]
+    #[test_case(ToolConfig(ServiceStatus), KeyCode::Char('a'), KeyModifiers::NONE, OpenAddService; "tool config a opens add form")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Char('x'), KeyModifiers::NONE, RemoveService; "tool config x removes service")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Left, KeyModifiers::NONE, CloseToolConfig; "tool config left closes")]
-    #[test_case(Popup(ServiceStatus), KeyCode::Enter, KeyModifiers::NONE, SubmitServiceConfig; "service popup enter submits")]
-    #[test_case(Popup(ServiceStatus), KeyCode::Backspace, KeyModifiers::NONE, ServiceStatusPopupBackspace; "service popup backspace")]
-    #[test_case(Popup(ServiceStatus), KeyCode::Tab, KeyModifiers::NONE, ServiceStatusPopupNextField; "service popup tab next field")]
-    #[test_case(Popup(ServiceStatus), KeyCode::BackTab, KeyModifiers::SHIFT, ServiceStatusPopupPrevField; "service popup shift-tab prev field")]
+    #[test_case(Editing(ServiceStatus), KeyCode::Enter, KeyModifiers::NONE, SubmitServiceConfig; "service form enter submits")]
+    #[test_case(Editing(ServiceStatus), KeyCode::Backspace, KeyModifiers::NONE, ServiceStatusFormBackspace; "service form backspace")]
+    #[test_case(Editing(ServiceStatus), KeyCode::Tab, KeyModifiers::NONE, ServiceStatusFormNextField; "service form tab next field")]
+    #[test_case(Editing(ServiceStatus), KeyCode::BackTab, KeyModifiers::SHIFT, ServiceStatusFormPrevField; "service form shift-tab prev field")]
     #[test_case(List, KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]
     #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
     #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
@@ -568,10 +568,10 @@ mod tests {
     #[test_case(Tool(Jira), KeyCode::Down, KeyModifiers::NONE, JiraTicketListMove(Down); "jira down")]
     #[test_case(Tool(Jira), KeyCode::Up, KeyModifiers::SHIFT, JiraTicketMove(Up); "jira shift up moves ticket")]
     #[test_case(Tool(Jira), KeyCode::Down, KeyModifiers::SHIFT, JiraTicketMove(Down); "jira shift down moves ticket")]
-    #[test_case(Tool(Jira), KeyCode::Char('a'), KeyModifiers::NONE, NewJiraTicketPopUp; "jira a adds ticket")]
+    #[test_case(Tool(Jira), KeyCode::Char('a'), KeyModifiers::NONE, NewJiraTicket; "jira a adds ticket")]
     #[test_case(Tool(Jira), KeyCode::Char('x'), KeyModifiers::NONE, RemoveTicket; "jira x removes ticket")]
-    #[test_case(Popup(Jira), KeyCode::Backspace, KeyModifiers::NONE, RemoveTicketIdChar; "popup backspace removes char")]
-    #[test_case(Popup(Jira), KeyCode::Enter, KeyModifiers::NONE, SubmitTicketId; "popup enter submits")]
+    #[test_case(Editing(Jira), KeyCode::Backspace, KeyModifiers::NONE, RemoveTicketIdChar; "form backspace removes char")]
+    #[test_case(Editing(Jira), KeyCode::Enter, KeyModifiers::NONE, SubmitTicketId; "form enter submits")]
     fn binding_resolves_to_expected_event(
         context: KeyContext,
         code: KeyCode,
@@ -587,7 +587,7 @@ mod tests {
     fn popup_dynamic_handler_maps_char_to_add_ticket_id_char() {
         let map = registered_map();
         let result = map.resolve(
-            Popup(Jira),
+            Editing(Jira),
             KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE),
         );
         assert_eq!(result, Some(AddTicketIdChar('A')));
@@ -596,7 +596,7 @@ mod tests {
     #[test]
     fn popup_dynamic_handler_returns_none_for_non_char() {
         let map = registered_map();
-        let result = map.resolve(Popup(Jira), KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
+        let result = map.resolve(Editing(Jira), KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
         assert_eq!(result, None);
     }
 }

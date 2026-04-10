@@ -27,16 +27,16 @@ impl JiraField {
     }
 }
 
-// ── Popup ─────────────────────────────────────────────────────────────────────
+// ── Inline edit form ─────────────────────────────────────────────────────────────────────
 
-pub struct JiraConfigPopup {
+pub struct JiraConfigForm {
     pub url: String,
     pub email: String,
     pub token: String,
     pub active_field: JiraField,
 }
 
-impl JiraConfigPopup {
+impl JiraConfigForm {
     pub fn from_existing(config: &JiraConfig) -> Self {
         Self {
             url: config.url.clone(),
@@ -73,18 +73,18 @@ impl JiraConfigPopup {
 // ── Editor ────────────────────────────────────────────────────────────────────
 
 pub struct JiraConfigEditor {
-    pub popup: Option<JiraConfigPopup>,
+    pub form: Option<JiraConfigForm>,
 }
 
 impl JiraConfigEditor {
     pub fn new() -> Self {
-        Self { popup: None }
+        Self { form: None }
     }
 
-    pub fn open_popup(&mut self, config: Option<&JiraConfig>) {
-        self.popup = Some(match config {
-            Some(c) => JiraConfigPopup::from_existing(c),
-            None => JiraConfigPopup::empty(),
+    pub fn open_form(&mut self, config: Option<&JiraConfig>) {
+        self.form = Some(match config {
+            Some(c) => JiraConfigForm::from_existing(c),
+            None => JiraConfigForm::empty(),
         });
     }
 }
@@ -108,29 +108,29 @@ mod tests {
     }
 
     #[test]
-    fn popup_from_existing_populates_fields() {
+    fn form_from_existing_populates_fields() {
         let cfg = JiraConfig {
             url: "https://jira.example.com".to_string(),
             email: "user@example.com".to_string(),
             token: "secret".to_string(),
         };
-        let popup = JiraConfigPopup::from_existing(&cfg);
-        assert_eq!(popup.url, "https://jira.example.com");
-        assert_eq!(popup.email, "user@example.com");
-        assert_eq!(popup.token, "secret");
-        assert_eq!(popup.active_field, JiraField::Url);
+        let form = JiraConfigForm::from_existing(&cfg);
+        assert_eq!(form.url, "https://jira.example.com");
+        assert_eq!(form.email, "user@example.com");
+        assert_eq!(form.token, "secret");
+        assert_eq!(form.active_field, JiraField::Url);
     }
 
     #[test]
-    fn popup_is_empty_when_all_blank() {
-        let popup = JiraConfigPopup::empty();
-        assert!(popup.is_empty());
+    fn form_is_empty_when_all_blank() {
+        let form = JiraConfigForm::empty();
+        assert!(form.is_empty());
     }
 
     #[test]
-    fn popup_is_not_empty_when_url_set() {
-        let mut popup = JiraConfigPopup::empty();
-        popup.url = "https://jira.example.com".to_string();
-        assert!(!popup.is_empty());
+    fn form_is_not_empty_when_url_set() {
+        let mut form = JiraConfigForm::empty();
+        form.url = "https://jira.example.com".to_string();
+        assert!(!form.is_empty());
     }
 }

@@ -1,12 +1,11 @@
 use crate::config::model::ServiceStatusConfig;
-use crate::state::service_status_config::{AddServicePopup, PopupField, ServiceStatusConfigEditor};
-use crate::ui::styles::{key_desc_style, key_style, selection_highlight};
-use crate::utils::popup::popup_area;
+use crate::state::service_status_config::{AddServiceForm, FormField, ServiceStatusConfigEditor};
+use crate::ui::styles::{edit_border_style, selection_highlight};
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Cell, Clear, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
 
 pub fn render(
     frame: &mut Frame,
@@ -14,16 +13,20 @@ pub fn render(
     state: &mut ServiceStatusConfigEditor,
     config: &[ServiceStatusConfig],
 ) {
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(2)])
-        .split(area);
+    if let Some(form) = &state.form {
+        let form = form.clone();
+        render_inline_edit(frame, area, &form);
+    } else {
+        render_table(frame, area, state, config);
+    }
+}
 
-    let list_area = vertical[0];
-    let action_area = vertical[1];
-
-    let selected = state.table_state.selected();
-
+fn render_table(
+    frame: &mut Frame,
+    area: Rect,
+    state: &mut ServiceStatusConfigEditor,
+    config: &[ServiceStatusConfig],
+) {
     if config.is_empty() {
         frame.render_widget(
             Paragraph::new(Line::from(
@@ -31,74 +34,44 @@ pub fn render(
             ))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray)),
-            list_area,
+            area,
         );
-    } else {
-        // Table with truncated URLs for readability
-        let header = Row::new(["Name", "Staging", "Preproduction", "Production", "Repo"]);
-
-        let rows: Vec<Row> = config
-            .iter()
-            .map(|s| {
-                Row::new([
-                    Cell::from(s.name.clone()),
-                    Cell::from(truncate(&s.staging, 20)),
-                    Cell::from(truncate(&s.preproduction, 20)),
-                    Cell::from(truncate(&s.production, 20)),
-                    Cell::from(truncate(&s.repo, 20)),
-                ])
-            })
-            .collect();
-
-        let table = Table::new(
-            rows,
-            [
-                Constraint::Percentage(18),
-                Constraint::Percentage(20),
-                Constraint::Percentage(20),
-                Constraint::Percentage(20),
-                Constraint::Percentage(20),
-            ],
-        )
-        .header(header)
-        .row_highlight_style(selection_highlight())
-        .block(Block::default());
-
-        frame.render_stateful_widget(table, list_area, &mut state.table_state);
+        return;
     }
 
-    // Action bar
-    let key = key_style();
-    let desc = key_desc_style();
-    let mut actions = vec![
-        Span::styled("[a]", key),
-        Span::styled(" Add service  ", desc),
-    ];
-    if selected.is_some() && !config.is_empty() {
-        actions.push(Span::styled("[e]", key));
-        actions.push(Span::styled(" Edit selected  ", desc));
-        actions.push(Span::styled("[x]", key));
-        actions.push(Span::styled(" Remove selected  ", desc));
-    }
-    actions.push(Span::styled("[←]", key));
-    actions.push(Span::styled(" Back to config  ", desc));
+    let header = Row::new(["Name", "Staging", "Preproduction", "Production", "Repo"]);
+    let rows: Vec<Row> = config
+        .iter()
+        .map(|s| {
+            Row::new([
+                Cell::from(s.name.clone()),
+                Cell::from(truncate(&s.staging, 20)),
+                Cell::from(truncate(&s.preproduction, 20)),
+                Cell::from(truncate(&s.production, 20)),
+                Cell::from(truncate(&s.repo, 20)),
+            ])
+        })
+        .collect();
 
-    frame.render_widget(
-        Paragraph::new(Line::from(actions)).wrap(Wrap { trim: false }),
-        action_area,
-    );
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Percentage(18),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+            Constraint::Percentage(20),
+        ],
+    )
+    .header(header)
+    .row_highlight_style(selection_highlight())
+    .block(Block::default());
 
-    // Popup
-    if let Some(popup) = &state.popup {
-        render_popup(frame, frame.area(), popup);
-    }
+    frame.render_stateful_widget(table, area, &mut state.table_state);
 }
 
-fn render_popup(frame: &mut Frame, area: Rect, popup: &AddServicePopup) {
-    let popup_rect = popup_area(area, 55, 14);
-    frame.render_widget(Clear, popup_rect);
-
-    let title = if popup.edit_index.is_some() {
+fn render_inline_edit(frame: &mut Frame, area: Rect, form: &AddServiceForm) {
+    let title = if form.edit_index.is_some() {
         " Edit Service "
     } else {
         " Add Service "
@@ -106,21 +79,20 @@ fn render_popup(frame: &mut Frame, area: Rect, popup: &AddServicePopup) {
 
     let block = Block::bordered()
         .title(title)
-        .border_style(Style::default().fg(Color::Cyan));
-
-    let inner = block.inner(popup_rect);
-    frame.render_widget(block, popup_rect);
+        .border_style(edit_border_style());
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
 
     let lines = vec![
-        field_line("Name        ", &popup.name, popup.active_field == PopupField::Name),
+        field_line("Name        ", &form.name, form.active_field == FormField::Name),
         Line::from(""),
-        field_line("Staging URL ", &popup.staging, popup.active_field == PopupField::Staging),
+        field_line("Staging URL ", &form.staging, form.active_field == FormField::Staging),
         Line::from(""),
-        field_line("Preprod URL ", &popup.preprod, popup.active_field == PopupField::Preprod),
+        field_line("Preprod URL ", &form.preprod, form.active_field == FormField::Preprod),
         Line::from(""),
-        field_line("Prod URL    ", &popup.prod, popup.active_field == PopupField::Prod),
+        field_line("Prod URL    ", &form.prod, form.active_field == FormField::Prod),
         Line::from(""),
-        field_line("Repo URL    ", &popup.repo, popup.active_field == PopupField::Repo),
+        field_line("Repo URL    ", &form.repo, form.active_field == FormField::Repo),
         Line::from(""),
         Line::from(Span::styled(
             "  [enter] Save   [esc] Cancel   [tab] Next field   [shift+tab] Prev field",

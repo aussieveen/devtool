@@ -12,11 +12,11 @@ use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    ErrorPopUp, Global, List, Popup, TokenGen, ToolConfigPopup, ToolIgnore,
+    Error, Global, List, Editing, TokenGen, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
-use crate::utils::popup::popup_area;
+use crate::utils::overlay::overlay_area;
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
@@ -116,7 +116,7 @@ impl App {
                 }
             }
             SystemError(error) => self.state.error = Some(error),
-            DismissPopup => self.state.error = None,
+            DismissError => self.state.error = None,
 
             CopyToClipboard => match self.state.current_tool {
                 ServiceStatus => service_status::handle_event(self, CopyToClipboard),
@@ -144,7 +144,7 @@ impl App {
             | e @ TokenFailed(..) => token_generator::handle_event(self, e),
             // jira ticket events
             e @ JiraTicketListMove(..)
-            | e @ NewJiraTicketPopUp
+            | e @ NewJiraTicket
             | e @ AddTicketIdChar(..)
             | e @ RemoveTicketIdChar
             | e @ SubmitTicketId
@@ -181,47 +181,47 @@ impl App {
                 }
             }
             CloseToolConfig => {
-                // Close popup if open, otherwise exit tool config.
-                let ss_popup_open = self.state.service_status_config_editor.popup.is_some();
-                let tg_popup_open = self.state.token_generator_config_editor.popup.is_some();
-                let jira_popup_open = self.state.jira_config_editor.popup.is_some();
-                if ss_popup_open {
-                    self.state.service_status_config_editor.popup = None;
-                } else if tg_popup_open {
-                    self.state.token_generator_config_editor.popup = None;
-                } else if jira_popup_open {
-                    self.state.jira_config_editor.popup = None;
+                // Close inline edit form if open, otherwise exit tool config.
+                let ss_form_open = self.state.service_status_config_editor.form.is_some();
+                let tg_form_open = self.state.token_generator_config_editor.form.is_some();
+                let jira_form_open = self.state.jira_config_editor.form.is_some();
+                if ss_form_open {
+                    self.state.service_status_config_editor.form = None;
+                } else if tg_form_open {
+                    self.state.token_generator_config_editor.form = None;
+                } else if jira_form_open {
+                    self.state.jira_config_editor.form = None;
                 } else {
                     self.state.focus = AppFocus::Config;
                 }
             }
             // Service Status config events
             e @ ServiceStatusConfigListMove(..)
-            | e @ OpenAddServicePopup
-            | e @ OpenEditServicePopup
-            | e @ ServiceStatusPopupNextField
-            | e @ ServiceStatusPopupPrevField
-            | e @ ServiceStatusPopupChar(..)
-            | e @ ServiceStatusPopupBackspace
+            | e @ OpenAddService
+            | e @ OpenEditService
+            | e @ ServiceStatusFormNextField
+            | e @ ServiceStatusFormPrevField
+            | e @ ServiceStatusFormChar(..)
+            | e @ ServiceStatusFormBackspace
             | e @ SubmitServiceConfig
             | e @ RemoveService => self.handle_service_status_config_event(e),
             // Token Generator config events
             e @ TokenGenConfigListMove(..)
-            | e @ OpenAddTokenGenServicePopup
-            | e @ TokenGenConfigPopupNextField
-            | e @ TokenGenConfigPopupPrevField
-            | e @ TokenGenConfigPopupChar(..)
-            | e @ TokenGenConfigPopupBackspace
+            | e @ OpenAddTokenGenService
+            | e @ TokenGenConfigFormNextField
+            | e @ TokenGenConfigFormPrevField
+            | e @ TokenGenConfigFormChar(..)
+            | e @ TokenGenConfigFormBackspace
             | e @ SubmitTokenGenConfig
             | e @ TgConfigSwitchFocus
             | e @ TgConfigEdit
             | e @ RemoveTokenGenService => self.handle_token_gen_config_event(e),
             // Jira config events
-            e @ OpenJiraConfigPopup
-            | e @ JiraConfigPopupNextField
-            | e @ JiraConfigPopupPrevField
-            | e @ JiraConfigPopupChar(..)
-            | e @ JiraConfigPopupBackspace
+            e @ OpenJiraConfigEdit
+            | e @ JiraConfigFormNextField
+            | e @ JiraConfigFormPrevField
+            | e @ JiraConfigFormChar(..)
+            | e @ JiraConfigFormBackspace
             | e @ SubmitJiraConfig => self.handle_jira_config_event(e),
         }
     }
@@ -249,49 +249,49 @@ impl App {
                     }
                 }
             }
-            OpenAddServicePopup => {
-                editor.open_popup();
+            OpenAddService => {
+                editor.open_form();
             }
-            OpenEditServicePopup => {
+            OpenEditService => {
                 if let Some(idx) = self.state.service_status_config_editor.table_state.selected() {
                     if let Some(svc) = self.config.servicestatus.get(idx) {
                         self.state
                             .service_status_config_editor
-                            .open_edit_popup(idx, svc);
+                            .open_edit_form(idx, svc);
                     }
                 }
             }
-            ServiceStatusPopupNextField => {
-                if let Some(popup) = &mut editor.popup {
-                    popup.active_field = popup.active_field.next();
+            ServiceStatusFormNextField => {
+                if let Some(form) = &mut editor.form {
+                    form.active_field = form.active_field.next();
                 }
             }
-            ServiceStatusPopupPrevField => {
-                if let Some(popup) = &mut editor.popup {
-                    popup.active_field = popup.active_field.prev();
+            ServiceStatusFormPrevField => {
+                if let Some(form) = &mut editor.form {
+                    form.active_field = form.active_field.prev();
                 }
             }
-            ServiceStatusPopupChar(c) => {
-                if let Some(popup) = &mut editor.popup {
-                    popup.active_field_value_mut().push(c);
+            ServiceStatusFormChar(c) => {
+                if let Some(form) = &mut editor.form {
+                    form.active_field_value_mut().push(c);
                 }
             }
-            ServiceStatusPopupBackspace => {
-                if let Some(popup) = &mut editor.popup {
-                    popup.active_field_value_mut().pop();
+            ServiceStatusFormBackspace => {
+                if let Some(form) = &mut editor.form {
+                    form.active_field_value_mut().pop();
                 }
             }
             SubmitServiceConfig => {
-                if let Some(popup) = self.state.service_status_config_editor.popup.take() {
-                    if popup.is_valid() {
+                if let Some(form) = self.state.service_status_config_editor.form.take() {
+                    if form.is_valid() {
                         let service = crate::config::model::ServiceStatusConfig {
-                            name: popup.name.trim().to_string(),
-                            staging: popup.staging.trim().to_string(),
-                            preproduction: popup.preprod.trim().to_string(),
-                            production: popup.prod.trim().to_string(),
-                            repo: popup.repo.trim().to_string(),
+                            name: form.name.trim().to_string(),
+                            staging: form.staging.trim().to_string(),
+                            preproduction: form.preprod.trim().to_string(),
+                            production: form.prod.trim().to_string(),
+                            repo: form.repo.trim().to_string(),
                         };
-                        if let Some(idx) = popup.edit_index {
+                        if let Some(idx) = form.edit_index {
                             // Edit existing
                             if let Some(existing) = self.config.servicestatus.get_mut(idx) {
                                 *existing = service;
@@ -306,7 +306,7 @@ impl App {
                             );
                         let _ = self.config_loader.write_config(&self.config);
                     }
-                    // If invalid, just close the popup without saving
+                    // If invalid, just close the form without saving
                 }
             }
             RemoveService => {
@@ -337,7 +337,7 @@ impl App {
     }
 
     fn handle_token_gen_config_event(&mut self, event: AppEvent) {
-        use crate::state::token_generator_config::ActivePopup;
+        use crate::state::token_generator_config::ActiveEdit;
         match event {
             TokenGenConfigListMove(direction) => {
                 use crate::state::token_generator_config::ConfigFocus;
@@ -371,50 +371,50 @@ impl App {
                     }
                 }
             }
-            OpenAddTokenGenServicePopup => {
+            OpenAddTokenGenService => {
                 self.state
                     .token_generator_config_editor
-                    .open_add_service_popup();
+                    .open_add_service_form();
             }
-            TokenGenConfigPopupNextField => {
-                match &mut self.state.token_generator_config_editor.popup {
-                    Some(ActivePopup::Auth0(p)) => p.active_field = p.active_field.next(),
-                    Some(ActivePopup::Service(p)) => p.active_field = p.active_field.next(),
+            TokenGenConfigFormNextField => {
+                match &mut self.state.token_generator_config_editor.form {
+                    Some(ActiveEdit::Auth0(p)) => p.active_field = p.active_field.next(),
+                    Some(ActiveEdit::Service(p)) => p.active_field = p.active_field.next(),
                     None => {}
                 }
             }
-            TokenGenConfigPopupPrevField => {
-                match &mut self.state.token_generator_config_editor.popup {
-                    Some(ActivePopup::Auth0(p)) => p.active_field = p.active_field.prev(),
-                    Some(ActivePopup::Service(p)) => p.active_field = p.active_field.prev(),
+            TokenGenConfigFormPrevField => {
+                match &mut self.state.token_generator_config_editor.form {
+                    Some(ActiveEdit::Auth0(p)) => p.active_field = p.active_field.prev(),
+                    Some(ActiveEdit::Service(p)) => p.active_field = p.active_field.prev(),
                     None => {}
                 }
             }
-            TokenGenConfigPopupChar(c) => {
-                match &mut self.state.token_generator_config_editor.popup {
-                    Some(ActivePopup::Auth0(p)) => p.active_field_value_mut().push(c),
-                    Some(ActivePopup::Service(p)) => p.active_field_value_mut().push(c),
+            TokenGenConfigFormChar(c) => {
+                match &mut self.state.token_generator_config_editor.form {
+                    Some(ActiveEdit::Auth0(p)) => p.active_field_value_mut().push(c),
+                    Some(ActiveEdit::Service(p)) => p.active_field_value_mut().push(c),
                     None => {}
                 }
             }
-            TokenGenConfigPopupBackspace => {
-                match &mut self.state.token_generator_config_editor.popup {
-                    Some(ActivePopup::Auth0(p)) => { p.active_field_value_mut().pop(); }
-                    Some(ActivePopup::Service(p)) => { p.active_field_value_mut().pop(); }
+            TokenGenConfigFormBackspace => {
+                match &mut self.state.token_generator_config_editor.form {
+                    Some(ActiveEdit::Auth0(p)) => { p.active_field_value_mut().pop(); }
+                    Some(ActiveEdit::Service(p)) => { p.active_field_value_mut().pop(); }
                     None => {}
                 }
             }
             SubmitTokenGenConfig => {
-                if let Some(popup) = self.state.token_generator_config_editor.popup.take() {
-                    match popup {
-                        ActivePopup::Auth0(p) => {
+                if let Some(form) = self.state.token_generator_config_editor.form.take() {
+                    match form {
+                        ActiveEdit::Auth0(p) => {
                             self.config.tokengenerator.auth0.local = p.local.trim().to_string();
                             self.config.tokengenerator.auth0.staging = p.staging.trim().to_string();
                             self.config.tokengenerator.auth0.preproduction = p.preprod.trim().to_string();
                             self.config.tokengenerator.auth0.production = p.prod.trim().to_string();
                             let _ = self.config_loader.write_config(&self.config);
                         }
-                        ActivePopup::Service(p) if p.is_valid() => {
+                        ActiveEdit::Service(p) if p.is_valid() => {
                             let svc = crate::config::model::ServiceConfig {
                                 name: p.name.trim().to_string(),
                                 audience: p.audience.trim().to_string(),
@@ -434,7 +434,7 @@ impl App {
                             );
                             let _ = self.config_loader.write_config(&self.config);
                         }
-                        _ => {} // invalid service popup — close without saving
+                        _ => {} // invalid service form — close without saving
                     }
                 }
             }
@@ -475,7 +475,7 @@ impl App {
                         let auth0 = self.config.tokengenerator.auth0.clone();
                         self.state
                             .token_generator_config_editor
-                            .open_auth0_popup(&auth0);
+                            .open_auth0_form(&auth0);
                     }
                     ConfigFocus::Services => {
                         if let Some(idx) = self
@@ -488,7 +488,7 @@ impl App {
                                 let svc = svc.clone();
                                 self.state
                                     .token_generator_config_editor
-                                    .open_edit_service_popup(idx, &svc);
+                                    .open_edit_service_form(idx, &svc);
                             }
                         }
                     }
@@ -513,40 +513,40 @@ impl App {
 
     fn handle_jira_config_event(&mut self, event: AppEvent) {
         match event {
-            OpenJiraConfigPopup => {
+            OpenJiraConfigEdit => {
                 self.state
                     .jira_config_editor
-                    .open_popup(self.config.jira.as_ref());
+                    .open_form(self.config.jira.as_ref());
             }
-            JiraConfigPopupNextField => {
-                if let Some(p) = &mut self.state.jira_config_editor.popup {
+            JiraConfigFormNextField => {
+                if let Some(p) = &mut self.state.jira_config_editor.form {
                     p.active_field = p.active_field.next();
                 }
             }
-            JiraConfigPopupPrevField => {
-                if let Some(p) = &mut self.state.jira_config_editor.popup {
+            JiraConfigFormPrevField => {
+                if let Some(p) = &mut self.state.jira_config_editor.form {
                     p.active_field = p.active_field.prev();
                 }
             }
-            JiraConfigPopupChar(c) => {
-                if let Some(p) = &mut self.state.jira_config_editor.popup {
+            JiraConfigFormChar(c) => {
+                if let Some(p) = &mut self.state.jira_config_editor.form {
                     p.active_field_value_mut().push(c);
                 }
             }
-            JiraConfigPopupBackspace => {
-                if let Some(p) = &mut self.state.jira_config_editor.popup {
+            JiraConfigFormBackspace => {
+                if let Some(p) = &mut self.state.jira_config_editor.form {
                     p.active_field_value_mut().pop();
                 }
             }
             SubmitJiraConfig => {
-                if let Some(popup) = self.state.jira_config_editor.popup.take() {
-                    if popup.is_empty() {
+                if let Some(form) = self.state.jira_config_editor.form.take() {
+                    if form.is_empty() {
                         self.config.jira = None;
                     } else {
                         self.config.jira = Some(crate::config::model::JiraConfig {
-                            url: popup.url.trim().to_string(),
-                            email: popup.email.trim().to_string(),
-                            token: popup.token.trim().to_string(),
+                            url: form.url.trim().to_string(),
+                            email: form.email.trim().to_string(),
+                            token: form.token.trim().to_string(),
                         });
                     }
                     let has_jira_config = self.config.jira.is_some();
@@ -567,7 +567,7 @@ impl App {
 
         tool::render(frame, areas.content, &mut self.state, &self.config);
 
-        footer::render(frame, areas.footer);
+        footer::render(frame, areas.footer, &self.state);
 
         if let Some(error) = &self.state.error {
             let red = Style::default().fg(Color::Red);
@@ -586,7 +586,7 @@ impl App {
                 .block(block)
                 .alignment(Alignment::Left);
 
-            let area = popup_area(frame.area(), 50, 7);
+            let area = overlay_area(frame.area(), 50, 7);
             frame.render_widget(Clear, area);
             frame.render_widget(paragraph, area);
         }
@@ -610,9 +610,9 @@ impl App {
         let mut stack = Vec::new();
 
         // If an Error pop up is displayed, don't allow additional contexts i.e
-        // disable all key contexts except global and the error popup.
+        // disable all key contexts except global and the error form.
         if self.state.error.is_some() {
-            stack.push(ErrorPopUp);
+            stack.push(Error);
         } else {
             match self.state.focus {
                 AppFocus::List => {
@@ -627,19 +627,19 @@ impl App {
                     }
                 }
                 AppFocus::ToolConfig(tool) => {
-                    // Use popup context when a popup is open
+                    // Use editing context when inline edit form is open
                     if tool == ServiceStatus
-                        && self.state.service_status_config_editor.popup.is_some()
+                        && self.state.service_status_config_editor.form.is_some()
                     {
-                        stack.push(Popup(ServiceStatus));
+                        stack.push(Editing(ServiceStatus));
                     } else if tool == TokenGenerator
-                        && self.state.token_generator_config_editor.popup.is_some()
+                        && self.state.token_generator_config_editor.form.is_some()
                     {
-                        stack.push(Popup(TokenGenerator));
+                        stack.push(Editing(TokenGenerator));
                     } else if tool == Jira
-                        && self.state.jira_config_editor.popup.is_some()
+                        && self.state.jira_config_editor.form.is_some()
                     {
-                        stack.push(ToolConfigPopup(Jira));
+                        stack.push(ToolConfigEditing(Jira));
                     } else {
                         stack.push(KeyContext::ToolConfig(tool));
                     }
@@ -647,8 +647,8 @@ impl App {
                 AppFocus::Config => {
                     stack.push(KeyContext::Config);
                 }
-                AppFocus::PopUp => {
-                    stack.push(Popup(Jira));
+                AppFocus::JiraInput => {
+                    stack.push(Editing(Jira));
                 }
             }
         }

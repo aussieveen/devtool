@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn enabled_tools_excludes_jira_when_no_jira_config() {
-        let mut editor = make_editor(all_enabled());
+        let editor = make_editor(all_enabled());
         let tools = editor.enabled_tools(false);
         assert!(!tools.contains(&Tool::Jira));
         assert!(tools.contains(&Tool::ServiceStatus));
