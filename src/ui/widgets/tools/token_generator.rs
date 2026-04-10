@@ -28,19 +28,16 @@ pub fn render(
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
         .split(vertical_break[0]);
 
-    let services = List::new(
-        service_configs
-            .iter()
-            .map(|s| ListItem::new(s.name.clone())),
-    )
-    .style(list_style(matches!(state.focus, Focus::Service)))
-    .highlight_style(Style::default().reversed())
-    .highlight_symbol("▶ ")
-    .repeat_highlight_symbol(true)
+    let selected_service = state.service_list_state.selected();
+    let service_title_style = list_style(matches!(state.focus, Focus::Service));
+    let services = List::new(service_configs.iter().enumerate().map(|(idx, s)| {
+        ListItem::new(s.name.clone()).style(list_style(selected_service.is_none_or(|i| i == idx)))
+    }))
     .block(
         Block::new()
             .borders(Borders::NONE)
             .title(" Services ")
+            .title_style(service_title_style)
             .title_alignment(Alignment::Center),
     );
 
@@ -50,6 +47,8 @@ pub fn render(
 
     let service_config = &service_configs[service_idx];
 
+    let selected_env = state.env_list_state.selected();
+    let env_title_style = list_style(matches!(state.focus, Focus::Env));
     let environments = List::new(service_config.credentials.iter().enumerate().map(
         |(env_idx, c)| {
             let token = &state.tokens[service_idx][env_idx];
@@ -63,16 +62,14 @@ pub fn render(
                 Span::styled(prefix, prefix_style),
                 Span::raw(format!(" {}", c.env)),
             ]))
+            .style(list_style(selected_env.is_none_or(|i| i == env_idx)))
         },
     ))
-    .style(list_style(matches!(state.focus, Focus::Env)))
-    .highlight_style(Style::default().reversed())
-    .highlight_symbol("▶ ")
-    .repeat_highlight_symbol(true)
     .block(
         Block::new()
             .borders(Borders::NONE)
             .title(" Environments ")
+            .title_style(env_title_style)
             .title_alignment(Alignment::Center),
     );
 
