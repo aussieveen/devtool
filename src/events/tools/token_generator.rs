@@ -1,11 +1,11 @@
 use crate::app::App;
+use crate::error::model::Error;
 use crate::events::event::AppEvent;
+use crate::events::event::AppEvent::SystemError;
 use crate::events::event::AppEvent::{
     AppLog, CopyToClipboard, GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove,
     TokenGenServiceListMove, TokenGenerated,
 };
-use crate::error::model::Error;
-use crate::events::event::AppEvent::SystemError;
 use crate::state::log::LogLevel;
 use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;
@@ -118,7 +118,10 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             app.event_sender.send(AppLog(
                 LogLevel::Error,
                 "token-gen".to_string(),
-                format!("Token request failed: {}/{} — {}", svc_name, env_name, error),
+                format!(
+                    "Token request failed: {}/{} — {}",
+                    svc_name, env_name, error
+                ),
             ));
 
             app.state

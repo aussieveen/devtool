@@ -22,7 +22,11 @@ pub fn main(area: Rect) -> Areas {
 
     let sidebar = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(8), Constraint::Length(5)])
+        .constraints([
+            Constraint::Min(0),
+            Constraint::Length(8),
+            Constraint::Length(5),
+        ])
         .split(chunks[0]);
 
     Areas {

@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::error::model::Error;
 use crate::events::event::AppEvent::{
-    ActivityEvent, AppLog, AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate,
+    ActivityEvent, AddTicketIdChar, AppLog, JiraTicketListMove, JiraTicketListUpdate,
     JiraTicketMove, NewJiraTicket, OpenInBrowser, RemoveTicket, RemoveTicketIdChar, ScanTickets,
     SubmitTicketId, SystemError, TicketRetrieved,
 };
@@ -47,8 +47,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 app.state.jira.tickets_pending_scan =
                     app.state.jira.tickets_pending_scan.saturating_sub(1);
                 if let Some((id, change_msg)) = changes {
-                    app.event_sender
-                        .send(ActivityEvent(id, change_msg));
+                    app.event_sender.send(ActivityEvent(id, change_msg));
                 }
                 if app.state.jira.tickets_pending_scan == 0 {
                     app.event_sender.send(JiraTicketListUpdate)

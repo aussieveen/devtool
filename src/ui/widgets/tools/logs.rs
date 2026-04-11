@@ -102,12 +102,7 @@ fn render_activity(
     frame.render_widget(widget, area);
 }
 
-fn render_app_log(
-    frame: &mut Frame,
-    area: Rect,
-    log: &crate::state::log::LogState,
-    border: Style,
-) {
+fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogState, border: Style) {
     let dim = Style::default().add_modifier(Modifier::DIM);
     let entries = log.visible_log();
     let avail = inner_width(area);
@@ -182,7 +177,10 @@ mod tests {
 
     #[test]
     fn wrap_message_breaks_at_space_boundary() {
-        let result = wrap_message("Token request failed: service/staging — connection timed out", 30);
+        let result = wrap_message(
+            "Token request failed: service/staging — connection timed out",
+            30,
+        );
         assert!(result.len() > 1);
         for line in &result {
             assert!(line.len() <= 30, "line too long: {:?}", line);

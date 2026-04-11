@@ -11,7 +11,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
     let border_style = block_style(is_focused);
     let shortcut = panel_shortcut_style();
 
-    let unread_dot = if state.log.has_unread_activity() { "● " } else { "  " };
+    let unread_dot = if state.log.has_unread_activity() {
+        "● "
+    } else {
+        "  "
+    };
 
     let items = vec![
         ListItem::new(format!("{}{}", unread_dot, "Activity")),

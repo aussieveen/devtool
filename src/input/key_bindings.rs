@@ -38,12 +38,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyModifiers::NONE,
         SetFocus(AppFocus::Config),
     );
-    key_event_map.add_static(
-        Global,
-        KeyCode::Char('3'),
-        KeyModifiers::NONE,
-        OpenLogs,
-    );
+    key_event_map.add_static(Global, KeyCode::Char('3'), KeyModifiers::NONE, OpenLogs);
     key_event_map.add_static(
         Global,
         KeyCode::Char('c'),

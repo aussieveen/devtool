@@ -24,10 +24,7 @@ fn build_lines<'a>(
 ) -> (Line<'a>, Line<'a>) {
     // ── Error popup is visible — show dismiss hint only ─────────────────────────
     if state.error.is_some() {
-        return (
-            hints(&[("[d]", key, " Dismiss", desc)]),
-            Line::from(""),
-        );
+        return (hints(&[("[d]", key, " Dismiss", desc)]), Line::from(""));
     }
 
     match state.focus {

@@ -75,12 +75,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .set_commit_ok(service_idx, &env, commit);
             let new_status = app.state.service_status.services[service_idx].commit_ref_status();
 
-            if old_status != new_status
-                && !matches!(
-                    new_status,
-                    CommitRefStatus::CommitMissing
-                )
-            {
+            if old_status != new_status && !matches!(new_status, CommitRefStatus::CommitMissing) {
                 if let Some(svc_cfg) = app.config.servicestatus.get(service_idx) {
                     let msg = status_activity_message(&new_status);
                     app.event_sender
@@ -96,10 +91,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             if let Some(svc_cfg) = app.config.servicestatus.get(service_idx) {
                 let source = "healthcheck".to_string();
                 let env_label = env.to_string().to_lowercase();
-                let message = format!(
-                    "{}/{}: {}",
-                    svc_cfg.name, env_label, friendly_error(&error)
-                );
+                let message = format!("{}/{}: {}", svc_cfg.name, env_label, friendly_error(&error));
                 app.event_sender
                     .send(AppLog(LogLevel::Error, source, message));
             }
@@ -146,11 +138,11 @@ fn status_activity_message(status: &CommitRefStatus) -> String {
         CommitRefStatus::StagingPreprodMatch => {
             "Ready for production — staging and preprod match".to_string()
         }
-        CommitRefStatus::PreprodProdMatch => {
-            "New version in the deployment pipeline".to_string()
-        }
+        CommitRefStatus::PreprodProdMatch => "New version in the deployment pipeline".to_string(),
         CommitRefStatus::NothingMatches => "Environments are out of sync".to_string(),
-        CommitRefStatus::CommitMissing => "Commit errors detected — may require maintenance".to_string(),
+        CommitRefStatus::CommitMissing => {
+            "Commit errors detected — may require maintenance".to_string()
+        }
     }
 }
 

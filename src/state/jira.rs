@@ -100,7 +100,8 @@ impl Jira {
         }
 
         let id = new_ticket.id.clone();
-        let change_msg = if let Some(existing) = self.tickets.iter().find(|t| t.id == new_ticket.id) {
+        let change_msg = if let Some(existing) = self.tickets.iter().find(|t| t.id == new_ticket.id)
+        {
             if existing.status != new_ticket.status {
                 format!(
                     "Status changed: {} → {}",
