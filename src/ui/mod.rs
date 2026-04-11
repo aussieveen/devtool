@@ -1,3 +1,3 @@
 pub(crate) mod layout;
-mod styles;
+pub(crate) mod styles;
 pub(crate) mod widgets;

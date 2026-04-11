@@ -1,12 +1,13 @@
 use crate::app::App;
 use crate::error::model::Error;
 use crate::events::event::AppEvent::{
-    AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate, JiraTicketMove, NewJiraTicket,
-    OpenInBrowser, RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, SystemError,
-    TicketRetrieved,
+    ActivityEvent, AppLog, AddTicketIdChar, JiraTicketListMove, JiraTicketListUpdate,
+    JiraTicketMove, NewJiraTicket, OpenInBrowser, RemoveTicket, RemoveTicketIdChar, ScanTickets,
+    SubmitTicketId, SystemError, TicketRetrieved,
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::state::app::AppFocus;
+use crate::state::log::LogLevel;
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
@@ -42,19 +43,33 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         TicketRetrieved(ticket_response) => {
             if app.state.jira.tickets_pending_scan > 0 {
-                app.state.jira.update_ticket(ticket_response);
+                let changes = app.state.jira.update_ticket_with_changes(ticket_response);
                 app.state.jira.tickets_pending_scan =
                     app.state.jira.tickets_pending_scan.saturating_sub(1);
+                if let Some((id, change_msg)) = changes {
+                    app.event_sender
+                        .send(ActivityEvent(id, change_msg));
+                }
                 if app.state.jira.tickets_pending_scan == 0 {
                     app.event_sender.send(JiraTicketListUpdate)
                 }
             } else {
+                let ticket_id = ticket_response.key.clone();
                 app.state.jira.add_ticket(ticket_response);
                 app.state.jira.new_ticket_id = None;
+                app.event_sender
+                    .send(ActivityEvent(ticket_id, "Added to watchlist".to_string()));
                 app.event_sender.send(JiraTicketListUpdate);
             }
         }
         RemoveTicket => {
+            if let Some(idx) = app.state.jira.list_state.selected() {
+                if let Some(ticket) = app.state.jira.tickets.get(idx) {
+                    let id = ticket.id.clone();
+                    app.event_sender
+                        .send(ActivityEvent(id, "Removed from watchlist".to_string()));
+                }
+            }
             app.state.jira.remove_ticket();
             if app.state.jira.tickets.is_empty() {
                 app.state.jira.list_state.select(None);
@@ -88,9 +103,22 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         ScanTickets => {
             // If there are no tickets or a previous scan is still running
             if app.state.jira.tickets.is_empty() || app.state.jira.tickets_pending_scan > 0 {
+                if app.state.jira.tickets_pending_scan > 0 {
+                    app.event_sender.send(AppLog(
+                        LogLevel::Warning,
+                        "jira".to_string(),
+                        "Ticket scan skipped — previous scan still running".to_string(),
+                    ));
+                }
                 return;
             }
             if let Some(config) = app.config.jira.clone() {
+                let count = app.state.jira.tickets.len();
+                app.event_sender.send(AppLog(
+                    LogLevel::Info,
+                    "jira".to_string(),
+                    format!("Ticket scan started — {} tickets", count),
+                ));
                 app.state.jira.tickets_pending_scan = app.state.jira.tickets.len();
                 for t in app.state.jira.tickets.iter() {
                     app.jira_api.fetch_ticket(
@@ -110,13 +138,11 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                     config.url, app.state.jira.tickets[jira_ticket_idx].id
                 );
                 if let Err(e) = open_link_in_browser(link.as_str()) {
-                    let sender = app.event_sender.clone();
-                    sender.send(SystemError(Error {
-                        title: "Fail to open in browser".to_string(),
-                        originating_event: "OpenInBrowser".to_string(),
-                        tool: "Jira".to_string(),
-                        description: e,
-                    }))
+                    app.event_sender.send(AppLog(
+                        LogLevel::Warning,
+                        "jira".to_string(),
+                        format!("Open in browser failed: {}", e),
+                    ));
                 }
             }
         }

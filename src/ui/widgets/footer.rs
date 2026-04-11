@@ -6,7 +6,6 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let key = key_style();
     let desc = key_desc_style();
@@ -23,10 +22,10 @@ fn build_lines<'a>(
     key: ratatui::style::Style,
     desc: ratatui::style::Style,
 ) -> (Line<'a>, Line<'a>) {
-    // ── Error overlay ───────────────────────────────────────────────────────────
+    // ── Error popup is visible — show dismiss hint only ─────────────────────────
     if state.error.is_some() {
         return (
-            hints(&[("[d]", key, " Dismiss error", desc)]),
+            hints(&[("[d]", key, " Dismiss", desc)]),
             Line::from(""),
         );
     }
@@ -47,6 +46,7 @@ fn build_lines<'a>(
                 ("[↑↓]", key, " Navigate  ", desc),
                 ("[→]", key, " Open tool  ", desc),
                 ("[2]", key, " Config  ", desc),
+                ("[3]", key, " Logs  ", desc),
                 ("[q/esc]", key, " Quit", desc),
             ]),
             Line::from(""),
@@ -69,6 +69,7 @@ fn build_lines<'a>(
                         ("[s]", key, " Scan  ", desc),
                         ("[←]", key, " Tool list  ", desc),
                         ("[2]", key, " Config  ", desc),
+                        ("[3]", key, " Logs  ", desc),
                         ("[q/esc]", key, " Quit", desc),
                     ]),
                     line2,
@@ -122,6 +123,17 @@ fn build_lines<'a>(
                 ("[enter]", key, " Toggle  ", desc),
                 ("[→]", key, " Edit config  ", desc),
                 ("[1]", key, " Tools  ", desc),
+                ("[q/esc]", key, " Quit", desc),
+            ]),
+            Line::from(""),
+        ),
+
+        // ── Logs focused ──────────────────────────────────────────────────────
+        AppFocus::Logs => (
+            hints(&[
+                ("[↑↓]", key, " Switch panel  ", desc),
+                ("[1]", key, " Tools  ", desc),
+                ("[2]", key, " Config  ", desc),
                 ("[q/esc]", key, " Quit", desc),
             ]),
             Line::from(""),

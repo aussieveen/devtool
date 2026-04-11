@@ -6,10 +6,11 @@ A terminal UI built with [Ratatui] for day-to-day developer workflows — checki
 
 ## Navigation
 
-The UI has two panels, switchable at any time with `[1]` and `[2]`:
+The UI has three panels, switchable at any time with `[1]`, `[2]`, and `[3]`:
 
 - **`[1]` Tool panel** — the active tool's content (service grid, token generator, ticket list)
 - **`[2]` Config panel** — inline configuration for the active tool
+- **`[3]` Logs panel** — Activity feed and App Log (see [Logs](#logs) below)
 
 The **footer** is the key legend. It updates contextually based on what is focused:
 - **Line 1** — global navigation hints and `[q/esc] Quit`
@@ -36,9 +37,12 @@ The **footer** is the key legend. It updates contextually based on what is focus
 │   ☑ Service Status       │                                                              │
 │   ☐ Token Generator      │  ▍ Up to date   ▍ New version in pipeline                    │
 │                          │  ▍ Pending production deployment   ▍ Requires maintenance    │
+│ [3] Logs                 │                                                              │
+│   Activity               │                                                              │
+│   App Log                │                                                              │
 └──────────────────────────┴──────────────────────────────────────────────────────────────┘
  ──────────────────────────────────────────────────────────────────────────────────────────
- [↑↓] Navigate  [s] Scan  [←] Tool list  [2] Config  [q/esc] Quit
+ [↑↓] Navigate  [s] Scan  [←] Tool list  [2] Config  [3] Logs  [q/esc] Quit
  [o] Open in browser  [c] Copy url
 ```
 
@@ -61,6 +65,9 @@ The **footer** is the key legend. It updates contextually based on what is focus
 │   ☐ Service Status       │  └────────────────────────┘ └─────────────────────────────┘  │
 │   ☑ Token Generator      │                                                              │
 │                          │                                                              │
+│ [3] Logs                 │                                                              │
+│   Activity               │                                                              │
+│   App Log                │                                                              │
 └──────────────────────────┴──────────────────────────────────────────────────────────────┘
  ──────────────────────────────────────────────────────────────────────────────────────────
  [←→] Switch panel  [↑↓] Navigate  [return] Generate  [2] Config  [q/esc] Quit
@@ -87,11 +94,68 @@ The **footer** is the key legend. It updates contextually based on what is focus
 │   ☐ Service Status       │                                                              │
 │   ☑ Jira Tickets         │    ABC-789 - Optimise database query performance             │
 │                          │    Done   @mike.jones                                        │
+│ [3] Logs                 │                                                              │
+│ ● Activity               │                                                              │
+│   App Log                │                                                              │
 └──────────────────────────┴──────────────────────────────────────────────────────────────┘
  ──────────────────────────────────────────────────────────────────────────────────────────
  [↑↓] Navigate  [a] Add ticket  [←] Tool list  [2] Config  [q/esc] Quit
  [x] Remove  [o] Open in browser  [shift+↑↓] Move
 ```
+
+### Logs
+
+Press `[3]` from anywhere to open the Logs panel. It has two sub-sections, switchable with `[↑↓]`:
+
+#### Activity Feed
+
+Human-readable events that summarise changes you may have missed while focused elsewhere. Entries appear only when something actually changes — not on every background scan.
+
+| Source | Example |
+|---|---|
+| Service Status | `api-gateway  Now in sync across all environments` |
+| Service Status | `auth-service  Environments are out of sync` |
+| Jira | `ABC-123  Added to watchlist` |
+| Jira | `ABC-456  Status changed: In Review → In Progress` |
+
+A `●` dot appears next to **Activity** in the sidebar whenever there are unread entries. It clears automatically when you switch to Activity.
+
+#### App Log
+
+Structured log entries following [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424) severity levels. Each entry shows a timestamp, colour-coded level label, source, and message — long messages wrap to fit the panel.
+
+| Level | Colour | Used for |
+|---|---|---|
+| `[ERROR]` | Red | Request failures, token errors, persist failures |
+| `[WARN]` | Yellow | Soft failures (clipboard, browser open, scan skipped) |
+| `[INFO]` | White | Successful operations (scan start, token generated) |
+| `[DEBUG]` | Dim | Verbose diagnostic entries |
+
+```
+┌──────────────────────────┬──────────────────────────────────────────────────────────────┐
+│ [1] Tools                │ App Log                                                      │
+│                          │                                                              │
+│   Service Status         │  14:03:21  [INFO]   app          App started — config loaded │
+│   Token Generator        │  14:03:36  [INFO]   healthcheck  Scan started — 3 services   │
+│   Jira Tickets           │                     × 3 environments                         │
+│                          │  14:03:36  [ERROR]  healthcheck  api-gateway/staging:        │
+│ [2] Config               │                     Request timed out — check VPN            │
+│   ☐ Service Status       │  14:03:37  [INFO]   jira         Ticket scan started —       │
+│   ☑ Jira Tickets         │                     2 tickets                                │
+│                          │  14:05:12  [INFO]   token-gen    Token generated:            │
+│ [3] Logs                 │                     payment-service/staging                  │
+│   Activity               │                                                              │
+│ ● App Log                │                                                              │
+└──────────────────────────┴──────────────────────────────────────────────────────────────┘
+ ──────────────────────────────────────────────────────────────────────────────────────────
+ [↑↓] Switch panel  [1] Tools  [2] Config  [q/esc] Quit
+```
+
+> **Retention:** All log data is in-memory only. Entries older than 3 hours are automatically pruned and everything is cleared on restart.
+
+#### Error popup
+
+When a blocking error occurs (e.g. a token request fails), a compact popup appears showing the error title and a reminder to check `[3]` Logs for the full detail. Press `[d]` to dismiss.
 
 ### Configuration
 

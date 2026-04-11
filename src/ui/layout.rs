@@ -4,6 +4,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 pub struct Areas {
     pub tools_list: Rect,
     pub config_list: Rect,
+    pub logs_list: Rect,
     pub content: Rect,
     pub footer: Rect,
 }
@@ -21,12 +22,13 @@ pub fn main(area: Rect) -> Areas {
 
     let sidebar = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(8)])
+        .constraints([Constraint::Min(0), Constraint::Length(8), Constraint::Length(5)])
         .split(chunks[0]);
 
     Areas {
         tools_list: sidebar[0],
         config_list: sidebar[1],
+        logs_list: sidebar[2],
         content: chunks[1],
         footer: outer_chunks[1],
     }

@@ -74,6 +74,7 @@ impl Jira {
         }
     }
 
+    #[allow(dead_code)] // called in tests
     pub fn update_ticket(&mut self, ticket_response: TicketResponse) {
         let ticket = self.ticket_response_to_ticket(ticket_response);
         // Exact match - No need to update
@@ -84,6 +85,44 @@ impl Jira {
         if let Some(t) = self.tickets.iter_mut().find(|t| t.id == ticket.id) {
             *t = ticket;
         }
+    }
+
+    /// Like `update_ticket` but returns a human-readable change description
+    /// if the ticket's status or assignee changed.
+    pub fn update_ticket_with_changes(
+        &mut self,
+        ticket_response: TicketResponse,
+    ) -> Option<(String, String)> {
+        let new_ticket = self.ticket_response_to_ticket(ticket_response);
+        // Exact match — nothing changed
+        if self.tickets.contains(&new_ticket) {
+            return None;
+        }
+
+        let id = new_ticket.id.clone();
+        let change_msg = if let Some(existing) = self.tickets.iter().find(|t| t.id == new_ticket.id) {
+            if existing.status != new_ticket.status {
+                format!(
+                    "Status changed: {} → {}",
+                    existing.status, new_ticket.status
+                )
+            } else if existing.assignee != new_ticket.assignee {
+                format!(
+                    "Assignee changed: {} → {}",
+                    existing.assignee, new_ticket.assignee
+                )
+            } else {
+                "Updated".to_string()
+            }
+        } else {
+            return None;
+        };
+
+        if let Some(t) = self.tickets.iter_mut().find(|t| t.id == id) {
+            *t = new_ticket;
+        }
+
+        Some((id, change_msg))
     }
 
     pub fn swap_tickets(&mut self, direction: Direction) {
