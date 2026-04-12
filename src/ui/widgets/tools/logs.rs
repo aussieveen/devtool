@@ -69,21 +69,21 @@ fn render_activity(
             .map(|e| {
                 let ts = e.timestamp.format("%H:%M").to_string();
                 let source = format!("{:<20}", e.source);
-                let chunks = wrap_message(&e.message, msg_width);
+                let mut chunks = wrap_message(&e.message, msg_width).into_iter();
 
-                let mut lines: Vec<Line> = Vec::with_capacity(chunks.len());
+                let mut lines: Vec<Line> = Vec::with_capacity(1);
                 // First line carries the full prefix
                 lines.push(Line::from(vec![
                     Span::styled(format!(" {}  ", ts), dim),
                     Span::raw(format!("{} ", source)),
-                    Span::raw(chunks[0].clone()),
+                    Span::raw(chunks.next().unwrap_or_default()),
                 ]));
                 // Continuation lines are indented to align with message start
                 let indent = " ".repeat(PREFIX_LEN);
-                for chunk in &chunks[1..] {
+                for chunk in chunks {
                     lines.push(Line::from(vec![
                         Span::raw(indent.clone()),
-                        Span::raw(chunk.clone()),
+                        Span::raw(chunk),
                     ]));
                 }
                 ListItem::new(Text::from(lines))
@@ -121,20 +121,20 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
                 let ts = e.timestamp.format("%H:%M:%S").to_string();
                 let level_style = level_style(e.level);
                 let source = format!("{:<12}", e.source);
-                let chunks = wrap_message(&e.message, msg_width);
+                let mut chunks = wrap_message(&e.message, msg_width).into_iter();
 
-                let mut lines: Vec<Line> = Vec::with_capacity(chunks.len());
+                let mut lines: Vec<Line> = Vec::with_capacity(1);
                 lines.push(Line::from(vec![
                     Span::styled(format!(" {}  ", ts), dim),
                     Span::styled(format!("[{}]  ", e.level.label().trim()), level_style),
                     Span::styled(format!("{}  ", source), dim),
-                    Span::raw(chunks[0].clone()),
+                    Span::raw(chunks.next().unwrap_or_default()),
                 ]));
                 let indent = " ".repeat(PREFIX_LEN);
-                for chunk in &chunks[1..] {
+                for chunk in chunks {
                     lines.push(Line::from(vec![
                         Span::raw(indent.clone()),
-                        Span::raw(chunk.clone()),
+                        Span::raw(chunk),
                     ]));
                 }
                 ListItem::new(Text::from(lines))

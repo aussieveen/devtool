@@ -325,10 +325,10 @@ mod tests {
 
         let mut jira = get_jira_with_path(file_path);
         jira.add_char_to_ticket_id('s');
-        assert_eq!(jira.new_ticket_id.clone().unwrap(), "S");
+        assert_eq!(jira.new_ticket_id.as_deref().unwrap(), "S");
 
         jira.add_char_to_ticket_id('-');
-        assert_eq!(jira.new_ticket_id.clone().unwrap(), "S-");
+        assert_eq!(jira.new_ticket_id.as_deref().unwrap(), "S-");
     }
 
     #[test_case(None, None; "String not changed when NONE")]
