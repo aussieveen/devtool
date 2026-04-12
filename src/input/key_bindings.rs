@@ -3,10 +3,10 @@ use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::events::event::AppEvent::{
     AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissError, GenerateToken,
     JiraConfigFormBackspace, JiraConfigFormChar, JiraConfigFormNextField, JiraConfigFormPrevField,
-    JiraTicketListMove, JiraTicketMove, ListMove, NewJiraTicket, OpenAddService,
-    OpenAddTokenGenService, OpenEditService, OpenInBrowser, OpenJiraConfigEdit, OpenToolConfig,
-    Quit, RemoveService, RemoveTicket, RemoveTicketIdChar, RemoveTokenGenService, ScanServices,
-    ServiceStatusConfigListMove, ServiceStatusFormBackspace, ServiceStatusFormChar,
+    JiraTicketListMove, JiraTicketMove, ListMove, LogsListMove, NewJiraTicket, OpenAddService,
+    OpenAddTokenGenService, OpenEditService, OpenInBrowser, OpenJiraConfigEdit, OpenLogs,
+    OpenToolConfig, Quit, RemoveService, RemoveTicket, RemoveTicketIdChar, RemoveTokenGenService,
+    ScanServices, ServiceStatusConfigListMove, ServiceStatusFormBackspace, ServiceStatusFormChar,
     ServiceStatusFormNextField, ServiceStatusFormPrevField, ServiceStatusListMove, SetFocus,
     SetTokenGenFocus, SubmitJiraConfig, SubmitServiceConfig, SubmitTicketId, SubmitTokenGenConfig,
     TgConfigEdit, TgConfigSwitchFocus, ToggleFeature, TokenGenConfigFormBackspace,
@@ -15,7 +15,8 @@ use crate::events::event::AppEvent::{
 };
 use crate::events::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
-    Config, Editing, Error, Global, List, TokenGen, Tool, ToolConfig, ToolConfigEditing, ToolIgnore,
+    Config, Editing, Error, Global, List, Logs, TokenGen, Tool, ToolConfig, ToolConfigEditing,
+    ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::token_generator::Focus;
@@ -37,6 +38,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyModifiers::NONE,
         SetFocus(AppFocus::Config),
     );
+    key_event_map.add_static(Global, KeyCode::Char('3'), KeyModifiers::NONE, OpenLogs);
     key_event_map.add_static(
         Global,
         KeyCode::Char('c'),
@@ -76,6 +78,20 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         KeyCode::Left,
         KeyModifiers::NONE,
         SetFocus(AppFocus::List),
+    );
+
+    // LOGS EVENTS
+    key_event_map.add_static(
+        Logs,
+        KeyCode::Down,
+        KeyModifiers::NONE,
+        LogsListMove(Direction::Down),
+    );
+    key_event_map.add_static(
+        Logs,
+        KeyCode::Up,
+        KeyModifiers::NONE,
+        LogsListMove(Direction::Up),
     );
 
     // TOOL CONFIG EVENTS (Service Status)
@@ -512,7 +528,7 @@ mod tests {
     use crate::events::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
     use crate::input::key_context::KeyContext::{
-        Config, Editing, Global, List, TokenGen, Tool, ToolConfig, ToolIgnore,
+        Config, Editing, Global, List, Logs, TokenGen, Tool, ToolConfig, ToolIgnore,
     };
     use crate::state::token_generator::Focus;
     use test_case::test_case;
@@ -527,6 +543,7 @@ mod tests {
     #[test_case(Global, KeyCode::Esc, KeyModifiers::NONE, Quit; "esc quits")]
     #[test_case(Global, KeyCode::Char('1'), KeyModifiers::NONE, SetFocus(AppFocus::List); "1 focuses tools list")]
     #[test_case(Global, KeyCode::Char('2'), KeyModifiers::NONE, SetFocus(AppFocus::Config); "2 focuses config")]
+    #[test_case(Global, KeyCode::Char('3'), KeyModifiers::NONE, OpenLogs; "3 opens logs")]
     #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
     #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
     #[test_case(Error, KeyCode::Char('d'), KeyModifiers::NONE, DismissError; "error dismissed")]
@@ -535,6 +552,8 @@ mod tests {
     #[test_case(Config, KeyCode::Enter, KeyModifiers::NONE, ToggleFeature; "config enter toggles feature")]
     #[test_case(Config, KeyCode::Left, KeyModifiers::NONE, SetFocus(AppFocus::List); "config left focuses tools list")]
     #[test_case(Config, KeyCode::Right, KeyModifiers::NONE, OpenToolConfig(ServiceStatus); "config right opens tool config")]
+    #[test_case(Logs, KeyCode::Down, KeyModifiers::NONE, AppEvent::LogsListMove(Down); "logs down navigates")]
+    #[test_case(Logs, KeyCode::Up, KeyModifiers::NONE, AppEvent::LogsListMove(Up); "logs up navigates")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, AppEvent::ServiceStatusConfigListMove(Down); "tool config down")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, AppEvent::ServiceStatusConfigListMove(Up); "tool config up")]
     #[test_case(ToolConfig(ServiceStatus), KeyCode::Char('a'), KeyModifiers::NONE, OpenAddService; "tool config a opens add form")]

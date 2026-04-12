@@ -12,7 +12,7 @@ use crate::events::tools::{jira, service_status, token_generator};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    Editing, Error, Global, List, TokenGen, ToolConfigEditing, ToolIgnore,
+    Editing, Error, Global, List, Logs, TokenGen, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
@@ -20,10 +20,9 @@ use crate::utils::overlay::overlay_area;
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
-use ratatui::layout::Alignment;
-use ratatui::style::{Color, Style};
-use ratatui::text::Line;
-use ratatui::widgets::{Block, Clear, Paragraph, Wrap};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
@@ -67,6 +66,13 @@ impl App {
     }
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
+        // Log app startup
+        self.state.log.push_log(
+            crate::state::log::LogLevel::Info,
+            "app".to_string(),
+            "App started — config loaded".to_string(),
+        );
+
         let async_sender = self.event_sender.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_mins(15));
@@ -101,6 +107,35 @@ impl App {
             // global
             Quit => self.running = false,
             SetFocus(focus) => self.state.focus = focus,
+            OpenLogs => {
+                self.state.focus = AppFocus::Logs;
+                if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
+                    self.state.log.mark_activity_seen();
+                }
+            }
+            LogsListMove(direction) => {
+                use crate::events::event::Direction;
+                match direction {
+                    Direction::Down => {
+                        self.state.log.select_next();
+                        if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
+                            self.state.log.mark_activity_seen();
+                        }
+                    }
+                    Direction::Up => {
+                        self.state.log.select_prev();
+                        if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
+                            self.state.log.mark_activity_seen();
+                        }
+                    }
+                }
+            }
+            ActivityEvent(source, message) => {
+                self.state.log.push_activity(source, message);
+            }
+            AppLog(level, source, message) => {
+                self.state.log.push_log(level, source, message);
+            }
             ListSelect(tool_state) => self.state.current_tool = tool_state,
             ListMove(direction) => {
                 let tool_list = &mut self.state.tool_list;
@@ -573,30 +608,39 @@ impl App {
 
         config_list::render(frame, areas.config_list, &mut self.state);
 
-        tool::render(frame, areas.content, &mut self.state, &self.config);
+        logs_list::render(frame, areas.logs_list, &mut self.state);
+
+        if matches!(self.state.focus, AppFocus::Logs) {
+            let focused = true;
+            tools::logs::render(frame, areas.content, &self.state.log, focused);
+        } else {
+            tool::render(frame, areas.content, &mut self.state, &self.config);
+        }
 
         footer::render(frame, areas.footer, &self.state);
 
         if let Some(error) = &self.state.error {
-            let red = Style::default().fg(Color::Red);
-            let block = Block::bordered()
-                .title(format!(" {} ", error.title))
-                .border_style(red)
-                .title_style(red);
-            let lines: Vec<Line> = vec![
-                Line::from(format!("{}: {}", error.tool, error.originating_event)),
+            let red = Style::default().fg(Color::Red).add_modifier(Modifier::BOLD);
+            let dim = Style::default().add_modifier(Modifier::DIM);
+            let key = crate::ui::styles::key_style();
+
+            let block = Block::bordered().border_style(red).title_style(red);
+            let content = Paragraph::new(vec![
+                Line::from(Span::styled(error.title.clone(), red)),
                 Line::from(""),
-                Line::from(error.description.clone()),
-            ];
+                Line::from(vec![
+                    Span::styled("See ", dim),
+                    Span::styled("[3]", key),
+                    Span::styled(" Logs for details  ", dim),
+                    Span::styled("[d]", key),
+                    Span::styled(" Dismiss", dim),
+                ]),
+            ])
+            .block(block);
 
-            let paragraph = Paragraph::new(lines)
-                .wrap(Wrap { trim: false })
-                .block(block)
-                .alignment(Alignment::Left);
-
-            let area = overlay_area(frame.area(), 50, 7);
+            let area = overlay_area(frame.area(), 40, 5);
             frame.render_widget(Clear, area);
-            frame.render_widget(paragraph, area);
+            frame.render_widget(content, area);
         }
     }
 
@@ -652,6 +696,9 @@ impl App {
                 }
                 AppFocus::Config => {
                     stack.push(KeyContext::Config);
+                }
+                AppFocus::Logs => {
+                    stack.push(Logs);
                 }
                 AppFocus::JiraInput => {
                     stack.push(Editing(Jira));

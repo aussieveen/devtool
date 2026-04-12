@@ -3,6 +3,7 @@ use crate::error::model::Error;
 use crate::state::config_editor::ConfigEditor;
 use crate::state::jira::Jira;
 use crate::state::jira_config::JiraConfigEditor;
+use crate::state::log::LogState;
 use crate::state::service_status::ServiceStatus;
 use crate::state::service_status_config::ServiceStatusConfigEditor;
 use crate::state::token_generator::TokenGenerator;
@@ -18,6 +19,7 @@ pub enum AppFocus {
     Config,
     ToolConfig(Tool),
     JiraInput,
+    Logs,
 }
 
 pub struct AppState {
@@ -32,6 +34,7 @@ pub struct AppState {
     pub service_status_config_editor: ServiceStatusConfigEditor,
     pub token_generator_config_editor: TokenGeneratorConfigEditor,
     pub jira_config_editor: JiraConfigEditor,
+    pub log: LogState,
 }
 
 impl AppState {
@@ -58,6 +61,7 @@ impl AppState {
             service_status_config_editor: ServiceStatusConfigEditor::new(),
             token_generator_config_editor: TokenGeneratorConfigEditor::new(),
             jira_config_editor: JiraConfigEditor::new(),
+            log: LogState::new(),
         }
     }
 

@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, List, ListItem, Paragraph};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let adding_ticket = state.adding_ticket;
-    let new_ticket_id = state.new_ticket_id.clone().unwrap_or_default();
+    let new_ticket_id = state.new_ticket_id.as_deref().unwrap_or_default();
 
     // When adding a ticket, reserve 3 rows for the inline input; otherwise use full area.
     let ticket_area = if adding_ticket {
@@ -18,7 +18,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
             .constraints([Constraint::Min(0), Constraint::Length(3)])
             .split(area);
         let input_area = vertical[1];
-        render_add_ticket_input(frame, input_area, &new_ticket_id);
+        render_add_ticket_input(frame, input_area, new_ticket_id);
         vertical[0]
     } else {
         area

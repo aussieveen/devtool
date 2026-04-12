@@ -58,6 +58,12 @@ pub enum AppEvent {
     JiraTicketListUpdate,
     ScanTickets,
 
+    // Log events
+    LogsListMove(Direction),
+    ActivityEvent(String, String), // source, message
+    AppLog(crate::state::log::LogLevel, String, String), // level, source, message
+    OpenLogs,
+
     // Generic Events
     SetFocus(AppFocus),
     Quit,

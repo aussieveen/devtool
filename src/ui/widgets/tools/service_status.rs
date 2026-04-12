@@ -35,7 +35,7 @@ pub fn render(
             Commit::Fetching => ("…".to_string(), Color::DarkGray),
             Commit::Empty => ("—".to_string(), Color::DarkGray),
             Commit::Error(_) => ("Error".to_string(), NONE_MATCH),
-            Commit::Ok(_) => (commit.short_value().unwrap(), ok_color),
+            Commit::Ok(_) => (commit.short_value().unwrap_or_default(), ok_color),
         }
     };
 

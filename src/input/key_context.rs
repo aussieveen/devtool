@@ -7,6 +7,7 @@ pub enum KeyContext {
     Global,
     List,
     Config,
+    Logs,
     ToolConfig(Tool),
     Tool(Tool),
     ToolIgnore(Tool),
