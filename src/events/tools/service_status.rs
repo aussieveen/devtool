@@ -75,12 +75,14 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .set_commit_ok(service_idx, &env, commit);
             let new_status = app.state.service_status.services[service_idx].commit_ref_status();
 
-            if old_status != new_status && !matches!(new_status, CommitRefStatus::CommitMissing)
-                && let Some(svc_cfg) = app.config.servicestatus.get(service_idx) {
-                    let msg = status_activity_message(&new_status);
-                    app.event_sender
-                        .send(ActivityEvent(svc_cfg.name.clone(), msg));
-                }
+            if old_status != new_status
+                && !matches!(new_status, CommitRefStatus::CommitMissing)
+                && let Some(svc_cfg) = app.config.servicestatus.get(service_idx)
+            {
+                let msg = status_activity_message(&new_status);
+                app.event_sender
+                    .send(ActivityEvent(svc_cfg.name.clone(), msg));
+            }
         }
         GetCommitRefErrored(error, service_idx, env) => {
             app.state

@@ -63,11 +63,12 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
         }
         RemoveTicket => {
             if let Some(idx) = app.state.jira.list_state.selected()
-                && let Some(ticket) = app.state.jira.tickets.get(idx) {
-                    let id = ticket.id.clone();
-                    app.event_sender
-                        .send(ActivityEvent(id, "Removed from watchlist".to_string()));
-                }
+                && let Some(ticket) = app.state.jira.tickets.get(idx)
+            {
+                let id = ticket.id.clone();
+                app.event_sender
+                    .send(ActivityEvent(id, "Removed from watchlist".to_string()));
+            }
             app.state.jira.remove_ticket();
             if app.state.jira.tickets.is_empty() {
                 app.state.jira.list_state.select(None);
