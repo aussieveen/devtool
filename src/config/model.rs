@@ -34,6 +34,21 @@ impl Default for Features {
     }
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            servicestatus: Vec::new(),
+            tokengenerator: TokenGenerator::default(),
+            jira: None,
+            features: Features {
+                service_status: false,
+                token_generator: false,
+                jira: false,
+            },
+        }
+    }
+}
+
 impl Config {
     pub fn normalize(mut self) -> Self {
         for service in &mut self.servicestatus {
@@ -55,6 +70,18 @@ impl Config {
         if let Some(ref mut jira) = self.jira {
             jira.url = Self::strip_trailing_slash(&jira.url);
         }
+
+        // Auto-disable features whose backing config is absent or empty.
+        if self.servicestatus.is_empty() {
+            self.features.service_status = false;
+        }
+        if self.tokengenerator.services.is_empty() {
+            self.features.token_generator = false;
+        }
+        if self.jira.is_none() {
+            self.features.jira = false;
+        }
+
         self
     }
 
@@ -89,12 +116,32 @@ pub(crate) struct TokenGenerator {
     pub services: Vec<ServiceConfig>,
 }
 
+impl Default for TokenGenerator {
+    fn default() -> Self {
+        Self {
+            auth0: Auth0Config::default(),
+            services: Vec::new(),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct Auth0Config {
     pub local: String,
     pub staging: String,
     pub preproduction: String,
     pub production: String,
+}
+
+impl Default for Auth0Config {
+    fn default() -> Self {
+        Self {
+            local: String::new(),
+            staging: String::new(),
+            preproduction: String::new(),
+            production: String::new(),
+        }
+    }
 }
 
 impl Auth0Config {

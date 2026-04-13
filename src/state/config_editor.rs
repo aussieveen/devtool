@@ -61,6 +61,17 @@ impl ConfigEditor {
             .collect()
     }
 
+    /// Sync the enabled state of each item from a `Features` value.
+    pub fn sync_from_features(&mut self, features: &Features) {
+        for item in &mut self.items {
+            item.enabled = match item.tool {
+                Tool::ServiceStatus => features.service_status,
+                Tool::TokenGenerator => features.token_generator,
+                Tool::Jira => features.jira,
+            };
+        }
+    }
+
     /// Build a `Features` value from the current item state.
     pub fn to_features(&self) -> Features {
         let service_status = self

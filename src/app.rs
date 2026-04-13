@@ -200,11 +200,23 @@ impl App {
             }
             ToggleFeature => {
                 let has_jira_config = self.config.jira.is_some();
-                if self.state.config_editor.toggle_selected().is_some() {
-                    self.config.features = self.state.config_editor.to_features();
-                    // Best-effort write — silently ignore errors so the app stays usable.
-                    let _ = self.config_loader.write_config(&self.config);
-                    self.state.rebuild_tool_list(has_jira_config);
+                if let Some((tool, now_enabled)) = self.state.config_editor.toggle_selected() {
+                    // If the user is trying to enable a feature, check minimum config is present.
+                    // If not, revert the toggle so the feature stays disabled.
+                    let has_min_config = match tool {
+                        ServiceStatus => !self.config.servicestatus.is_empty(),
+                        TokenGenerator => !self.config.tokengenerator.services.is_empty(),
+                        Jira => self.config.jira.is_some(),
+                    };
+                    if now_enabled && !has_min_config {
+                        // Revert — toggle back to disabled without persisting.
+                        self.state.config_editor.toggle_selected();
+                    } else {
+                        self.config.features = self.state.config_editor.to_features();
+                        // Best-effort write — silently ignore errors so the app stays usable.
+                        let _ = self.config_loader.write_config(&self.config);
+                        self.state.rebuild_tool_list(has_jira_config);
+                    }
                 }
             }
             OpenToolConfig(_) => {
@@ -364,6 +376,10 @@ impl App {
                             .service_status_config_editor
                             .table_state
                             .select(None);
+                        // Auto-disable the feature since there's no backing config left.
+                        self.config.features.service_status = false;
+                        self.state.config_editor.sync_from_features(&self.config.features);
+                        self.state.rebuild_tool_list(self.config.jira.is_some());
                     } else {
                         let clamped = idx.min(new_len - 1);
                         self.state
@@ -502,6 +518,10 @@ impl App {
                             .token_generator_config_editor
                             .table_state
                             .select(None);
+                        // Auto-disable the feature since there's no backing config left.
+                        self.config.features.token_generator = false;
+                        self.state.config_editor.sync_from_features(&self.config.features);
+                        self.state.rebuild_tool_list(self.config.jira.is_some());
                     } else {
                         self.state
                             .token_generator_config_editor
