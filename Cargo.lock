@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "dev-tool"
-version = "0.1.0"
+version = "1.2.1"
 dependencies = [
  "chrono",
  "color-eyre",
