@@ -1,6 +1,6 @@
 [package]
 name = "dev-tool"
-version = "1.2.1"
+version = "1.2.2"
 description = "Dev tool"
 authors = ["Simon McWhinnie <simon.mcwhinnie@gmail.com>"]
 license = "MIT"

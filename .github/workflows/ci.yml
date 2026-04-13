@@ -61,6 +61,73 @@ jobs:
 #        run: cargo doc --no-deps --all-features
 #        env:
 #          RUSTDOCFLAGS: --cfg docsrs
+  version-check:
+    name: version check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Validate version bump
+        run: |
+          # Get latest semver tag (bare or v-prefixed)
+          LATEST=$(git tag --sort=-version:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          LATEST_BARE="${LATEST#v}"
+          LATEST_BARE="${LATEST_BARE:-0.0.0}"
+
+          # Read Cargo.toml version from this branch
+          CARGO_VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+
+          echo "Latest tag:        ${LATEST_BARE}"
+          echo "Cargo.toml version: ${CARGO_VERSION}"
+
+          # Get commit messages in this PR
+          COMMITS=$(git log --pretty=format:"%s" "origin/${{ github.base_ref }}..HEAD")
+          echo "Commits in PR:"
+          echo "$COMMITS"
+
+          # Determine required bump from commit messages
+          if echo "$COMMITS" | grep -qE "^(feat|fix|refactor|build|chore|ci|docs|style|test|perf|revert)(\(.+\))?!:" \
+          || echo "$COMMITS" | grep -q "BREAKING CHANGE"; then
+            REQUIRED_BUMP="major"
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+            REQUIRED_BUMP="minor"
+          elif echo "$COMMITS" | grep -qE "^(fix|perf|revert)(\(.+\))?:"; then
+            REQUIRED_BUMP="patch"
+          else
+            REQUIRED_BUMP="none"
+          fi
+
+          echo "Required bump: ${REQUIRED_BUMP}"
+
+          # Calculate expected version
+          MAJOR=$(echo "$LATEST_BARE" | cut -d. -f1)
+          MINOR=$(echo "$LATEST_BARE" | cut -d. -f2)
+          PATCH=$(echo "$LATEST_BARE" | cut -d. -f3)
+
+          if [ "$REQUIRED_BUMP" = "major" ]; then
+            EXPECTED="$((MAJOR + 1)).0.0"
+          elif [ "$REQUIRED_BUMP" = "minor" ]; then
+            EXPECTED="${MAJOR}.$((MINOR + 1)).0"
+          elif [ "$REQUIRED_BUMP" = "patch" ]; then
+            EXPECTED="${MAJOR}.${MINOR}.$((PATCH + 1))"
+          else
+            EXPECTED="${LATEST_BARE}"
+          fi
+
+          echo "Expected version: ${EXPECTED}"
+
+          # Validate
+          if [ "$CARGO_VERSION" = "$EXPECTED" ]; then
+            echo "✅ Version is correct."
+          elif [ "$REQUIRED_BUMP" = "none" ] && [ "$CARGO_VERSION" != "$LATEST_BARE" ]; then
+            echo "❌ No releasable commits (no feat:/fix:/perf:/revert: or breaking changes) but Cargo.toml was bumped from ${LATEST_BARE} to ${CARGO_VERSION}."
+            exit 1
+          else
+            echo "❌ Version mismatch: commits require a ${REQUIRED_BUMP} bump → expected ${EXPECTED}, but Cargo.toml is ${CARGO_VERSION}."
+            exit 1
+          fi
   test:
     runs-on: ${{ matrix.os }}
     name: test ${{ matrix.os }}
