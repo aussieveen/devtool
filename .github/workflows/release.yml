@@ -23,15 +23,17 @@ jobs:
       - name: Get latest semver tag
         id: latest_tag
         run: |
-          LATEST=$(git tag --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-          echo "tag=${LATEST:-v0.0.0}" >> "$GITHUB_OUTPUT"
+          LATEST=$(git tag --sort=-version:refname | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "tag=${LATEST:-0.0.0}" >> "$GITHUB_OUTPUT"
 
       - name: Determine version bump
         id: version
         run: |
           LATEST="${{ steps.latest_tag.outputs.tag }}"
+          # Strip v prefix for arithmetic
+          LATEST_BARE="${LATEST#v}"
 
-          if [ "$LATEST" = "v0.0.0" ]; then
+          if [ "$LATEST_BARE" = "0.0.0" ]; then
             COMMITS=$(git log --pretty=format:"%s")
           else
             COMMITS=$(git log --pretty=format:"%s" "${LATEST}..HEAD")
@@ -59,9 +61,9 @@ jobs:
             exit 0
           fi
 
-          MAJOR=$(echo "$LATEST" | sed 's/v//' | cut -d. -f1)
-          MINOR=$(echo "$LATEST" | sed 's/v//' | cut -d. -f2)
-          PATCH=$(echo "$LATEST" | sed 's/v//' | cut -d. -f3)
+          MAJOR=$(echo "$LATEST_BARE" | cut -d. -f1)
+          MINOR=$(echo "$LATEST_BARE" | cut -d. -f2)
+          PATCH=$(echo "$LATEST_BARE" | cut -d. -f3)
 
           if [ "$BUMP" = "major" ]; then
             NEW_VERSION="$((MAJOR + 1)).0.0"
@@ -74,7 +76,7 @@ jobs:
           echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
           echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
           echo "skip=false" >> "$GITHUB_OUTPUT"
-          echo "Determined bump: ${BUMP} → v${NEW_VERSION}"
+          echo "Determined bump: ${BUMP} → ${NEW_VERSION}"
 
       - name: Install Rust
         if: steps.version.outputs.skip != 'true'
@@ -95,15 +97,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Cargo.toml Cargo.lock
           git commit -m "chore: release v${NEW_VERSION} [skip ci]"
-          git tag "v${NEW_VERSION}"
+          git tag "${NEW_VERSION}"
           git push origin main
-          git push origin "v${NEW_VERSION}"
+          git push origin "${NEW_VERSION}"
 
       - name: Create GitHub Release
         if: steps.version.outputs.skip != 'true'
         run: |
-          gh release create "v${{ steps.version.outputs.new_version }}" \
-            --title "v${{ steps.version.outputs.new_version }}" \
+          gh release create "${{ steps.version.outputs.new_version }}" \
+            --title "${{ steps.version.outputs.new_version }}" \
             --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
