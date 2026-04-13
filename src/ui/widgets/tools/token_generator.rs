@@ -13,6 +13,21 @@ pub fn render(
     state: &mut TokenGenerator,
     service_configs: &[ServiceConfig],
 ) {
+    if service_configs.is_empty() {
+        use ratatui::layout::Alignment;
+        use ratatui::style::Style;
+        use ratatui::widgets::Paragraph;
+        frame.render_widget(
+            Paragraph::new(
+                "No token generator services configured — press [2] then Enter on Token Generator to configure.",
+            )
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(ratatui::style::Color::DarkGray)),
+            area,
+        );
+        return;
+    }
+
     const READY_COLOR: Color = Color::Green;
     const ERROR_COLOR: Color = Color::Red;
     const REQUESTING_COLOR: Color = Color::Yellow;

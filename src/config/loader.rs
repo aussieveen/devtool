@@ -25,6 +25,22 @@ impl ConfigLoader {
         Ok(serde_yaml::from_str::<Config>(config.as_str())?.normalize())
     }
 
+    pub fn read_or_create_config(&self) -> Result<Config, ConfigError> {
+        match fs::read_to_string(&self.file_path) {
+            Ok(content) => Ok(serde_yaml::from_str::<Config>(content.as_str())?.normalize()),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                let config = Config::default();
+                if let Some(parent) = self.file_path.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                let yaml = serde_yaml::to_string(&config)?;
+                fs::write(&self.file_path, yaml)?;
+                Ok(config)
+            }
+            Err(e) => Err(ConfigError::Read(e)),
+        }
+    }
+
     pub fn write_config(&self, config: &Config) -> Result<(), ConfigError> {
         let yaml = serde_yaml::to_string(config)?;
         fs::write(&self.file_path, yaml)?;
@@ -195,5 +211,53 @@ jira:
 
     fn temp_loader_path(dir: &TempDir) -> PathBuf {
         dir.path().join("config.yaml")
+    }
+
+    #[test]
+    fn read_or_create_config_creates_file_when_missing() {
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_loader_path(&dir);
+        assert!(!file_path.exists());
+
+        let config_loader = ConfigLoader::from_path(file_path.clone());
+        let config = config_loader.read_or_create_config().unwrap();
+
+        // Returns default config with all features disabled
+        assert!(config.servicestatus.is_empty());
+        assert!(config.tokengenerator.services.is_empty());
+        assert!(config.jira.is_none());
+        assert!(!config.features.service_status);
+        assert!(!config.features.token_generator);
+        assert!(!config.features.jira);
+
+        // File was written to disk
+        assert!(file_path.exists());
+    }
+
+    #[test]
+    fn read_or_create_config_reads_existing_config() {
+        let yaml = "servicestatus:
+  - name: My Api
+    staging: https://myapi.staging.com/
+    preproduction: https://myapi.preprod.com/
+    production: https://myapi.prod.com/
+    repo: https://github.com/myapi/
+tokengenerator:
+  auth0:
+    local: local_auth0
+    staging: staging_auth0
+    preproduction: preproduction_auth0
+    production: production_auth0
+  services: []";
+
+        let dir = TempDir::new().unwrap();
+        let file_path = temp_loader_path(&dir);
+        fs::write(&file_path, yaml).expect("Unable to write temp config file");
+
+        let config_loader = ConfigLoader::from_path(file_path);
+        let config = config_loader.read_or_create_config().unwrap();
+
+        assert_eq!(config.servicestatus[0].name, "My Api");
+        assert_eq!(config.tokengenerator.auth0.local, "local_auth0");
     }
 }
