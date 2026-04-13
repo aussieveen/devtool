@@ -110,38 +110,18 @@ impl ServiceStatusConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 pub(crate) struct TokenGenerator {
     pub auth0: Auth0Config,
     pub services: Vec<ServiceConfig>,
 }
 
-impl Default for TokenGenerator {
-    fn default() -> Self {
-        Self {
-            auth0: Auth0Config::default(),
-            services: Vec::new(),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Auth0Config {
     pub local: String,
     pub staging: String,
     pub preproduction: String,
     pub production: String,
-}
-
-impl Default for Auth0Config {
-    fn default() -> Self {
-        Self {
-            local: String::new(),
-            staging: String::new(),
-            preproduction: String::new(),
-            production: String::new(),
-        }
-    }
 }
 
 impl Auth0Config {

@@ -378,7 +378,9 @@ impl App {
                             .select(None);
                         // Auto-disable the feature since there's no backing config left.
                         self.config.features.service_status = false;
-                        self.state.config_editor.sync_from_features(&self.config.features);
+                        self.state
+                            .config_editor
+                            .sync_from_features(&self.config.features);
                         self.state.rebuild_tool_list(self.config.jira.is_some());
                     } else {
                         let clamped = idx.min(new_len - 1);
@@ -520,7 +522,9 @@ impl App {
                             .select(None);
                         // Auto-disable the feature since there's no backing config left.
                         self.config.features.token_generator = false;
-                        self.state.config_editor.sync_from_features(&self.config.features);
+                        self.state
+                            .config_editor
+                            .sync_from_features(&self.config.features);
                         self.state.rebuild_tool_list(self.config.jira.is_some());
                     } else {
                         self.state
