@@ -1,4 +1,4 @@
-use crate::events::event::AppEvent;
+use crate::event::event::AppEvent;
 use crate::input::key_context::KeyContext;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashMap;
@@ -46,7 +46,7 @@ impl KeyEventMap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::event::Direction;
+    use crate::event::event::Direction;
 
     #[test]
     fn map_add_static() {

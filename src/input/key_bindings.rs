@@ -1,6 +1,6 @@
 use crate::app::AppFocus;
 use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
-use crate::events::event::AppEvent::{
+use crate::event::event::AppEvent::{
     AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissError, GenerateToken,
     JiraConfigFormBackspace, JiraConfigFormChar, JiraConfigFormNextField, JiraConfigFormPrevField,
     JiraTicketListMove, JiraTicketMove, ListMove, LogsListMove, NewJiraTicket, OpenAddService,
@@ -9,11 +9,11 @@ use crate::events::event::AppEvent::{
     ScanServices, ServiceStatusConfigListMove, ServiceStatusFormBackspace, ServiceStatusFormChar,
     ServiceStatusFormNextField, ServiceStatusFormPrevField, ServiceStatusListMove, SetFocus,
     SetTokenGenFocus, SubmitJiraConfig, SubmitServiceConfig, SubmitTicketId, SubmitTokenGenConfig,
-    TgConfigEdit, TgConfigSwitchFocus, ToggleFeature, TokenGenConfigFormBackspace,
+    TokenGeneratorConfigEdit, TokenGeneratorConfigSwitchFocus, ToggleFeature, TokenGenConfigFormBackspace,
     TokenGenConfigFormChar, TokenGenConfigFormNextField, TokenGenConfigFormPrevField,
     TokenGenConfigListMove, TokenGenEnvListMove, TokenGenServiceListMove,
 };
-use crate::events::event::{AppEvent, Direction};
+use crate::event::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
     Config, Editing, Error, Global, List, Logs, TokenGen, Tool, ToolConfig, ToolConfigEditing,
     ToolIgnore,
@@ -323,7 +323,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         ToolConfig(TokenGenerator),
         KeyCode::Char('e'),
         KeyModifiers::NONE,
-        TgConfigEdit,
+        TokenGeneratorConfigEdit,
     );
     key_event_map.add_static(
         ToolConfig(TokenGenerator),
@@ -335,13 +335,13 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         ToolConfig(TokenGenerator),
         KeyCode::Tab,
         KeyModifiers::NONE,
-        TgConfigSwitchFocus,
+        TokenGeneratorConfigSwitchFocus,
     );
     key_event_map.add_static(
         ToolConfig(TokenGenerator),
         KeyCode::BackTab,
         KeyModifiers::SHIFT,
-        TgConfigSwitchFocus,
+        TokenGeneratorConfigSwitchFocus,
     );
     key_event_map.add_static(
         ToolConfig(TokenGenerator),
@@ -525,7 +525,7 @@ fn jira_config_form_char(key_event: KeyEvent) -> Option<AppEvent> {
 mod tests {
     use super::*;
     use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
-    use crate::events::event::Direction::{Down, Up};
+    use crate::event::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
     use crate::input::key_context::KeyContext::{
         Config, Editing, Global, List, Logs, TokenGen, Tool, ToolConfig, ToolIgnore,

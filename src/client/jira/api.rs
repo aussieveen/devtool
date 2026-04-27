@@ -2,8 +2,8 @@ use crate::client::jira::jira_client;
 use crate::client::jira::models::TicketResponse;
 use crate::config::model::JiraConfig;
 use crate::error::model::{ClientError, Error};
-use crate::events::event::AppEvent::{SystemError, TicketRetrieved};
-use crate::events::sender::EventSender;
+use crate::event::event::AppEvent::{SystemError, TicketRetrieved};
+use crate::event::sender::EventSender;
 use reqwest::Client;
 
 pub trait JiraApi {
@@ -34,9 +34,9 @@ impl JiraApi for ImmediateJiraApi {
         tokio::spawn(async move {
             match get_ticket(client, &ticket_id, &jira_config).await {
                 Ok(ticket) => {
-                    sender.send(TicketRetrieved(ticket));
+                    sender.send_app_event(TicketRetrieved(ticket));
                 }
-                Err(err) => sender.send(SystemError(Error {
+                Err(err) => sender.send_app_event(SystemError(Error {
                     title: "Failed to get ticket".to_string(),
                     originating_event: "SubmitTicketId".to_string(),
                     tool: "Jira".to_string(),

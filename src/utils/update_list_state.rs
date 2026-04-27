@@ -1,4 +1,4 @@
-use crate::events::event::Direction;
+use crate::event::event::Direction;
 use ratatui::widgets::ListState;
 
 pub fn update_list(list_state: &mut ListState, direction: Direction, len: usize) {
@@ -39,7 +39,7 @@ fn select_next(list_state: &mut ListState, len: usize) {
 
 #[cfg(test)]
 mod tests {
-    use crate::events::event::Direction;
+    use crate::event::event::Direction;
     use crate::utils::update_list_state::{select_next, update_list, update_noneable_list};
     use ratatui::widgets::ListState;
     use test_case::test_case;

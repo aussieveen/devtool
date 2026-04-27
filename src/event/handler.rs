@@ -1,6 +1,6 @@
-use crate::events::event::Event;
-use crate::events::sender::EventSender;
-use crate::events::task::EventTask;
+use crate::event::event::Event;
+use crate::event::sender::EventSender;
+use crate::event::task::EventTask;
 use color_eyre::eyre::OptionExt;
 use tokio::sync::mpsc;
 

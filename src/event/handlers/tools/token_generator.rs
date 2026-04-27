@@ -1,19 +1,17 @@
 use crate::app::App;
 use crate::error::model::Error;
-use crate::events::event::AppEvent;
-use crate::events::event::AppEvent::SystemError;
-use crate::events::event::AppEvent::{
-    AppLog, CopyToClipboard, GenerateToken, SetTokenGenFocus, TokenFailed, TokenGenEnvListMove,
-    TokenGenServiceListMove, TokenGenerated,
-};
+use crate::event::event::{GenericEvent, TokenGeneratorEvent};
+use crate::event::event::AppEvent::{AppLog, SystemError};
+use crate::event::event::GenericEvent::CopyToClipboard;
+use crate::event::event::TokenGeneratorEvent::{GenerateToken, SetFocus, TokenFailed, EnvListMove, ServiceListMove, TokenGenerated};
 use crate::state::log::LogLevel;
 use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 
-pub fn handle_event(app: &mut App, app_event: AppEvent) {
-    match app_event {
-        TokenGenEnvListMove(direction) => {
+pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
+    match event {
+        EnvListMove(direction) => {
             let (selected_service, _) = app.state.token_generator.get_selected_service_env();
 
             let env_count = app.config.tokengenerator.services[selected_service]
@@ -26,7 +24,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 env_count,
             );
         }
-        TokenGenServiceListMove(direction) => {
+        ServiceListMove(direction) => {
             let list_state = &mut app.state.token_generator.service_list_state;
             update_list_state::update_list(
                 list_state,
@@ -35,7 +33,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             );
             app.state.token_generator.env_list_state.select_first();
         }
-        SetTokenGenFocus(focus) => {
+        SetFocus(focus) => {
             app.state.token_generator.focus = focus;
         }
         GenerateToken => {
@@ -57,7 +55,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .map(|c| c.env.to_string().to_lowercase())
                 .unwrap_or_default();
 
-            app.event_sender.send(AppLog(
+            app.event_sender.send_app_event(AppLog(
                 LogLevel::Info,
                 "token-gen".to_string(),
                 format!("Requesting token: {}/{}", svc_name, env_name),
@@ -88,7 +86,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .map(|c| c.env.to_string().to_lowercase())
                 .unwrap_or_default();
 
-            app.event_sender.send(AppLog(
+            app.event_sender.send_app_event(AppLog(
                 LogLevel::Info,
                 "token-gen".to_string(),
                 format!("Token generated: {}/{}", svc_name, env_name),
@@ -115,7 +113,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .map(|c| c.env.to_string().to_lowercase())
                 .unwrap_or_default();
 
-            app.event_sender.send(AppLog(
+            app.event_sender.send_app_event(AppLog(
                 LogLevel::Error,
                 "token-gen".to_string(),
                 format!(
@@ -128,13 +126,18 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .token_generator
                 .set_token_error(service_idx, env_idx);
             let sender = app.event_sender.clone();
-            sender.send(SystemError(Error {
+            sender.send_app_event(SystemError(Error {
                 title: "Error requesting token".to_string(),
                 originating_event: "TokenFailed".to_string(),
                 tool: "Token Generator".to_string(),
                 description: error,
             }));
         }
+    }
+}
+
+pub fn handle_generic_event(app: &mut App, event: GenericEvent){
+    match event {
         CopyToClipboard => {
             let token = app
                 .state
@@ -144,13 +147,14 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 && let Some(value) = token.value()
                 && let Err(e) = copy_to_clipboard(value)
             {
-                app.event_sender.send(AppLog(
+                app.event_sender.send_app_event(AppLog(
                     LogLevel::Warning,
                     "token-gen".to_string(),
                     format!("Copy to clipboard failed: {}", e),
                 ));
             }
-        }
+        },
         _ => {}
     }
+
 }

@@ -1,8 +1,8 @@
 use crate::client::auth_zero::auth_zero_client;
 use crate::config::model::TokenGenerator;
 use crate::error::model::ClientError;
-use crate::events::event::AppEvent::{TokenFailed, TokenGenerated};
-use crate::events::sender::EventSender;
+use crate::event::event::AppEvent::{TokenFailed, TokenGenerated};
+use crate::event::sender::EventSender;
 use reqwest::Client;
 
 pub trait AuthZeroApi {
@@ -45,10 +45,10 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
         tokio::spawn(async move {
             match get_token(client, service_idx, env_idx, config).await {
                 Ok(token) => {
-                    sender.send(TokenGenerated(token, service_idx, env_idx));
+                    sender.send_app_event(TokenGenerated(token, service_idx, env_idx));
                 }
                 Err(err) => {
-                    sender.send(TokenFailed(err.to_string(), service_idx, env_idx));
+                    sender.send_app_event(TokenFailed(err.to_string(), service_idx, env_idx));
                 }
             }
         });

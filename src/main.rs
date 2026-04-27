@@ -3,7 +3,7 @@ mod client;
 mod config;
 mod environment;
 mod error;
-mod events;
+mod event;
 mod input;
 mod persistence;
 mod state;

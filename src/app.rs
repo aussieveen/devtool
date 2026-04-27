@@ -4,11 +4,15 @@ use crate::client::healthcheck::api::{HealthcheckApi, ImmediateHealthcheckApi};
 use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
 use crate::config::loader::ConfigLoader;
 use crate::config::model::Config;
-use crate::events::event::AppEvent::*;
-use crate::events::event::{AppEvent, Event};
-use crate::events::handler::EventHandler;
-use crate::events::sender::EventSender;
-use crate::events::tools::{jira, service_status, token_generator};
+use crate::event::event::AppEvent::*;
+use crate::event::event::{AppEvent, Event, GenericEvent, ServiceStatusEvent};
+use crate::event::handler::EventHandler;
+use crate::event::sender::EventSender;
+use crate::event::handlers::tools::{jira, service_status, token_generator};
+use crate::event::handlers::config::{
+    jira as jira_config, service_status as service_status_config,
+    token_generator as token_generator_config
+};
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
@@ -26,6 +30,9 @@ use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
+use crate::event::event::GenericEvent::{CopyToClipboard, OpenInBrowser};
+use crate::event::event::JiraEvent::ScanTickets;
+use crate::event::event::ServiceStatusEvent::Scan;
 
 /// The main application which holds the state and logic of the application.
 pub struct App {
@@ -35,7 +42,7 @@ pub struct App {
     event_handler: EventHandler,
     pub(crate) event_sender: EventSender,
     pub(crate) config: Config,
-    config_loader: ConfigLoader,
+    pub(crate) config_loader: ConfigLoader,
     key_event_map: KeyEventMap,
 
     // External Services
@@ -78,8 +85,8 @@ impl App {
             let mut interval = tokio::time::interval(Duration::from_mins(15));
             loop {
                 interval.tick().await; // This should go first.
-                async_sender.send(ScanServices);
-                async_sender.send(ScanTickets);
+                async_sender.send_service_status_event(Scan);
+                async_sender.send_jira_event(ScanTickets);
             }
         });
 
@@ -96,7 +103,13 @@ impl App {
                     }
                     _ => {}
                 },
-                Event::App(app_event) => self.handle_app_event(app_event),
+                Event::App(event) => self.handle_app_event(event),
+                Event::ServiceStatus(event ) => service_status::handle_event(&mut self, event),
+                Event::ServiceStatusConfig(event) => service_status_config::handle_event(&mut self, event),
+                Event::TokenGenerator(event) => {token_generator::handle_event(&mut self, event)}
+                Event::TokenGeneratorConfig(event) => {token_generator_config::handle_event(&mut self, event)}
+                Event::Jira(event) => {jira::handle_event(&mut self, event)}
+                Event::JiraConfig(event) => {jira_config::handle_event(&mut self, event)}
             }
         }
         Ok(())
@@ -114,7 +127,7 @@ impl App {
                 }
             }
             LogsListMove(direction) => {
-                use crate::events::event::Direction;
+                use crate::event::event::Direction;
                 match direction {
                     Direction::Down => {
                         self.state.log.select_next();
@@ -147,37 +160,20 @@ impl App {
                 if let Some(index) = tool_list.list_state.selected()
                     && let Some(tool) = tool_list.items.get(index).cloned()
                 {
-                    self.event_sender.send(ListSelect(tool))
+                    self.event_sender.send_app_event(ListSelect(tool))
                 }
             }
             SystemError(error) => self.state.error = Some(error),
             DismissError => self.state.error = None,
 
-            CopyToClipboard => match self.state.current_tool {
-                ServiceStatus => service_status::handle_event(self, CopyToClipboard),
-                TokenGenerator => token_generator::handle_event(self, CopyToClipboard),
-                _ => {}
-            },
-            OpenInBrowser => match self.state.current_tool {
-                ServiceStatus => service_status::handle_event(self, OpenInBrowser),
-                Jira => jira::handle_event(self, OpenInBrowser),
-                _ => {}
-            },
-
-            // service status events
-            e @ ServiceStatusListMove(..)
-            | e @ ScanServices
-            | e @ ScanServiceEnv(..)
-            | e @ GetCommitRefOk(..)
-            | e @ GetCommitRefErrored(..) => service_status::handle_event(self, e),
-            // token generator events
+            // token generator event
             e @ TokenGenEnvListMove(..)
             | e @ TokenGenServiceListMove(..)
             | e @ SetTokenGenFocus(..)
             | e @ GenerateToken
             | e @ TokenGenerated(..)
             | e @ TokenFailed(..) => token_generator::handle_event(self, e),
-            // jira ticket events
+            // jira ticket event
             e @ JiraTicketListMove(..)
             | e @ NewJiraTicket
             | e @ AddTicketIdChar(..)
@@ -189,7 +185,7 @@ impl App {
             | e @ JiraTicketListUpdate
             | e @ ScanTickets => jira::handle_event(self, e),
 
-            // config panel events
+            // config panel event
             ConfigListMove(direction) => {
                 let editor = &mut self.state.config_editor;
                 update_list_state::update_list(
@@ -242,7 +238,7 @@ impl App {
                     self.state.focus = AppFocus::Config;
                 }
             }
-            // Service Status config events
+            // Service Status config event
             e @ ServiceStatusConfigListMove(..)
             | e @ OpenAddService
             | e @ OpenEditService
@@ -252,7 +248,7 @@ impl App {
             | e @ ServiceStatusFormBackspace
             | e @ SubmitServiceConfig
             | e @ RemoveService => self.handle_service_status_config_event(e),
-            // Token Generator config events
+            // Token Generator config event
             e @ TokenGenConfigListMove(..)
             | e @ OpenAddTokenGenService
             | e @ TokenGenConfigFormNextField
@@ -260,10 +256,10 @@ impl App {
             | e @ TokenGenConfigFormChar(..)
             | e @ TokenGenConfigFormBackspace
             | e @ SubmitTokenGenConfig
-            | e @ TgConfigSwitchFocus
-            | e @ TgConfigEdit
+            | e @ TokenGeneratorConfigSwitchFocus
+            | e @ TokenGeneratorConfigEdit
             | e @ RemoveTokenGenService => self.handle_token_gen_config_event(e),
-            // Jira config events
+            // Jira config event
             e @ OpenJiraConfigEdit
             | e @ JiraConfigFormNextField
             | e @ JiraConfigFormPrevField
@@ -273,127 +269,23 @@ impl App {
         }
     }
 
-    fn handle_service_status_config_event(&mut self, event: AppEvent) {
-        let editor = &mut self.state.service_status_config_editor;
+    fn handle_generic_event(&mut self, event: GenericEvent){
         match event {
-            ServiceStatusConfigListMove(direction) => {
-                let len = self.config.servicestatus.len();
-                let state = &mut self.state.service_status_config_editor.table_state;
-                if len == 0 {
-                    state.select(None);
-                } else {
-                    match direction {
-                        crate::events::event::Direction::Up => match state.selected() {
-                            None | Some(0) => state.select(None),
-                            _ => state.select_previous(),
-                        },
-                        crate::events::event::Direction::Down => {
-                            let next = state.selected().map(|i| i + 1).unwrap_or(0);
-                            state.select(Some(next.min(len - 1)));
-                        }
-                    }
-                }
-            }
-            OpenAddService => {
-                editor.open_form();
-            }
-            OpenEditService => {
-                if let Some(idx) = self
-                    .state
-                    .service_status_config_editor
-                    .table_state
-                    .selected()
-                    && let Some(svc) = self.config.servicestatus.get(idx)
-                {
-                    self.state
-                        .service_status_config_editor
-                        .open_edit_form(idx, svc);
-                }
-            }
-            ServiceStatusFormNextField => {
-                if let Some(form) = &mut editor.form {
-                    form.active_field = form.active_field.next();
-                }
-            }
-            ServiceStatusFormPrevField => {
-                if let Some(form) = &mut editor.form {
-                    form.active_field = form.active_field.prev();
-                }
-            }
-            ServiceStatusFormChar(c) => {
-                if let Some(form) = &mut editor.form {
-                    form.active_field_value_mut().push(c);
-                }
-            }
-            ServiceStatusFormBackspace => {
-                if let Some(form) = &mut editor.form {
-                    form.active_field_value_mut().pop();
-                }
-            }
-            SubmitServiceConfig => {
-                if let Some(form) = self.state.service_status_config_editor.form.take()
-                    && form.is_valid()
-                {
-                    let service = crate::config::model::ServiceStatusConfig {
-                        name: form.name.trim().to_string(),
-                        staging: form.staging.trim().to_string(),
-                        preproduction: form.preprod.trim().to_string(),
-                        production: form.prod.trim().to_string(),
-                        repo: form.repo.trim().to_string(),
-                    };
-                    if let Some(idx) = form.edit_index {
-                        // Edit existing
-                        if let Some(existing) = self.config.servicestatus.get_mut(idx) {
-                            *existing = service;
-                        }
-                    } else {
-                        // Add new
-                        self.config.servicestatus.push(service);
-                    }
-                    self.state.service_status = crate::state::service_status::ServiceStatus::new(
-                        self.config.servicestatus.len(),
-                    );
-                    let _ = self.config_loader.write_config(&self.config);
-                }
-                // If invalid, just close the form without saving
-            }
-            RemoveService => {
-                if let Some(idx) = self
-                    .state
-                    .service_status_config_editor
-                    .table_state
-                    .selected()
-                    && idx < self.config.servicestatus.len()
-                {
-                    self.config.servicestatus.remove(idx);
-                    self.state.service_status = crate::state::service_status::ServiceStatus::new(
-                        self.config.servicestatus.len(),
-                    );
-                    // Clamp selection
-                    let new_len = self.config.servicestatus.len();
-                    if new_len == 0 {
-                        self.state
-                            .service_status_config_editor
-                            .table_state
-                            .select(None);
-                        // Auto-disable the feature since there's no backing config left.
-                        self.config.features.service_status = false;
-                        self.state
-                            .config_editor
-                            .sync_from_features(&self.config.features);
-                        self.state.rebuild_tool_list(self.config.jira.is_some());
-                    } else {
-                        let clamped = idx.min(new_len - 1);
-                        self.state
-                            .service_status_config_editor
-                            .table_state
-                            .select(Some(clamped));
-                    }
-                    let _ = self.config_loader.write_config(&self.config);
-                }
-            }
-            _ => {}
+            CopyToClipboard => match self.state.current_tool {
+                ServiceStatus => service_status::handle_generic_event(self, CopyToClipboard),
+                TokenGenerator => token_generator::handle_event(self, CopyToClipboard),
+                _ => {}
+            },
+            OpenInBrowser => match self.state.current_tool {
+                ServiceStatus => service_status::handle_generic_event(self, OpenInBrowser),
+                Jira => jira::handle_event(self, OpenInBrowser),
+                _ => {}
+            },
         }
+    }
+
+    fn handle_service_status_config_event(&mut self, event: AppEvent) {
+
     }
 
     fn handle_token_gen_config_event(&mut self, event: AppEvent) {
@@ -404,7 +296,7 @@ impl App {
                 let len = self.config.tokengenerator.services.len();
                 let editor = &mut self.state.token_generator_config_editor;
                 match direction {
-                    crate::events::event::Direction::Up => {
+                    crate::event::event::Direction::Up => {
                         if editor.config_focus == ConfigFocus::Services {
                             match editor.table_state.selected() {
                                 None | Some(0) => {
@@ -417,7 +309,7 @@ impl App {
                         }
                         // Up while on Auth0 does nothing (already at the top)
                     }
-                    crate::events::event::Direction::Down => {
+                    crate::event::event::Direction::Down => {
                         if editor.config_focus == ConfigFocus::Auth0 {
                             if len > 0 {
                                 // Drop into the services section
@@ -535,7 +427,7 @@ impl App {
                     let _ = self.config_loader.write_config(&self.config);
                 }
             }
-            TgConfigEdit => {
+            TokenGeneratorConfigEdit => {
                 use crate::state::token_generator_config::ConfigFocus;
                 let editor = &self.state.token_generator_config_editor;
                 match editor.config_focus {
@@ -561,7 +453,7 @@ impl App {
                     }
                 }
             }
-            TgConfigSwitchFocus => {
+            TokenGeneratorConfigSwitchFocus => {
                 use crate::state::token_generator_config::ConfigFocus;
                 let editor = &mut self.state.token_generator_config_editor;
                 editor.config_focus = match editor.config_focus {
@@ -572,53 +464,6 @@ impl App {
                     editor.table_state.select(None);
                 } else if !self.config.tokengenerator.services.is_empty() {
                     editor.table_state.select(Some(0));
-                }
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_jira_config_event(&mut self, event: AppEvent) {
-        match event {
-            OpenJiraConfigEdit => {
-                self.state
-                    .jira_config_editor
-                    .open_form(self.config.jira.as_ref());
-            }
-            JiraConfigFormNextField => {
-                if let Some(p) = &mut self.state.jira_config_editor.form {
-                    p.active_field = p.active_field.next();
-                }
-            }
-            JiraConfigFormPrevField => {
-                if let Some(p) = &mut self.state.jira_config_editor.form {
-                    p.active_field = p.active_field.prev();
-                }
-            }
-            JiraConfigFormChar(c) => {
-                if let Some(p) = &mut self.state.jira_config_editor.form {
-                    p.active_field_value_mut().push(c);
-                }
-            }
-            JiraConfigFormBackspace => {
-                if let Some(p) = &mut self.state.jira_config_editor.form {
-                    p.active_field_value_mut().pop();
-                }
-            }
-            SubmitJiraConfig => {
-                if let Some(form) = self.state.jira_config_editor.form.take() {
-                    if form.is_empty() {
-                        self.config.jira = None;
-                    } else {
-                        self.config.jira = Some(crate::config::model::JiraConfig {
-                            url: form.url.trim().to_string(),
-                            email: form.email.trim().to_string(),
-                            token: form.token.trim().to_string(),
-                        });
-                    }
-                    let has_jira_config = self.config.jira.is_some();
-                    self.state.rebuild_tool_list(has_jira_config);
-                    let _ = self.config_loader.write_config(&self.config);
                 }
             }
             _ => {}
@@ -674,7 +519,7 @@ impl App {
         // also firing when a higher-priority context already handled the key.
         for context in self.get_context_stack() {
             if let Some(event) = self.key_event_map.resolve(context, key) {
-                self.event_sender.send(event.clone());
+                self.event_sender.send_app_event(event.clone());
                 break;
             }
         }
