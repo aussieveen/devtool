@@ -1,5 +1,5 @@
 use crate::client::jira::models::TicketResponse;
-use crate::event::event::Direction;
+use crate::event::events::Direction;
 use crate::persistence;
 use crate::persistence::persister::JiraFile;
 use log::error;
@@ -174,7 +174,7 @@ impl Ticket {
 #[cfg(test)]
 mod tests {
     use crate::client::jira::models::{Assignee, Fields, Status, TicketResponse};
-    use crate::event::event::Direction;
+    use crate::event::events::Direction;
     use crate::persistence::persister::JiraFile;
     use crate::state::jira::{Jira, Ticket};
     use std::path::PathBuf;

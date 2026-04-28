@@ -4,8 +4,8 @@ use crate::client::healthcheck::api::{HealthcheckApi, ImmediateHealthcheckApi};
 use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
 use crate::config::loader::ConfigLoader;
 use crate::config::model::Config;
-use crate::event::event::AppEvent::*;
-use crate::event::event::{AppEvent, Event, GenericEvent};
+use crate::event::events::AppEvent::*;
+use crate::event::events::{AppEvent, Event, GenericEvent};
 use crate::event::handler::EventHandler;
 use crate::event::sender::EventSender;
 use crate::event::handlers::tools::{jira, service_status, token_generator};
@@ -30,9 +30,9 @@ use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
-use crate::event::event::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, SetFocus};
-use crate::event::event::JiraEvent::ScanTickets;
-use crate::event::event::ServiceStatusEvent::Scan;
+use crate::event::events::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, SetFocus};
+use crate::event::events::JiraEvent::ScanTickets;
+use crate::event::events::ServiceStatusEvent::Scan;
 
 /// The main application which holds the state and logic of the application.
 pub struct App {
@@ -125,7 +125,7 @@ impl App {
                 }
             }
             LogsListMove(direction) => {
-                use crate::event::event::Direction;
+                use crate::event::events::Direction;
                 match direction {
                     Direction::Down => {
                         self.state.log.select_next();

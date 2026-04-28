@@ -1,6 +1,6 @@
 use crate::app::App;
-use crate::event::event::ServiceStatusConfigEvent;
-use crate::event::event::ServiceStatusConfigEvent::{
+use crate::event::events::ServiceStatusConfigEvent;
+use crate::event::events::ServiceStatusConfigEvent::{
     OpenAddService, OpenEditService, RemoveService, ListMove,
     FormBackspace, FormChar, FormNextField,
     PrevField, SubmitConfig};
@@ -15,11 +15,11 @@ pub fn handle_event(app: &mut App, event: ServiceStatusConfigEvent) {
                 state.select(None);
             } else {
                 match direction {
-                    crate::event::event::Direction::Up => match state.selected() {
+                    crate::event::events::Direction::Up => match state.selected() {
                         None | Some(0) => state.select(None),
                         _ => state.select_previous(),
                     },
-                    crate::event::event::Direction::Down => {
+                    crate::event::events::Direction::Down => {
                         let next = state.selected().map(|i| i + 1).unwrap_or(0);
                         state.select(Some(next.min(len - 1)));
                     }

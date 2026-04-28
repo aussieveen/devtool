@@ -1,9 +1,9 @@
 use crate::app::App;
 use crate::error::model::Error;
-use crate::event::event::AppEvent::{ActivityEvent, AppLog, SystemError};
-use crate::event::event::{Direction, GenericEvent, JiraEvent};
-use crate::event::event::GenericEvent::OpenInBrowser;
-use crate::event::event::JiraEvent::{
+use crate::event::events::AppEvent::{ActivityEvent, AppLog, SystemError};
+use crate::event::events::{Direction, GenericEvent, JiraEvent};
+use crate::event::events::GenericEvent::OpenInBrowser;
+use crate::event::events::JiraEvent::{
     AddTicketIdChar, ListMove, TicketListUpdate, TicketMove, NewTicket,
     RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, TicketRetrieved
 };
@@ -135,8 +135,8 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
 }
 
 pub fn handle_generic_event(app: &mut App, event: GenericEvent){
-    if event == OpenInBrowser {
-        if let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
+    if event == OpenInBrowser
+        && let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
             && let Some(config) = app.config.jira.clone()
         {
             let link = format!(
@@ -151,5 +151,4 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent){
                 ));
             }
         }
-    }
 }

@@ -1,6 +1,6 @@
 use crate::app::App;
-use crate::event::event::JiraConfigEvent;
-use crate::event::event::JiraConfigEvent::{FormBackspace, FormChar, FormNextField, FormPrevField, OpenEdit, SubmitConfig};
+use crate::event::events::JiraConfigEvent;
+use crate::event::events::JiraConfigEvent::{FormBackspace, FormChar, FormNextField, FormPrevField, OpenEdit, SubmitConfig};
 
 pub fn handle_event(app: &mut App, event: JiraConfigEvent){
     match event {

@@ -19,12 +19,7 @@ impl ConfigLoader {
     pub(crate) fn from_path(file_path: PathBuf) -> ConfigLoader {
         ConfigLoader { file_path }
     }
-
-    pub fn read_config(&self) -> Result<Config, ConfigError> {
-        let config = fs::read_to_string(&self.file_path)?;
-        Ok(serde_yaml::from_str::<Config>(config.as_str())?.normalize())
-    }
-
+    
     pub fn read_or_create_config(&self) -> Result<Config, ConfigError> {
         match fs::read_to_string(&self.file_path) {
             Ok(content) => Ok(serde_yaml::from_str::<Config>(content.as_str())?.normalize()),
@@ -98,115 +93,6 @@ mod tests {
             "preproduction"
         );
         assert_eq!(config.get_from_env(&Environment::Production), "production");
-    }
-
-    #[test]
-    fn read_config_returns_config_successfully() {
-        let yaml = "servicestatus:
-  - name: My Api
-    staging: https://myapi.staging.com/
-    preproduction: https://myapi.preprod.com/
-    production: https://myapi.prod.com/
-    repo: https://github.com/myapi/
-tokengenerator:
-  auth0:
-    # url structure https://m2m-auth0-url.com/oauth/token
-    local: local_auth0
-    staging: staging_auth0
-    preproduction: preproduction_auth0
-    production: production_auth0
-  services:
-    - name: my-user-service
-      audience: user
-      credentials:
-        - env: Local
-          client_id: abc
-          client_secret: 123
-        - env: Staging
-          client_id: 123
-          client_secret: 456
-        - env: Preproduction
-          client_id: 456
-          client_secret: def
-        - env: Production
-          client_id: def
-          client_secret: 789
-jira:
-    url: url
-    email: email
-    token: token";
-
-        let dir = TempDir::new().unwrap();
-        let file_path = temp_loader_path(&dir);
-        fs::write(&file_path, yaml).expect("Unable to write temp config file");
-
-        let config_loader = ConfigLoader::from_path(file_path);
-
-        let config = config_loader.read_config().unwrap();
-        let servicestatus = &config.servicestatus[0];
-        assert_eq!(servicestatus.name, "My Api");
-        assert_eq!(servicestatus.staging, "https://myapi.staging.com");
-        assert_eq!(servicestatus.preproduction, "https://myapi.preprod.com");
-        assert_eq!(servicestatus.production, "https://myapi.prod.com");
-        assert_eq!(servicestatus.repo, "https://github.com/myapi");
-
-        let tokengen = config.tokengenerator;
-        assert_eq!(tokengen.auth0.local, "local_auth0");
-        assert_eq!(tokengen.auth0.staging, "staging_auth0");
-        assert_eq!(tokengen.auth0.preproduction, "preproduction_auth0");
-        assert_eq!(tokengen.auth0.staging, "staging_auth0");
-
-        assert_eq!(tokengen.services[0].name, "my-user-service");
-        assert_eq!(tokengen.services[0].audience, "user");
-        assert_eq!(tokengen.services[0].credentials[0].env, Environment::Local);
-        assert_eq!(tokengen.services[0].credentials[0].client_id, "abc");
-        assert_eq!(tokengen.services[0].credentials[0].client_secret, "123");
-        assert_eq!(
-            tokengen.services[0].credentials[1].env,
-            Environment::Staging
-        );
-        assert_eq!(tokengen.services[0].credentials[1].client_id, "123");
-        assert_eq!(tokengen.services[0].credentials[1].client_secret, "456");
-        assert_eq!(
-            tokengen.services[0].credentials[2].env,
-            Environment::Preproduction
-        );
-        assert_eq!(tokengen.services[0].credentials[2].client_id, "456");
-        assert_eq!(tokengen.services[0].credentials[2].client_secret, "def");
-        assert_eq!(
-            tokengen.services[0].credentials[3].env,
-            Environment::Production
-        );
-        assert_eq!(tokengen.services[0].credentials[3].client_id, "def");
-        assert_eq!(tokengen.services[0].credentials[3].client_secret, "789");
-
-        let jira = &config.jira.unwrap();
-        assert_eq!(jira.token, "token");
-        assert_eq!(jira.email, "email");
-    }
-
-    #[test]
-    fn read_config_returns_error_when_unable_to_read_file_content() {
-        let dir = TempDir::new().unwrap();
-        let file_path = temp_loader_path(&dir);
-        let config_loader = ConfigLoader::from_path(file_path);
-        assert!(matches!(
-            config_loader.read_config(),
-            Err(ConfigError::Read(_))
-        ));
-    }
-
-    #[test]
-    fn read_config_returns_error_when_unable_to_decode_yaml() {
-        let dir = TempDir::new().unwrap();
-        let file_path = temp_loader_path(&dir);
-        let json = "{}";
-        fs::write(&file_path, json).expect("Unable to write to temp file");
-        let config_loader = ConfigLoader::from_path(file_path);
-        assert!(matches!(
-            config_loader.read_config(),
-            Err(ConfigError::Parse(_))
-        ));
     }
 
     fn temp_loader_path(dir: &TempDir) -> PathBuf {

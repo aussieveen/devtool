@@ -1,4 +1,4 @@
-use crate::event::event::Event;
+use crate::event::events::Event;
 use futures::FutureExt;
 use futures::StreamExt;
 use std::time::Duration;

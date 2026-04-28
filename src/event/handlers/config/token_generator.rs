@@ -1,7 +1,7 @@
 use crate::event::handlers::config::token_generator::TokenGeneratorConfigEvent::FormChar;
 use crate::app::App;
-use crate::event::event::TokenGeneratorConfigEvent;
-use crate::event::event::TokenGeneratorConfigEvent::{ConfigEdit, ConfigListMove, FormBackspace, FormNextField, FormPrevField, OpenAddService, RemoveService, SubmitConfig, SwitchFocus};
+use crate::event::events::TokenGeneratorConfigEvent;
+use crate::event::events::TokenGeneratorConfigEvent::{ConfigEdit, ConfigListMove, FormBackspace, FormNextField, FormPrevField, OpenAddService, RemoveService, SubmitConfig, SwitchFocus};
 use crate::state::token_generator_config::ActiveEdit;
 
 pub fn handle_event(app: &mut App, event: TokenGeneratorConfigEvent){
@@ -11,7 +11,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorConfigEvent){
             let len = app.config.tokengenerator.services.len();
             let editor = &mut app.state.token_generator_config_editor;
             match direction {
-                crate::event::event::Direction::Up => {
+                crate::event::events::Direction::Up => {
                     if editor.config_focus == ConfigFocus::Services {
                         match editor.table_state.selected() {
                             None | Some(0) => {
@@ -24,7 +24,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorConfigEvent){
                     }
                     // Up while on Auth0 does nothing (already at the top)
                 }
-                crate::event::event::Direction::Down => {
+                crate::event::events::Direction::Down => {
                     if editor.config_focus == ConfigFocus::Auth0 {
                         if len > 0 {
                             // Drop into the services section

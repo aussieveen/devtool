@@ -1,5 +1,5 @@
 use crate::app::{AppFocus, Tool};
-use crate::event::event::{
+use crate::event::events::{
     AppEvent as App, Direction, Event, GenericEvent as Generic, JiraConfigEvent as JiraConfig,
     JiraEvent as Jira, ServiceStatusConfigEvent as ServiceStatusConfig,
     ServiceStatusEvent as ServiceStatus, TokenGeneratorConfigEvent as TokenGenConfig,
@@ -145,7 +145,7 @@ fn jira_config_form_char(key_event: KeyEvent) -> Option<Event> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event::event::Direction::{Down, Up};
+    use crate::event::events::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
     use crate::input::key_context::KeyContext::{
         Config, Editing, Global, List, Logs, TokenGen as TokenGenCtx, Tool as ToolCtx,

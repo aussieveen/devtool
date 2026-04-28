@@ -1,4 +1,4 @@
-use crate::event::event::Event;
+use crate::event::events::Event;
 use crate::event::sender::EventSender;
 use crate::event::task::EventTask;
 use color_eyre::eyre::OptionExt;

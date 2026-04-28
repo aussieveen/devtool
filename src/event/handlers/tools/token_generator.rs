@@ -1,9 +1,9 @@
 use crate::app::App;
 use crate::error::model::Error;
-use crate::event::event::{GenericEvent, TokenGeneratorEvent};
-use crate::event::event::AppEvent::{AppLog, SystemError};
-use crate::event::event::GenericEvent::CopyToClipboard;
-use crate::event::event::TokenGeneratorEvent::{GenerateToken, SetFocus, TokenFailed, EnvListMove, ServiceListMove, TokenGenerated};
+use crate::event::events::{GenericEvent, TokenGeneratorEvent};
+use crate::event::events::AppEvent::{AppLog, SystemError};
+use crate::event::events::GenericEvent::CopyToClipboard;
+use crate::event::events::TokenGeneratorEvent::{GenerateToken, SetFocus, TokenFailed, EnvListMove, ServiceListMove, TokenGenerated};
 use crate::state::log::LogLevel;
 use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;

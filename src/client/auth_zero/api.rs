@@ -3,7 +3,7 @@ use crate::config::model::TokenGenerator;
 use crate::error::model::ClientError;
 use crate::event::sender::EventSender;
 use reqwest::Client;
-use crate::event::event::TokenGeneratorEvent::{TokenFailed, TokenGenerated};
+use crate::event::events::TokenGeneratorEvent::{TokenFailed, TokenGenerated};
 
 pub trait AuthZeroApi {
     fn fetch_token(
