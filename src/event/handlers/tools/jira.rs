@@ -135,24 +135,21 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
 }
 
 pub fn handle_generic_event(app: &mut App, event: GenericEvent){
-    match event {
-        OpenInBrowser => {
-            if let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
-                && let Some(config) = app.config.jira.clone()
-            {
-                let link = format!(
-                    "{}/browse/{}",
-                    config.url, app.state.jira.tickets[jira_ticket_idx].id
-                );
-                if let Err(e) = open_link_in_browser(link.as_str()) {
-                    app.event_sender.send_app_event(AppLog(
-                        LogLevel::Warning,
-                        SERVICE_NAME.to_string(),
-                        format!("Open in browser failed: {}", e),
-                    ));
-                }
+    if event == OpenInBrowser {
+        if let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
+            && let Some(config) = app.config.jira.clone()
+        {
+            let link = format!(
+                "{}/browse/{}",
+                config.url, app.state.jira.tickets[jira_ticket_idx].id
+            );
+            if let Err(e) = open_link_in_browser(link.as_str()) {
+                app.event_sender.send_app_event(AppLog(
+                    LogLevel::Warning,
+                    SERVICE_NAME.to_string(),
+                    format!("Open in browser failed: {}", e),
+                ));
             }
         }
-        _ => {}
     }
 }

@@ -6,7 +6,6 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use crate::state::jira_config::JiraConfigEditor;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let key = key_style();

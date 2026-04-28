@@ -5,7 +5,7 @@ use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
 use crate::config::loader::ConfigLoader;
 use crate::config::model::Config;
 use crate::event::event::AppEvent::*;
-use crate::event::event::{AppEvent, Event, GenericEvent, ServiceStatusEvent};
+use crate::event::event::{AppEvent, Event, GenericEvent};
 use crate::event::handler::EventHandler;
 use crate::event::sender::EventSender;
 use crate::event::handlers::tools::{jira, service_status, token_generator};

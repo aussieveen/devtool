@@ -139,24 +139,21 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
 }
 
 pub fn handle_generic_event(app: &mut App, event: GenericEvent){
-    match event {
-        CopyToClipboard => {
-            let token = app
-                .state
-                .token_generator
-                .get_token_for_selected_service_env();
-            if matches!(token, Token::Ready(_))
-                && let Some(value) = token.value()
-                && let Err(e) = copy_to_clipboard(value)
-            {
-                app.event_sender.send_app_event(AppLog(
-                    LogLevel::Warning,
-                    SERVICE_NAME.to_string(),
-                    format!("Copy to clipboard failed: {}", e),
-                ));
-            }
-        },
-        _ => {}
+    if event == CopyToClipboard {
+        let token = app
+            .state
+            .token_generator
+            .get_token_for_selected_service_env();
+        if matches!(token, Token::Ready(_))
+            && let Some(value) = token.value()
+            && let Err(e) = copy_to_clipboard(value)
+        {
+            app.event_sender.send_app_event(AppLog(
+                LogLevel::Warning,
+                SERVICE_NAME.to_string(),
+                format!("Copy to clipboard failed: {}", e),
+            ));
+        }
     }
 
 }

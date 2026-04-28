@@ -1,6 +1,4 @@
 use ratatui::widgets::TableState;
-use crate::app::App;
-use crate::event::event::ServiceStatusConfigEvent;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum FormField {

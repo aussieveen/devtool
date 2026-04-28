@@ -1,4 +1,4 @@
-use crate::event::event::{AppEvent, Event};
+use crate::event::event::Event;
 use crate::input::key_context::KeyContext;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashMap;

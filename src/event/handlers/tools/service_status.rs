@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::event::event::AppEvent::{ActivityEvent, AppLog, };
-use crate::event::event::{AppEvent, Direction, GenericEvent, ServiceStatusEvent};
+use crate::event::event::{Direction, GenericEvent, ServiceStatusEvent};
 use crate::event::event::ServiceStatusEvent::{GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, Scan, ListMove};
 use crate::state::log::LogLevel;
 use crate::state::service_status::CommitRefStatus;

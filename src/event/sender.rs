@@ -1,4 +1,4 @@
-use crate::event::event::{AppEvent, Event, GenericEvent, JiraConfigEvent, JiraEvent, ServiceStatusConfigEvent, ServiceStatusEvent, TokenGeneratorConfigEvent, TokenGeneratorEvent};
+use crate::event::event::{AppEvent, Event, JiraConfigEvent, JiraEvent, ServiceStatusConfigEvent, ServiceStatusEvent, TokenGeneratorConfigEvent, TokenGeneratorEvent};
 use tokio::sync::mpsc;
 
 #[derive(Clone)]
