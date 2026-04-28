@@ -227,12 +227,13 @@ pub enum ConfigFocus {
 }
 
 // ── Editor ────────────────────────────────────────────────────────────────────
-
+#[derive(Clone)]
 pub enum ActiveEdit {
     Auth0(Auth0Form),
     Service(ServiceForm),
 }
 
+#[derive(Clone)]
 pub struct TokenGeneratorConfigEditor {
     pub table_state: TableState,
     pub form: Option<ActiveEdit>,
@@ -258,6 +259,16 @@ impl TokenGeneratorConfigEditor {
 
     pub fn open_edit_service_form(&mut self, idx: usize, svc: &ServiceConfig) {
         self.form = Some(ActiveEdit::Service(ServiceForm::from_existing(idx, svc)));
+    }
+
+    pub fn has_open_form(&self) -> bool
+    {
+        self.form.is_some()
+    }
+
+    pub fn close_form(&mut self)
+    {
+        self.form = None;
     }
 }
 

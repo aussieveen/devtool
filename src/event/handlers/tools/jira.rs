@@ -12,6 +12,8 @@ use crate::state::log::LogLevel;
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
+const SERVICE_NAME:&str = "jira";
+
 pub fn handle_event(app: &mut App, event: JiraEvent) {
     match event {
         ListMove(direction) => {
@@ -95,7 +97,7 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
                 sender.send_app_event(SystemError(Error {
                     title: "Unable to persist jira tickets".to_string(),
                     originating_event: "JiraTicketListUpdate".to_string(),
-                    tool: "Jira".to_string(),
+                    tool: SERVICE_NAME.to_string(),
                     description: e.to_string(),
                 }))
             }
@@ -106,7 +108,7 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
                 if app.state.jira.tickets_pending_scan > 0 {
                     app.event_sender.send_app_event(AppLog(
                         LogLevel::Warning,
-                        "jira".to_string(),
+                        SERVICE_NAME.to_string(),
                         "Ticket scan skipped — previous scan still running".to_string(),
                     ));
                 }
@@ -116,7 +118,7 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
                 let count = app.state.jira.tickets.len();
                 app.event_sender.send_app_event(AppLog(
                     LogLevel::Info,
-                    "jira".to_string(),
+                    SERVICE_NAME.to_string(),
                     format!("Ticket scan started — {} tickets", count),
                 ));
                 app.state.jira.tickets_pending_scan = app.state.jira.tickets.len();
@@ -145,7 +147,7 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent){
                 if let Err(e) = open_link_in_browser(link.as_str()) {
                     app.event_sender.send_app_event(AppLog(
                         LogLevel::Warning,
-                        "jira".to_string(),
+                        SERVICE_NAME.to_string(),
                         format!("Open in browser failed: {}", e),
                     ));
                 }

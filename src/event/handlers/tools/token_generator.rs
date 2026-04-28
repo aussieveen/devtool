@@ -9,6 +9,8 @@ use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 
+const SERVICE_NAME:&str = "token generator";
+
 pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
     match event {
         EnvListMove(direction) => {
@@ -57,7 +59,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
 
             app.event_sender.send_app_event(AppLog(
                 LogLevel::Info,
-                "token-gen".to_string(),
+                SERVICE_NAME.to_string(),
                 format!("Requesting token: {}/{}", svc_name, env_name),
             ));
 
@@ -88,7 +90,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
 
             app.event_sender.send_app_event(AppLog(
                 LogLevel::Info,
-                "token-gen".to_string(),
+                SERVICE_NAME.to_string(),
                 format!("Token generated: {}/{}", svc_name, env_name),
             ));
 
@@ -115,7 +117,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
 
             app.event_sender.send_app_event(AppLog(
                 LogLevel::Error,
-                "token-gen".to_string(),
+                SERVICE_NAME.to_string(),
                 format!(
                     "Token request failed: {}/{} — {}",
                     svc_name, env_name, error
@@ -129,7 +131,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
             sender.send_app_event(SystemError(Error {
                 title: "Error requesting token".to_string(),
                 originating_event: "TokenFailed".to_string(),
-                tool: "Token Generator".to_string(),
+                tool: SERVICE_NAME.to_string(),
                 description: error,
             }));
         }
@@ -149,7 +151,7 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent){
             {
                 app.event_sender.send_app_event(AppLog(
                     LogLevel::Warning,
-                    "token-gen".to_string(),
+                    SERVICE_NAME.to_string(),
                     format!("Copy to clipboard failed: {}", e),
                 ));
             }

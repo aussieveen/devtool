@@ -6,6 +6,8 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
+use crate::state::jira_config::JiraConfigEditor;
+
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
     let key = key_style();
     let desc = key_desc_style();
@@ -138,7 +140,7 @@ fn build_lines<'a>(
 
         // ── Tool config editors ───────────────────────────────────────────────
         AppFocus::ToolConfig(Tool::ServiceStatus) => {
-            if state.service_status_config_editor.form.is_some() {
+            if state.service_status_config_editor.has_open_form() {
                 edit_form_lines(key, desc)
             } else {
                 let line2 = if state
@@ -164,7 +166,7 @@ fn build_lines<'a>(
         }
 
         AppFocus::ToolConfig(Tool::TokenGenerator) => {
-            if state.token_generator_config_editor.form.is_some() {
+            if state.token_generator_config_editor.has_open_form() {
                 edit_form_lines(key, desc)
             } else {
                 match state.token_generator_config_editor.config_focus {
@@ -204,7 +206,7 @@ fn build_lines<'a>(
         }
 
         AppFocus::ToolConfig(Tool::Jira) => {
-            if state.jira_config_editor.form.is_some() {
+            if state.jira_config_editor.has_open_form() {
                 edit_form_lines(key, desc)
             } else {
                 (

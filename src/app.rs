@@ -30,7 +30,7 @@ use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
-use crate::event::event::GenericEvent::{CopyToClipboard, OpenInBrowser};
+use crate::event::event::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, SetFocus};
 use crate::event::event::JiraEvent::ScanTickets;
 use crate::event::event::ServiceStatusEvent::Scan;
 
@@ -110,6 +110,7 @@ impl App {
                 Event::TokenGeneratorConfig(event) => {token_generator_config::handle_event(&mut self, event)}
                 Event::Jira(event) => {jira::handle_event(&mut self, event)}
                 Event::JiraConfig(event) => {jira_config::handle_event(&mut self, event)}
+                Event::Generic(event) => self.handle_generic_event(event)
             }
         }
         Ok(())
@@ -117,9 +118,6 @@ impl App {
 
     fn handle_app_event(&mut self, app_event: AppEvent) {
         match app_event {
-            // global
-            Quit => self.running = false,
-            SetFocus(focus) => self.state.focus = focus,
             OpenLogs => {
                 self.state.focus = AppFocus::Logs;
                 if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
@@ -166,25 +164,6 @@ impl App {
             SystemError(error) => self.state.error = Some(error),
             DismissError => self.state.error = None,
 
-            // token generator event
-            e @ TokenGenEnvListMove(..)
-            | e @ TokenGenServiceListMove(..)
-            | e @ SetTokenGenFocus(..)
-            | e @ GenerateToken
-            | e @ TokenGenerated(..)
-            | e @ TokenFailed(..) => token_generator::handle_event(self, e),
-            // jira ticket event
-            e @ JiraTicketListMove(..)
-            | e @ NewJiraTicket
-            | e @ AddTicketIdChar(..)
-            | e @ RemoveTicketIdChar
-            | e @ SubmitTicketId
-            | e @ TicketRetrieved(..)
-            | e @ RemoveTicket
-            | e @ JiraTicketMove(..)
-            | e @ JiraTicketListUpdate
-            | e @ ScanTickets => jira::handle_event(self, e),
-
             // config panel event
             ConfigListMove(direction) => {
                 let editor = &mut self.state.config_editor;
@@ -225,251 +204,38 @@ impl App {
             }
             CloseToolConfig => {
                 // Close inline edit form if open, otherwise exit tool config.
-                let ss_form_open = self.state.service_status_config_editor.form.is_some();
-                let tg_form_open = self.state.token_generator_config_editor.form.is_some();
-                let jira_form_open = self.state.jira_config_editor.form.is_some();
+                let ss_form_open = self.state.service_status_config_editor.has_open_form();
+                let tg_form_open = self.state.token_generator_config_editor.has_open_form();
+                let jira_form_open = self.state.jira_config_editor.has_open_form();
                 if ss_form_open {
-                    self.state.service_status_config_editor.form = None;
+                    self.state.service_status_config_editor.close_form();
                 } else if tg_form_open {
-                    self.state.token_generator_config_editor.form = None;
+                    self.state.token_generator_config_editor.close_form();
                 } else if jira_form_open {
-                    self.state.jira_config_editor.form = None;
+                    self.state.jira_config_editor.close_form();
                 } else {
                     self.state.focus = AppFocus::Config;
                 }
             }
-            // Service Status config event
-            e @ ServiceStatusConfigListMove(..)
-            | e @ OpenAddService
-            | e @ OpenEditService
-            | e @ ServiceStatusFormNextField
-            | e @ ServiceStatusFormPrevField
-            | e @ ServiceStatusFormChar(..)
-            | e @ ServiceStatusFormBackspace
-            | e @ SubmitServiceConfig
-            | e @ RemoveService => self.handle_service_status_config_event(e),
-            // Token Generator config event
-            e @ TokenGenConfigListMove(..)
-            | e @ OpenAddTokenGenService
-            | e @ TokenGenConfigFormNextField
-            | e @ TokenGenConfigFormPrevField
-            | e @ TokenGenConfigFormChar(..)
-            | e @ TokenGenConfigFormBackspace
-            | e @ SubmitTokenGenConfig
-            | e @ TokenGeneratorConfigSwitchFocus
-            | e @ TokenGeneratorConfigEdit
-            | e @ RemoveTokenGenService => self.handle_token_gen_config_event(e),
-            // Jira config event
-            e @ OpenJiraConfigEdit
-            | e @ JiraConfigFormNextField
-            | e @ JiraConfigFormPrevField
-            | e @ JiraConfigFormChar(..)
-            | e @ JiraConfigFormBackspace
-            | e @ SubmitJiraConfig => self.handle_jira_config_event(e),
         }
     }
 
     fn handle_generic_event(&mut self, event: GenericEvent){
         match event {
+            Quit => self.running = false,
+            SetFocus(focus) => self.state.focus = focus,
             CopyToClipboard => match self.state.current_tool {
                 ServiceStatus => service_status::handle_generic_event(self, CopyToClipboard),
-                TokenGenerator => token_generator::handle_event(self, CopyToClipboard),
+                TokenGenerator => token_generator::handle_generic_event(self, CopyToClipboard),
                 _ => {}
             },
             OpenInBrowser => match self.state.current_tool {
                 ServiceStatus => service_status::handle_generic_event(self, OpenInBrowser),
-                Jira => jira::handle_event(self, OpenInBrowser),
+                Jira => jira::handle_generic_event(self, OpenInBrowser),
                 _ => {}
             },
         }
     }
-
-    fn handle_service_status_config_event(&mut self, event: AppEvent) {
-
-    }
-
-    fn handle_token_gen_config_event(&mut self, event: AppEvent) {
-        use crate::state::token_generator_config::ActiveEdit;
-        match event {
-            TokenGenConfigListMove(direction) => {
-                use crate::state::token_generator_config::ConfigFocus;
-                let len = self.config.tokengenerator.services.len();
-                let editor = &mut self.state.token_generator_config_editor;
-                match direction {
-                    crate::event::event::Direction::Up => {
-                        if editor.config_focus == ConfigFocus::Services {
-                            match editor.table_state.selected() {
-                                None | Some(0) => {
-                                    // Reached the top of services — move back to Auth0
-                                    editor.config_focus = ConfigFocus::Auth0;
-                                    editor.table_state.select(None);
-                                }
-                                _ => editor.table_state.select_previous(),
-                            }
-                        }
-                        // Up while on Auth0 does nothing (already at the top)
-                    }
-                    crate::event::event::Direction::Down => {
-                        if editor.config_focus == ConfigFocus::Auth0 {
-                            if len > 0 {
-                                // Drop into the services section
-                                editor.config_focus = ConfigFocus::Services;
-                                editor.table_state.select(Some(0));
-                            }
-                        } else if len > 0 {
-                            let next = editor.table_state.selected().map(|i| i + 1).unwrap_or(0);
-                            editor.table_state.select(Some(next.min(len - 1)));
-                        }
-                    }
-                }
-            }
-            OpenAddTokenGenService => {
-                self.state
-                    .token_generator_config_editor
-                    .open_add_service_form();
-            }
-            TokenGenConfigFormNextField => {
-                match &mut self.state.token_generator_config_editor.form {
-                    Some(ActiveEdit::Auth0(p)) => p.active_field = p.active_field.next(),
-                    Some(ActiveEdit::Service(p)) => p.active_field = p.active_field.next(),
-                    None => {}
-                }
-            }
-            TokenGenConfigFormPrevField => {
-                match &mut self.state.token_generator_config_editor.form {
-                    Some(ActiveEdit::Auth0(p)) => p.active_field = p.active_field.prev(),
-                    Some(ActiveEdit::Service(p)) => p.active_field = p.active_field.prev(),
-                    None => {}
-                }
-            }
-            TokenGenConfigFormChar(c) => match &mut self.state.token_generator_config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_value_mut().push(c),
-                Some(ActiveEdit::Service(p)) => p.active_field_value_mut().push(c),
-                None => {}
-            },
-            TokenGenConfigFormBackspace => {
-                match &mut self.state.token_generator_config_editor.form {
-                    Some(ActiveEdit::Auth0(p)) => {
-                        p.active_field_value_mut().pop();
-                    }
-                    Some(ActiveEdit::Service(p)) => {
-                        p.active_field_value_mut().pop();
-                    }
-                    None => {}
-                }
-            }
-            SubmitTokenGenConfig => {
-                if let Some(form) = self.state.token_generator_config_editor.form.take() {
-                    match form {
-                        ActiveEdit::Auth0(p) => {
-                            self.config.tokengenerator.auth0.local = p.local.trim().to_string();
-                            self.config.tokengenerator.auth0.staging = p.staging.trim().to_string();
-                            self.config.tokengenerator.auth0.preproduction =
-                                p.preprod.trim().to_string();
-                            self.config.tokengenerator.auth0.production = p.prod.trim().to_string();
-                            let _ = self.config_loader.write_config(&self.config);
-                        }
-                        ActiveEdit::Service(p) if p.is_valid() => {
-                            let svc = crate::config::model::ServiceConfig {
-                                name: p.name.trim().to_string(),
-                                audience: p.audience.trim().to_string(),
-                                credentials: p.to_credentials(),
-                            };
-                            if let Some(idx) = p.edit_index {
-                                if let Some(existing) =
-                                    self.config.tokengenerator.services.get_mut(idx)
-                                {
-                                    *existing = svc;
-                                }
-                            } else {
-                                self.config.tokengenerator.services.push(svc);
-                            }
-                            self.state.token_generator =
-                                crate::state::token_generator::TokenGenerator::new(
-                                    &self.config.tokengenerator.services,
-                                );
-                            let _ = self.config_loader.write_config(&self.config);
-                        }
-                        _ => {} // invalid service form — close without saving
-                    }
-                }
-            }
-            RemoveTokenGenService => {
-                if let Some(idx) = self
-                    .state
-                    .token_generator_config_editor
-                    .table_state
-                    .selected()
-                    && idx < self.config.tokengenerator.services.len()
-                {
-                    self.config.tokengenerator.services.remove(idx);
-                    self.state.token_generator = crate::state::token_generator::TokenGenerator::new(
-                        &self.config.tokengenerator.services,
-                    );
-                    let new_len = self.config.tokengenerator.services.len();
-                    if new_len == 0 {
-                        self.state
-                            .token_generator_config_editor
-                            .table_state
-                            .select(None);
-                        // Auto-disable the feature since there's no backing config left.
-                        self.config.features.token_generator = false;
-                        self.state
-                            .config_editor
-                            .sync_from_features(&self.config.features);
-                        self.state.rebuild_tool_list(self.config.jira.is_some());
-                    } else {
-                        self.state
-                            .token_generator_config_editor
-                            .table_state
-                            .select(Some(idx.min(new_len - 1)));
-                    }
-                    let _ = self.config_loader.write_config(&self.config);
-                }
-            }
-            TokenGeneratorConfigEdit => {
-                use crate::state::token_generator_config::ConfigFocus;
-                let editor = &self.state.token_generator_config_editor;
-                match editor.config_focus {
-                    ConfigFocus::Auth0 => {
-                        let auth0 = self.config.tokengenerator.auth0.clone();
-                        self.state
-                            .token_generator_config_editor
-                            .open_auth0_form(&auth0);
-                    }
-                    ConfigFocus::Services => {
-                        if let Some(idx) = self
-                            .state
-                            .token_generator_config_editor
-                            .table_state
-                            .selected()
-                            && let Some(svc) = self.config.tokengenerator.services.get(idx)
-                        {
-                            let svc = svc.clone();
-                            self.state
-                                .token_generator_config_editor
-                                .open_edit_service_form(idx, &svc);
-                        }
-                    }
-                }
-            }
-            TokenGeneratorConfigSwitchFocus => {
-                use crate::state::token_generator_config::ConfigFocus;
-                let editor = &mut self.state.token_generator_config_editor;
-                editor.config_focus = match editor.config_focus {
-                    ConfigFocus::Auth0 => ConfigFocus::Services,
-                    ConfigFocus::Services => ConfigFocus::Auth0,
-                };
-                if editor.config_focus == ConfigFocus::Auth0 {
-                    editor.table_state.select(None);
-                } else if !self.config.tokengenerator.services.is_empty() {
-                    editor.table_state.select(Some(0));
-                }
-            }
-            _ => {}
-        }
-    }
-
     fn render(&mut self, frame: &mut Frame) {
         let areas = layout::main(frame.area());
 
@@ -519,7 +285,7 @@ impl App {
         // also firing when a higher-priority context already handled the key.
         for context in self.get_context_stack() {
             if let Some(event) = self.key_event_map.resolve(context, key) {
-                self.event_sender.send_app_event(event.clone());
+                self.event_sender.send_event(event.clone());
                 break;
             }
         }
@@ -527,7 +293,7 @@ impl App {
         Ok(())
     }
 
-    fn get_context_stack(&self) -> Vec<KeyContext> {
+    fn get_context_stack(&mut self) -> Vec<KeyContext> {
         let mut stack = Vec::new();
 
         // If an Error pop up is displayed, don't allow additional contexts i.e
@@ -550,14 +316,14 @@ impl App {
                 AppFocus::ToolConfig(tool) => {
                     // Use editing context when inline edit form is open
                     if tool == ServiceStatus
-                        && self.state.service_status_config_editor.form.is_some()
+                        && self.state.service_status_config_editor.has_open_form()
                     {
                         stack.push(Editing(ServiceStatus));
                     } else if tool == TokenGenerator
-                        && self.state.token_generator_config_editor.form.is_some()
+                        && self.state.token_generator_config_editor.has_open_form()
                     {
                         stack.push(Editing(TokenGenerator));
-                    } else if tool == Jira && self.state.jira_config_editor.form.is_some() {
+                    } else if tool == Jira && self.state.jira_config_editor.has_open_form() {
                         stack.push(ToolConfigEditing(Jira));
                     } else {
                         stack.push(KeyContext::ToolConfig(tool));

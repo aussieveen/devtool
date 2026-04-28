@@ -1,22 +1,13 @@
-use crate::app::AppFocus;
-use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
-use crate::event::event::AppEvent::{
-    AddTicketIdChar, CloseToolConfig, ConfigListMove, CopyToClipboard, DismissError, GenerateToken,
-    JiraConfigFormBackspace, JiraConfigFormChar, JiraConfigFormNextField, JiraConfigFormPrevField,
-    JiraTicketListMove, JiraTicketMove, ListMove, LogsListMove, NewJiraTicket, OpenAddService,
-    OpenAddTokenGenService, OpenEditService, OpenInBrowser, OpenJiraConfigEdit, OpenLogs,
-    OpenToolConfig, Quit, RemoveService, RemoveTicket, RemoveTicketIdChar, RemoveTokenGenService,
-    ScanServices, ServiceStatusConfigListMove, ServiceStatusFormBackspace, ServiceStatusFormChar,
-    ServiceStatusFormNextField, ServiceStatusFormPrevField, ServiceStatusListMove, SetFocus,
-    SetTokenGenFocus, SubmitJiraConfig, SubmitServiceConfig, SubmitTicketId, SubmitTokenGenConfig,
-    TokenGeneratorConfigEdit, TokenGeneratorConfigSwitchFocus, ToggleFeature, TokenGenConfigFormBackspace,
-    TokenGenConfigFormChar, TokenGenConfigFormNextField, TokenGenConfigFormPrevField,
-    TokenGenConfigListMove, TokenGenEnvListMove, TokenGenServiceListMove,
+use crate::app::{AppFocus, Tool};
+use crate::event::event::{
+    AppEvent as App, Direction, Event, GenericEvent as Generic, JiraConfigEvent as JiraConfig,
+    JiraEvent as Jira, ServiceStatusConfigEvent as ServiceStatusConfig,
+    ServiceStatusEvent as ServiceStatus, TokenGeneratorConfigEvent as TokenGenConfig,
+    TokenGeneratorEvent as TokenGen,
 };
-use crate::event::event::{AppEvent, Direction};
 use crate::input::key_context::KeyContext::{
-    Config, Editing, Error, Global, List, Logs, TokenGen, Tool, ToolConfig, ToolConfigEditing,
-    ToolIgnore,
+    Config, Editing, Error, Global, List, Logs, TokenGen as TokenGenCtx, Tool as ToolCtx,
+    ToolConfig, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::token_generator::Focus;
@@ -24,511 +15,141 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     // GLOBAL EVENTS
-    key_event_map.add_static(Global, KeyCode::Char('q'), KeyModifiers::NONE, Quit);
-    key_event_map.add_static(Global, KeyCode::Esc, KeyModifiers::NONE, Quit);
-    key_event_map.add_static(
-        Global,
-        KeyCode::Char('1'),
-        KeyModifiers::NONE,
-        SetFocus(AppFocus::List),
-    );
-    key_event_map.add_static(
-        Global,
-        KeyCode::Char('2'),
-        KeyModifiers::NONE,
-        SetFocus(AppFocus::Config),
-    );
-    key_event_map.add_static(Global, KeyCode::Char('3'), KeyModifiers::NONE, OpenLogs);
-    key_event_map.add_static(
-        Global,
-        KeyCode::Char('c'),
-        KeyModifiers::NONE,
-        CopyToClipboard,
-    );
-    key_event_map.add_static(
-        Global,
-        KeyCode::Char('o'),
-        KeyModifiers::NONE,
-        OpenInBrowser,
-    );
-    key_event_map.add_static(Error, KeyCode::Char('d'), KeyModifiers::NONE, DismissError);
+    key_event_map.add_static(Global, KeyCode::Char('q'), KeyModifiers::NONE, Generic::Quit.into());
+    key_event_map.add_static(Global, KeyCode::Esc, KeyModifiers::NONE, Generic::Quit.into());
+    key_event_map.add_static(Global, KeyCode::Char('1'), KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into());
+    key_event_map.add_static(Global, KeyCode::Char('2'), KeyModifiers::NONE, Generic::SetFocus(AppFocus::Config).into());
+    key_event_map.add_static(Global, KeyCode::Char('3'), KeyModifiers::NONE, App::OpenLogs.into());
+    key_event_map.add_static(Global, KeyCode::Char('c'), KeyModifiers::NONE, Generic::CopyToClipboard.into());
+    key_event_map.add_static(Global, KeyCode::Char('o'), KeyModifiers::NONE, Generic::OpenInBrowser.into());
+    key_event_map.add_static(Error, KeyCode::Char('d'), KeyModifiers::NONE, App::DismissError.into());
 
     // CONFIG EVENTS
-    key_event_map.add_static(
-        Config,
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        ConfigListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        Config,
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        ConfigListMove(Direction::Up),
-    );
-    key_event_map.add_static(Config, KeyCode::Enter, KeyModifiers::NONE, ToggleFeature);
-    key_event_map.add_static(
-        Config,
-        KeyCode::Right,
-        KeyModifiers::NONE,
-        OpenToolConfig(ServiceStatus),
-    );
-    key_event_map.add_static(
-        Config,
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        SetFocus(AppFocus::List),
-    );
+    key_event_map.add_static(Config, KeyCode::Down, KeyModifiers::NONE, App::ConfigListMove(Direction::Down).into());
+    key_event_map.add_static(Config, KeyCode::Up, KeyModifiers::NONE, App::ConfigListMove(Direction::Up).into());
+    key_event_map.add_static(Config, KeyCode::Enter, KeyModifiers::NONE, App::ToggleFeature.into());
+    key_event_map.add_static(Config, KeyCode::Right, KeyModifiers::NONE, App::OpenToolConfig(Tool::ServiceStatus).into());
+    key_event_map.add_static(Config, KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into());
 
     // LOGS EVENTS
-    key_event_map.add_static(
-        Logs,
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        LogsListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        Logs,
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        LogsListMove(Direction::Up),
-    );
+    key_event_map.add_static(Logs, KeyCode::Down, KeyModifiers::NONE, App::LogsListMove(Direction::Down).into());
+    key_event_map.add_static(Logs, KeyCode::Up, KeyModifiers::NONE, App::LogsListMove(Direction::Up).into());
 
     // TOOL CONFIG EVENTS (Service Status)
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        ServiceStatusConfigListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        ServiceStatusConfigListMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Char('a'),
-        KeyModifiers::NONE,
-        OpenAddService,
-    );
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Char('e'),
-        KeyModifiers::NONE,
-        OpenEditService,
-    );
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Char('x'),
-        KeyModifiers::NONE,
-        RemoveService,
-    );
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
-    key_event_map.add_static(
-        ToolConfig(ServiceStatus),
-        KeyCode::Esc,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusConfig::ListMove(Direction::Down).into());
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusConfig::ListMove(Direction::Up).into());
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Char('a'), KeyModifiers::NONE, ServiceStatusConfig::OpenAddService.into());
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Char('e'), KeyModifiers::NONE, ServiceStatusConfig::OpenEditService.into());
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Char('x'), KeyModifiers::NONE, ServiceStatusConfig::RemoveService.into());
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Left, KeyModifiers::NONE, App::CloseToolConfig.into());
+    key_event_map.add_static(ToolConfig(Tool::ServiceStatus), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
 
     // SERVICE STATUS ADD POPUP EVENTS
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::Esc,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::Enter,
-        KeyModifiers::NONE,
-        SubmitServiceConfig,
-    );
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::Backspace,
-        KeyModifiers::NONE,
-        ServiceStatusFormBackspace,
-    );
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        ServiceStatusFormNextField,
-    );
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        ServiceStatusFormPrevField,
-    );
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::Tab,
-        KeyModifiers::NONE,
-        ServiceStatusFormNextField,
-    );
-    key_event_map.add_static(
-        Editing(ServiceStatus),
-        KeyCode::BackTab,
-        KeyModifiers::SHIFT,
-        ServiceStatusFormPrevField,
-    );
-    key_event_map.add_dynamic(Editing(ServiceStatus), service_status_form_char);
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Enter, KeyModifiers::NONE, ServiceStatusConfig::SubmitConfig.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Backspace, KeyModifiers::NONE, ServiceStatusConfig::FormBackspace.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusConfig::FormNextField.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusConfig::PrevField.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Tab, KeyModifiers::NONE, ServiceStatusConfig::FormNextField.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::BackTab, KeyModifiers::SHIFT, ServiceStatusConfig::PrevField.into());
+    key_event_map.add_dynamic(Editing(Tool::ServiceStatus), service_status_form_char);
 
     // POP UP EVENTS
-    key_event_map.add_static(
-        Editing(Jira),
-        KeyCode::Backspace,
-        KeyModifiers::NONE,
-        RemoveTicketIdChar,
-    );
-    key_event_map.add_static(
-        Editing(Jira),
-        KeyCode::Enter,
-        KeyModifiers::NONE,
-        SubmitTicketId,
-    );
-    key_event_map.add_dynamic(Editing(Jira), add_ticket_id_char);
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::Backspace, KeyModifiers::NONE, Jira::RemoveTicketIdChar.into());
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::Enter, KeyModifiers::NONE, Jira::SubmitTicketId.into());
+    key_event_map.add_dynamic(Editing(Tool::Jira), add_ticket_id_char);
 
     // LIST EVENTS
-    key_event_map.add_static(
-        List,
-        KeyCode::Right,
-        KeyModifiers::NONE,
-        SetFocus(AppFocus::Tool),
-    );
-    key_event_map.add_static(
-        List,
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        ListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        List,
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        ListMove(Direction::Up),
-    );
+    key_event_map.add_static(List, KeyCode::Right, KeyModifiers::NONE, Generic::SetFocus(AppFocus::Tool).into());
+    key_event_map.add_static(List, KeyCode::Down, KeyModifiers::NONE, App::ListMove(Direction::Down).into());
+    key_event_map.add_static(List, KeyCode::Up, KeyModifiers::NONE, App::ListMove(Direction::Up).into());
 
     // SERVICE STATUS EVENTS
-    key_event_map.add_static(
-        Tool(ServiceStatus),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        ServiceStatusListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        Tool(ServiceStatus),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        ServiceStatusListMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        Tool(ServiceStatus),
-        KeyCode::Char('s'),
-        KeyModifiers::NONE,
-        ScanServices,
-    );
+    key_event_map.add_static(ToolCtx(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatus::ListMove(Direction::Down).into());
+    key_event_map.add_static(ToolCtx(Tool::ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatus::ListMove(Direction::Up).into());
+    key_event_map.add_static(ToolCtx(Tool::ServiceStatus), KeyCode::Char('s'), KeyModifiers::NONE, ServiceStatus::Scan.into());
 
     // TOKEN GENERATOR EVENTS
-    key_event_map.add_static(
-        ToolIgnore(TokenGenerator),
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        SetFocus(AppFocus::List),
-    );
-    key_event_map.add_static(
-        TokenGen(Focus::Service),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        TokenGenServiceListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        TokenGen(Focus::Service),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        TokenGenServiceListMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        TokenGen(Focus::Env),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        TokenGenEnvListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        TokenGen(Focus::Env),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        TokenGenEnvListMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        Tool(TokenGenerator),
-        KeyCode::Right,
-        KeyModifiers::NONE,
-        SetTokenGenFocus(Focus::Env),
-    );
-    key_event_map.add_static(
-        TokenGen(Focus::Service),
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        SetFocus(AppFocus::List),
-    );
-    key_event_map.add_static(
-        TokenGen(Focus::Env),
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        SetTokenGenFocus(Focus::Service),
-    );
-    key_event_map.add_static(
-        Tool(TokenGenerator),
-        KeyCode::Enter,
-        KeyModifiers::NONE,
-        GenerateToken,
-    );
-    key_event_map.add_static(
-        Tool(TokenGenerator),
-        KeyCode::Char('c'),
-        KeyModifiers::NONE,
-        CopyToClipboard,
-    );
+    key_event_map.add_static(ToolIgnore(Tool::TokenGenerator), KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into());
+    key_event_map.add_static(TokenGenCtx(Focus::Service), KeyCode::Down, KeyModifiers::NONE, TokenGen::ServiceListMove(Direction::Down).into());
+    key_event_map.add_static(TokenGenCtx(Focus::Service), KeyCode::Up, KeyModifiers::NONE, TokenGen::ServiceListMove(Direction::Up).into());
+    key_event_map.add_static(TokenGenCtx(Focus::Env), KeyCode::Down, KeyModifiers::NONE, TokenGen::EnvListMove(Direction::Down).into());
+    key_event_map.add_static(TokenGenCtx(Focus::Env), KeyCode::Up, KeyModifiers::NONE, TokenGen::EnvListMove(Direction::Up).into());
+    key_event_map.add_static(ToolCtx(Tool::TokenGenerator), KeyCode::Right, KeyModifiers::NONE, TokenGen::SetFocus(Focus::Env).into());
+    key_event_map.add_static(TokenGenCtx(Focus::Service), KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into());
+    key_event_map.add_static(TokenGenCtx(Focus::Env), KeyCode::Left, KeyModifiers::NONE, TokenGen::SetFocus(Focus::Service).into());
+    key_event_map.add_static(ToolCtx(Tool::TokenGenerator), KeyCode::Enter, KeyModifiers::NONE, TokenGen::GenerateToken.into());
+    key_event_map.add_static(ToolCtx(Tool::TokenGenerator), KeyCode::Char('c'), KeyModifiers::NONE, Generic::CopyToClipboard.into());
 
     // TOKEN GENERATOR CONFIG EVENTS
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        TokenGenConfigListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        TokenGenConfigListMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Char('a'),
-        KeyModifiers::NONE,
-        OpenAddTokenGenService,
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Char('e'),
-        KeyModifiers::NONE,
-        TokenGeneratorConfigEdit,
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Char('x'),
-        KeyModifiers::NONE,
-        RemoveTokenGenService,
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Tab,
-        KeyModifiers::NONE,
-        TokenGeneratorConfigSwitchFocus,
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::BackTab,
-        KeyModifiers::SHIFT,
-        TokenGeneratorConfigSwitchFocus,
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
-    key_event_map.add_static(
-        ToolConfig(TokenGenerator),
-        KeyCode::Esc,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Down, KeyModifiers::NONE, TokenGenConfig::ConfigListMove(Direction::Down).into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Up, KeyModifiers::NONE, TokenGenConfig::ConfigListMove(Direction::Up).into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Char('a'), KeyModifiers::NONE, TokenGenConfig::OpenAddService.into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Char('e'), KeyModifiers::NONE, TokenGenConfig::ConfigEdit.into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Char('x'), KeyModifiers::NONE, TokenGenConfig::RemoveService.into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Tab, KeyModifiers::NONE, TokenGenConfig::SwitchFocus.into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::BackTab, KeyModifiers::SHIFT, TokenGenConfig::SwitchFocus.into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Left, KeyModifiers::NONE, App::CloseToolConfig.into());
+    key_event_map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
 
     // TOKEN GENERATOR CONFIG POPUP EVENTS
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::Esc,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::Enter,
-        KeyModifiers::NONE,
-        SubmitTokenGenConfig,
-    );
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::Backspace,
-        KeyModifiers::NONE,
-        TokenGenConfigFormBackspace,
-    );
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        TokenGenConfigFormNextField,
-    );
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        TokenGenConfigFormPrevField,
-    );
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::Tab,
-        KeyModifiers::NONE,
-        TokenGenConfigFormNextField,
-    );
-    key_event_map.add_static(
-        Editing(TokenGenerator),
-        KeyCode::BackTab,
-        KeyModifiers::SHIFT,
-        TokenGenConfigFormPrevField,
-    );
-    key_event_map.add_dynamic(Editing(TokenGenerator), token_gen_config_form_char);
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Enter, KeyModifiers::NONE, TokenGenConfig::SubmitConfig.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Backspace, KeyModifiers::NONE, TokenGenConfig::FormBackspace.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Down, KeyModifiers::NONE, TokenGenConfig::FormNextField.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Up, KeyModifiers::NONE, TokenGenConfig::FormPrevField.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Tab, KeyModifiers::NONE, TokenGenConfig::FormNextField.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::BackTab, KeyModifiers::SHIFT, TokenGenConfig::FormPrevField.into());
+    key_event_map.add_dynamic(Editing(Tool::TokenGenerator), token_gen_config_form_char);
 
     // JIRA EVENTS
-    key_event_map.add_static(
-        Tool(Jira),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        JiraTicketListMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        Tool(Jira),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        JiraTicketListMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        Tool(Jira),
-        KeyCode::Up,
-        KeyModifiers::SHIFT,
-        JiraTicketMove(Direction::Up),
-    );
-    key_event_map.add_static(
-        Tool(Jira),
-        KeyCode::Down,
-        KeyModifiers::SHIFT,
-        JiraTicketMove(Direction::Down),
-    );
-    key_event_map.add_static(
-        Tool(Jira),
-        KeyCode::Char('a'),
-        KeyModifiers::NONE,
-        NewJiraTicket,
-    );
-    key_event_map.add_static(
-        Tool(Jira),
-        KeyCode::Char('x'),
-        KeyModifiers::NONE,
-        RemoveTicket,
-    );
+    key_event_map.add_static(ToolCtx(Tool::Jira), KeyCode::Up, KeyModifiers::NONE, Jira::ListMove(Direction::Up).into());
+    key_event_map.add_static(ToolCtx(Tool::Jira), KeyCode::Down, KeyModifiers::NONE, Jira::ListMove(Direction::Down).into());
+    key_event_map.add_static(ToolCtx(Tool::Jira), KeyCode::Up, KeyModifiers::SHIFT, Jira::TicketMove(Direction::Up).into());
+    key_event_map.add_static(ToolCtx(Tool::Jira), KeyCode::Down, KeyModifiers::SHIFT, Jira::TicketMove(Direction::Down).into());
+    key_event_map.add_static(ToolCtx(Tool::Jira), KeyCode::Char('a'), KeyModifiers::NONE, Jira::NewTicket.into());
+    key_event_map.add_static(ToolCtx(Tool::Jira), KeyCode::Char('x'), KeyModifiers::NONE, Jira::RemoveTicket.into());
 
     // JIRA CONFIG EVENTS
-    key_event_map.add_static(
-        ToolConfig(Jira),
-        KeyCode::Char('e'),
-        KeyModifiers::NONE,
-        OpenJiraConfigEdit,
-    );
-    key_event_map.add_static(
-        ToolConfig(Jira),
-        KeyCode::Left,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
-    key_event_map.add_static(
-        ToolConfig(Jira),
-        KeyCode::Esc,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
+    key_event_map.add_static(ToolConfig(Tool::Jira), KeyCode::Char('e'), KeyModifiers::NONE, JiraConfig::OpenEdit.into());
+    key_event_map.add_static(ToolConfig(Tool::Jira), KeyCode::Left, KeyModifiers::NONE, App::CloseToolConfig.into());
+    key_event_map.add_static(ToolConfig(Tool::Jira), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
 
     // JIRA CONFIG POPUP EVENTS
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::Esc,
-        KeyModifiers::NONE,
-        CloseToolConfig,
-    );
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::Enter,
-        KeyModifiers::NONE,
-        SubmitJiraConfig,
-    );
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::Backspace,
-        KeyModifiers::NONE,
-        JiraConfigFormBackspace,
-    );
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::Down,
-        KeyModifiers::NONE,
-        JiraConfigFormNextField,
-    );
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::Up,
-        KeyModifiers::NONE,
-        JiraConfigFormPrevField,
-    );
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::Tab,
-        KeyModifiers::NONE,
-        JiraConfigFormNextField,
-    );
-    key_event_map.add_static(
-        ToolConfigEditing(Jira),
-        KeyCode::BackTab,
-        KeyModifiers::SHIFT,
-        JiraConfigFormPrevField,
-    );
-    key_event_map.add_dynamic(ToolConfigEditing(Jira), jira_config_form_char);
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Enter, KeyModifiers::NONE, JiraConfig::SubmitConfig.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Backspace, KeyModifiers::NONE, JiraConfig::FormBackspace.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Down, KeyModifiers::NONE, JiraConfig::FormNextField.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Up, KeyModifiers::NONE, JiraConfig::FormPrevField.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Tab, KeyModifiers::NONE, JiraConfig::FormNextField.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::BackTab, KeyModifiers::SHIFT, JiraConfig::FormPrevField.into());
+    key_event_map.add_dynamic(ToolConfigEditing(Tool::Jira), jira_config_form_char);
 }
 
-fn add_ticket_id_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(AddTicketIdChar)
+fn add_ticket_id_char(key_event: KeyEvent) -> Option<Event> {
+    key_event.code.as_char().map(|c| Jira::AddTicketIdChar(c).into())
 }
 
-fn service_status_form_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(ServiceStatusFormChar)
+fn service_status_form_char(key_event: KeyEvent) -> Option<Event> {
+    key_event.code.as_char().map(|c| ServiceStatusConfig::FormChar(c).into())
 }
 
-fn token_gen_config_form_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(TokenGenConfigFormChar)
+fn token_gen_config_form_char(key_event: KeyEvent) -> Option<Event> {
+    key_event.code.as_char().map(|c| TokenGenConfig::FormChar(c).into())
 }
 
-fn jira_config_form_char(key_event: KeyEvent) -> Option<AppEvent> {
-    key_event.code.as_char().map(JiraConfigFormChar)
+fn jira_config_form_char(key_event: KeyEvent) -> Option<Event> {
+    key_event.code.as_char().map(|c| JiraConfig::FormChar(c).into())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
     use crate::event::event::Direction::{Down, Up};
     use crate::input::key_context::KeyContext;
     use crate::input::key_context::KeyContext::{
-        Config, Editing, Global, List, Logs, TokenGen, Tool, ToolConfig, ToolIgnore,
+        Config, Editing, Global, List, Logs, TokenGen as TokenGenCtx, Tool as ToolCtx,
+        ToolConfig, ToolIgnore,
     };
     use crate::state::token_generator::Focus;
     use test_case::test_case;
@@ -539,58 +160,58 @@ mod tests {
         map
     }
 
-    #[test_case(Global, KeyCode::Char('q'), KeyModifiers::NONE, Quit; "q quits")]
-    #[test_case(Global, KeyCode::Esc, KeyModifiers::NONE, Quit; "esc quits")]
-    #[test_case(Global, KeyCode::Char('1'), KeyModifiers::NONE, SetFocus(AppFocus::List); "1 focuses tools list")]
-    #[test_case(Global, KeyCode::Char('2'), KeyModifiers::NONE, SetFocus(AppFocus::Config); "2 focuses config")]
-    #[test_case(Global, KeyCode::Char('3'), KeyModifiers::NONE, OpenLogs; "3 opens logs")]
-    #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, CopyToClipboard; "c copies")]
-    #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, OpenInBrowser; "o opens browser")]
-    #[test_case(Error, KeyCode::Char('d'), KeyModifiers::NONE, DismissError; "error dismissed")]
-    #[test_case(Config, KeyCode::Down, KeyModifiers::NONE, AppEvent::ConfigListMove(Down); "config down")]
-    #[test_case(Config, KeyCode::Up, KeyModifiers::NONE, AppEvent::ConfigListMove(Up); "config up")]
-    #[test_case(Config, KeyCode::Enter, KeyModifiers::NONE, ToggleFeature; "config enter toggles feature")]
-    #[test_case(Config, KeyCode::Left, KeyModifiers::NONE, SetFocus(AppFocus::List); "config left focuses tools list")]
-    #[test_case(Config, KeyCode::Right, KeyModifiers::NONE, OpenToolConfig(ServiceStatus); "config right opens tool config")]
-    #[test_case(Logs, KeyCode::Down, KeyModifiers::NONE, AppEvent::LogsListMove(Down); "logs down navigates")]
-    #[test_case(Logs, KeyCode::Up, KeyModifiers::NONE, AppEvent::LogsListMove(Up); "logs up navigates")]
-    #[test_case(ToolConfig(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, AppEvent::ServiceStatusConfigListMove(Down); "tool config down")]
-    #[test_case(ToolConfig(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, AppEvent::ServiceStatusConfigListMove(Up); "tool config up")]
-    #[test_case(ToolConfig(ServiceStatus), KeyCode::Char('a'), KeyModifiers::NONE, OpenAddService; "tool config a opens add form")]
-    #[test_case(ToolConfig(ServiceStatus), KeyCode::Char('x'), KeyModifiers::NONE, RemoveService; "tool config x removes service")]
-    #[test_case(ToolConfig(ServiceStatus), KeyCode::Left, KeyModifiers::NONE, CloseToolConfig; "tool config left closes")]
-    #[test_case(Editing(ServiceStatus), KeyCode::Enter, KeyModifiers::NONE, SubmitServiceConfig; "service form enter submits")]
-    #[test_case(Editing(ServiceStatus), KeyCode::Backspace, KeyModifiers::NONE, ServiceStatusFormBackspace; "service form backspace")]
-    #[test_case(Editing(ServiceStatus), KeyCode::Tab, KeyModifiers::NONE, ServiceStatusFormNextField; "service form tab next field")]
-    #[test_case(Editing(ServiceStatus), KeyCode::BackTab, KeyModifiers::SHIFT, ServiceStatusFormPrevField; "service form shift-tab prev field")]
-    #[test_case(List, KeyCode::Right, KeyModifiers::NONE, SetFocus(AppFocus::Tool); "list right focuses tool")]
-    #[test_case(List, KeyCode::Down, KeyModifiers::NONE, AppEvent::ListMove(Down); "list down")]
-    #[test_case(List, KeyCode::Up, KeyModifiers::NONE, AppEvent::ListMove(Up); "list up")]
-    #[test_case(Tool(ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusListMove(Down); "service status down")]
-    #[test_case(Tool(ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusListMove(Up); "service status up")]
-    #[test_case(Tool(ServiceStatus), KeyCode::Char('s'), KeyModifiers::NONE, ScanServices; "s scans services")]
-    #[test_case(ToolIgnore(TokenGenerator), KeyCode::Left, KeyModifiers::NONE, SetFocus(AppFocus::List); "tool left focuses list")]
-    #[test_case(TokenGen(Focus::Service), KeyCode::Down, KeyModifiers::NONE, TokenGenServiceListMove(Down); "token service down")]
-    #[test_case(TokenGen(Focus::Service), KeyCode::Up, KeyModifiers::NONE, TokenGenServiceListMove(Up); "token service up")]
-    #[test_case(TokenGen(Focus::Env), KeyCode::Down, KeyModifiers::NONE, TokenGenEnvListMove(Down); "token env down")]
-    #[test_case(TokenGen(Focus::Env), KeyCode::Up, KeyModifiers::NONE, TokenGenEnvListMove(Up); "token env up")]
-    #[test_case(Tool(TokenGenerator), KeyCode::Right, KeyModifiers::NONE, SetTokenGenFocus(Focus::Env); "token right focuses env")]
-    #[test_case(TokenGen(Focus::Service), KeyCode::Left, KeyModifiers::NONE, SetFocus(AppFocus::List); "token service left focuses list")]
-    #[test_case(TokenGen(Focus::Env), KeyCode::Left, KeyModifiers::NONE, SetTokenGenFocus(Focus::Service); "token env left focuses service")]
-    #[test_case(Tool(TokenGenerator), KeyCode::Enter, KeyModifiers::NONE, GenerateToken; "token enter generates")]
-    #[test_case(Tool(Jira), KeyCode::Up, KeyModifiers::NONE, JiraTicketListMove(Up); "jira up")]
-    #[test_case(Tool(Jira), KeyCode::Down, KeyModifiers::NONE, JiraTicketListMove(Down); "jira down")]
-    #[test_case(Tool(Jira), KeyCode::Up, KeyModifiers::SHIFT, JiraTicketMove(Up); "jira shift up moves ticket")]
-    #[test_case(Tool(Jira), KeyCode::Down, KeyModifiers::SHIFT, JiraTicketMove(Down); "jira shift down moves ticket")]
-    #[test_case(Tool(Jira), KeyCode::Char('a'), KeyModifiers::NONE, NewJiraTicket; "jira a adds ticket")]
-    #[test_case(Tool(Jira), KeyCode::Char('x'), KeyModifiers::NONE, RemoveTicket; "jira x removes ticket")]
-    #[test_case(Editing(Jira), KeyCode::Backspace, KeyModifiers::NONE, RemoveTicketIdChar; "form backspace removes char")]
-    #[test_case(Editing(Jira), KeyCode::Enter, KeyModifiers::NONE, SubmitTicketId; "form enter submits")]
+    #[test_case(Global, KeyCode::Char('q'), KeyModifiers::NONE, Generic::Quit.into(); "q quits")]
+    #[test_case(Global, KeyCode::Esc, KeyModifiers::NONE, Generic::Quit.into(); "esc quits")]
+    #[test_case(Global, KeyCode::Char('1'), KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into(); "1 focuses tools list")]
+    #[test_case(Global, KeyCode::Char('2'), KeyModifiers::NONE, Generic::SetFocus(AppFocus::Config).into(); "2 focuses config")]
+    #[test_case(Global, KeyCode::Char('3'), KeyModifiers::NONE, App::OpenLogs.into(); "3 opens logs")]
+    #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, Generic::CopyToClipboard.into(); "c copies")]
+    #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, Generic::OpenInBrowser.into(); "o opens browser")]
+    #[test_case(KeyContext::Error, KeyCode::Char('d'), KeyModifiers::NONE, App::DismissError.into(); "error dismissed")]
+    #[test_case(Config, KeyCode::Down, KeyModifiers::NONE, App::ConfigListMove(Down).into(); "config down")]
+    #[test_case(Config, KeyCode::Up, KeyModifiers::NONE, App::ConfigListMove(Up).into(); "config up")]
+    #[test_case(Config, KeyCode::Enter, KeyModifiers::NONE, App::ToggleFeature.into(); "config enter toggles feature")]
+    #[test_case(Config, KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into(); "config left focuses tools list")]
+    #[test_case(Config, KeyCode::Right, KeyModifiers::NONE, App::OpenToolConfig(Tool::ServiceStatus).into(); "config right opens tool config")]
+    #[test_case(Logs, KeyCode::Down, KeyModifiers::NONE, App::LogsListMove(Down).into(); "logs down navigates")]
+    #[test_case(Logs, KeyCode::Up, KeyModifiers::NONE, App::LogsListMove(Up).into(); "logs up navigates")]
+    #[test_case(ToolConfig(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusConfig::ListMove(Down).into(); "tool config down")]
+    #[test_case(ToolConfig(Tool::ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusConfig::ListMove(Up).into(); "tool config up")]
+    #[test_case(ToolConfig(Tool::ServiceStatus), KeyCode::Char('a'), KeyModifiers::NONE, ServiceStatusConfig::OpenAddService.into(); "tool config a opens add form")]
+    #[test_case(ToolConfig(Tool::ServiceStatus), KeyCode::Char('x'), KeyModifiers::NONE, ServiceStatusConfig::RemoveService.into(); "tool config x removes service")]
+    #[test_case(ToolConfig(Tool::ServiceStatus), KeyCode::Left, KeyModifiers::NONE, App::CloseToolConfig.into(); "tool config left closes")]
+    #[test_case(Editing(Tool::ServiceStatus), KeyCode::Enter, KeyModifiers::NONE, ServiceStatusConfig::SubmitConfig.into(); "service form enter submits")]
+    #[test_case(Editing(Tool::ServiceStatus), KeyCode::Backspace, KeyModifiers::NONE, ServiceStatusConfig::FormBackspace.into(); "service form backspace")]
+    #[test_case(Editing(Tool::ServiceStatus), KeyCode::Tab, KeyModifiers::NONE, ServiceStatusConfig::FormNextField.into(); "service form tab next field")]
+    #[test_case(Editing(Tool::ServiceStatus), KeyCode::BackTab, KeyModifiers::SHIFT, ServiceStatusConfig::PrevField.into(); "service form shift-tab prev field")]
+    #[test_case(List, KeyCode::Right, KeyModifiers::NONE, Generic::SetFocus(AppFocus::Tool).into(); "list right focuses tool")]
+    #[test_case(List, KeyCode::Down, KeyModifiers::NONE, App::ListMove(Down).into(); "list down")]
+    #[test_case(List, KeyCode::Up, KeyModifiers::NONE, App::ListMove(Up).into(); "list up")]
+    #[test_case(ToolCtx(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatus::ListMove(Down).into(); "service status down")]
+    #[test_case(ToolCtx(Tool::ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatus::ListMove(Up).into(); "service status up")]
+    #[test_case(ToolCtx(Tool::ServiceStatus), KeyCode::Char('s'), KeyModifiers::NONE, ServiceStatus::Scan.into(); "s scans services")]
+    #[test_case(ToolIgnore(Tool::TokenGenerator), KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into(); "tool left focuses list")]
+    #[test_case(TokenGenCtx(Focus::Service), KeyCode::Down, KeyModifiers::NONE, TokenGen::ServiceListMove(Down).into(); "token service down")]
+    #[test_case(TokenGenCtx(Focus::Service), KeyCode::Up, KeyModifiers::NONE, TokenGen::ServiceListMove(Up).into(); "token service up")]
+    #[test_case(TokenGenCtx(Focus::Env), KeyCode::Down, KeyModifiers::NONE, TokenGen::EnvListMove(Down).into(); "token env down")]
+    #[test_case(TokenGenCtx(Focus::Env), KeyCode::Up, KeyModifiers::NONE, TokenGen::EnvListMove(Up).into(); "token env up")]
+    #[test_case(ToolCtx(Tool::TokenGenerator), KeyCode::Right, KeyModifiers::NONE, TokenGen::SetFocus(Focus::Env).into(); "token right focuses env")]
+    #[test_case(TokenGenCtx(Focus::Service), KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into(); "token service left focuses list")]
+    #[test_case(TokenGenCtx(Focus::Env), KeyCode::Left, KeyModifiers::NONE, TokenGen::SetFocus(Focus::Service).into(); "token env left focuses service")]
+    #[test_case(ToolCtx(Tool::TokenGenerator), KeyCode::Enter, KeyModifiers::NONE, TokenGen::GenerateToken.into(); "token enter generates")]
+    #[test_case(ToolCtx(Tool::Jira), KeyCode::Up, KeyModifiers::NONE, Jira::ListMove(Up).into(); "jira up")]
+    #[test_case(ToolCtx(Tool::Jira), KeyCode::Down, KeyModifiers::NONE, Jira::ListMove(Down).into(); "jira down")]
+    #[test_case(ToolCtx(Tool::Jira), KeyCode::Up, KeyModifiers::SHIFT, Jira::TicketMove(Up).into(); "jira shift up moves ticket")]
+    #[test_case(ToolCtx(Tool::Jira), KeyCode::Down, KeyModifiers::SHIFT, Jira::TicketMove(Down).into(); "jira shift down moves ticket")]
+    #[test_case(ToolCtx(Tool::Jira), KeyCode::Char('a'), KeyModifiers::NONE, Jira::NewTicket.into(); "jira a adds ticket")]
+    #[test_case(ToolCtx(Tool::Jira), KeyCode::Char('x'), KeyModifiers::NONE, Jira::RemoveTicket.into(); "jira x removes ticket")]
+    #[test_case(Editing(Tool::Jira), KeyCode::Backspace, KeyModifiers::NONE, Jira::RemoveTicketIdChar.into(); "form backspace removes char")]
+    #[test_case(Editing(Tool::Jira), KeyCode::Enter, KeyModifiers::NONE, Jira::SubmitTicketId.into(); "form enter submits")]
     fn binding_resolves_to_expected_event(
         context: KeyContext,
         code: KeyCode,
         modifiers: KeyModifiers,
-        expected: AppEvent,
+        expected: Event,
     ) {
         let map = registered_map();
         let result = map.resolve(context, KeyEvent::new(code, modifiers));
@@ -601,17 +222,17 @@ mod tests {
     fn popup_dynamic_handler_maps_char_to_add_ticket_id_char() {
         let map = registered_map();
         let result = map.resolve(
-            Editing(Jira),
+            Editing(Tool::Jira),
             KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE),
         );
-        assert_eq!(result, Some(AddTicketIdChar('A')));
+        assert_eq!(result, Some(Jira::AddTicketIdChar('A').into()));
     }
 
     #[test]
     fn popup_dynamic_handler_returns_none_for_non_char() {
         let map = registered_map();
         let result = map.resolve(
-            Editing(Jira),
+            Editing(Tool::Jira),
             KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE),
         );
         assert_eq!(result, None);

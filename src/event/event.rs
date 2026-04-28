@@ -5,6 +5,9 @@ use crate::state::app::{AppFocus, Tool};
 use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
+#[derive(Clone)]
+#[derive(PartialEq)]
+#[derive(Debug)]
 pub enum Event {
     /// An event that is emitted on a regular schedule.
     ///
@@ -99,7 +102,7 @@ pub enum TokenGeneratorConfigEvent {
     FormChar(char),
     FormBackspace,
     SubmitConfig,
-    RemoveTokenGenService,
+    RemoveService,
     SwitchFocus,
     ConfigEdit,
 }
@@ -132,4 +135,36 @@ pub enum JiraConfigEvent {
 pub enum Direction {
     Up,
     Down,
+}
+
+impl From<AppEvent> for Event {
+    fn from(e: AppEvent) -> Self { Event::App(e) }
+}
+
+impl From<GenericEvent> for Event {
+    fn from(e: GenericEvent) -> Self { Event::Generic(e) }
+}
+
+impl From<ServiceStatusEvent> for Event {
+    fn from(e: ServiceStatusEvent) -> Self { Event::ServiceStatus(e) }
+}
+
+impl From<ServiceStatusConfigEvent> for Event {
+    fn from(e: ServiceStatusConfigEvent) -> Self { Event::ServiceStatusConfig(e) }
+}
+
+impl From<TokenGeneratorEvent> for Event {
+    fn from(e: TokenGeneratorEvent) -> Self { Event::TokenGenerator(e) }
+}
+
+impl From<TokenGeneratorConfigEvent> for Event {
+    fn from(e: TokenGeneratorConfigEvent) -> Self { Event::TokenGeneratorConfig(e) }
+}
+
+impl From<JiraEvent> for Event {
+    fn from(e: JiraEvent) -> Self { Event::Jira(e) }
+}
+
+impl From<JiraConfigEvent> for Event {
+    fn from(e: JiraConfigEvent) -> Self { Event::JiraConfig(e) }
 }

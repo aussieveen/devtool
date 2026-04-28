@@ -28,7 +28,7 @@ impl JiraField {
 }
 
 // ── Inline edit form ─────────────────────────────────────────────────────────────────────
-
+#[derive(Clone)]
 pub struct JiraConfigForm {
     pub url: String,
     pub email: String,
@@ -69,7 +69,6 @@ impl JiraConfigForm {
 }
 
 // ── Editor ────────────────────────────────────────────────────────────────────
-
 pub struct JiraConfigEditor {
     pub form: Option<JiraConfigForm>,
 }
@@ -84,6 +83,16 @@ impl JiraConfigEditor {
             Some(c) => JiraConfigForm::from_existing(c),
             None => JiraConfigForm::empty(),
         });
+    }
+
+    pub fn has_open_form(&self) -> bool
+    {
+        self.form.is_some()
+    }
+
+    pub fn close_form(&mut self)
+    {
+        self.form = None;
     }
 }
 
