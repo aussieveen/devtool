@@ -127,8 +127,8 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorConfigEvent){
                         .token_generator_config_editor
                         .table_state
                         .select(None);
-                    // Auto-disable the feature since there's no backing config left.
-                    app.config.features.token_generator = false;
+                    
+                    app.config.enforce_feature_invariants();
                     app.state
                         .config_editor
                         .sync_from_features(&app.config.features);

@@ -7,6 +7,7 @@ use ratatui::prelude::Alignment;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
+use crate::ui::widgets::tools::{jira, service_status, token_generator};
 
 pub fn render(
     frame: &mut Frame,
@@ -139,12 +140,16 @@ pub fn render(
 
     frame.render_widget(pane, area);
 
-    state.current_tool.render(
-        frame,
-        inner,
-        config_data,
-        &mut state.service_status,
-        &mut state.token_generator,
-        &mut state.jira,
-    );
+    match state.current_tool {
+        Tool::ServiceStatus => {
+            service_status::render(frame, inner, &mut state.service_status, &config_data.servicestatus)
+        }
+        Tool::TokenGenerator => token_generator::render(
+            frame,
+            inner,
+            &mut state.token_generator,
+            &config_data.tokengenerator.services,
+        ),
+        Tool::Jira => jira::render(frame, inner, &mut state.jira),
+    }
 }

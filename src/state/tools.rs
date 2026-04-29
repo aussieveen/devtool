@@ -1,10 +1,3 @@
-use crate::config::model::Config;
-use crate::state::jira::Jira;
-use crate::state::service_status::ServiceStatus;
-use crate::state::token_generator::TokenGenerator;
-use crate::ui::widgets::tools::*;
-use ratatui::Frame;
-use ratatui::layout::Rect;
 use ratatui::widgets::ListState;
 
 pub struct ToolList {
@@ -25,29 +18,6 @@ impl Tool {
             Tool::ServiceStatus => "Service Status",
             Tool::TokenGenerator => "M2M Auth0 Token Generator",
             Tool::Jira => "My Jira Tickets",
-        }
-    }
-
-    pub fn render(
-        &self,
-        frame: &mut Frame,
-        area: Rect,
-        config: &Config,
-        service_status_state: &mut ServiceStatus,
-        token_generator_state: &mut TokenGenerator,
-        jira_state: &mut Jira,
-    ) {
-        match self {
-            Tool::ServiceStatus => {
-                service_status::render(frame, area, service_status_state, &config.servicestatus)
-            }
-            Tool::TokenGenerator => token_generator::render(
-                frame,
-                area,
-                token_generator_state,
-                &config.tokengenerator.services,
-            ),
-            Tool::Jira => jira::render(frame, area, jira_state),
         }
     }
 

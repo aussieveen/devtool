@@ -78,7 +78,7 @@ impl Config {
         }
     }
 
-    fn enforce_feature_invariants(&mut self){
+    pub fn enforce_feature_invariants(&mut self){
         if self.servicestatus.is_empty() {
             self.features.service_status = false;
         }
