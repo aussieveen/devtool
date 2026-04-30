@@ -129,11 +129,11 @@ impl LogState {
             .collect()
     }
 
-    pub fn select_next(&mut self) {
+    pub fn select_logs(&mut self) {
         self.selected_item = LogsItem::AppLog;
     }
 
-    pub fn select_prev(&mut self) {
+    pub fn select_activity(&mut self) {
         self.selected_item = LogsItem::Activity;
     }
 }

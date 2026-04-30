@@ -5,3 +5,4 @@ pub(crate) mod list;
 pub(crate) mod logs_list;
 pub(crate) mod tool;
 pub(crate) mod tools;
+pub mod popup;

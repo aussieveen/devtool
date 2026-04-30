@@ -23,6 +23,7 @@ pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::utils::overlay::overlay_area;
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
+use crate::ui::widgets::popup::Part;
 use crossterm::event::{self, KeyEvent, KeyEventKind};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -120,21 +121,23 @@ impl App {
         match app_event {
             OpenLogs => {
                 self.state.focus = AppFocus::Logs;
-                if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
-                    self.state.log.mark_activity_seen();
+                if self.state.has_error() {
+                    self.event_sender.send_app_event(DismissError);
+                    self.state.log.select_logs()
+                }else{
+                    if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
+                        self.state.log.mark_activity_seen();
+                    }
                 }
             }
             LogsListMove(direction) => {
                 use crate::event::events::Direction;
                 match direction {
                     Direction::Down => {
-                        self.state.log.select_next();
-                        if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
-                            self.state.log.mark_activity_seen();
-                        }
+                        self.state.log.select_logs();
                     }
                     Direction::Up => {
-                        self.state.log.select_prev();
+                        self.state.log.select_activity();
                         if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
                             self.state.log.mark_activity_seen();
                         }
@@ -255,27 +258,13 @@ impl App {
         footer::render(frame, areas.footer, &self.state);
 
         if let Some(error) = &self.state.error {
-            let red = Style::default().fg(Color::Red).add_modifier(Modifier::BOLD);
-            let dim = Style::default().add_modifier(Modifier::DIM);
-            let key = crate::ui::styles::key_style();
-
-            let block = Block::bordered().border_style(red).title_style(red);
-            let content = Paragraph::new(vec![
-                Line::from(Span::styled(error.title.clone(), red)),
-                Line::from(""),
-                Line::from(vec![
-                    Span::styled("See ", dim),
-                    Span::styled("[3]", key),
-                    Span::styled(" Logs for details  ", dim),
-                    Span::styled("[d]", key),
-                    Span::styled(" Dismiss", dim),
-                ]),
+            popup::render(frame, popup::Type::Error, error.title.as_str(), vec![
+                Part::Text("See "),
+                Part::Key("[3]"),
+                Part::Text(" Logs for details  "),
+                Part::Key("[d]"),
+                Part::Text(" Dismiss"),
             ])
-            .block(block);
-
-            let area = overlay_area(frame.area(), 40, 5);
-            frame.render_widget(Clear, area);
-            frame.render_widget(content, area);
         }
     }
 
@@ -298,7 +287,7 @@ impl App {
 
         // If an Error pop up is displayed, don't allow additional contexts i.e
         // disable all key contexts except global and the error form.
-        if self.state.error.is_some() {
+        if self.state.has_error() {
             stack.push(Error);
         } else {
             match self.state.focus {

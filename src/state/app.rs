@@ -64,6 +64,10 @@ impl AppState {
             log: LogState::new(),
         }
     }
+    
+    pub fn has_error(&self) -> bool {
+        self.error.is_some()
+    }
 
     pub fn effective_focus(&self) -> AppFocus {
         if self.error.is_some() {
