@@ -56,6 +56,7 @@ pub enum AppEvent {
 pub enum GenericEvent {
     SetFocus(AppFocus),
     Quit,
+    QuitConfirm,
     OpenInBrowser,
     CopyToClipboard,
 }

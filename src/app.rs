@@ -23,11 +23,11 @@ pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
 use crate::ui::widgets::popup::{Part, Type};
-use crossterm::event::{self, KeyEvent, KeyEventKind};
+use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
-use crate::event::events::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, SetFocus};
+use crate::event::events::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, QuitConfirm, SetFocus};
 use crate::event::events::JiraEvent::ScanTickets;
 use crate::event::events::ServiceStatusEvent::Scan;
 use crate::popup::model::Popup;
@@ -153,10 +153,8 @@ impl App {
                         title,
                         vec![
                             Part::Text("See "),
-                            Part::Key("[3]"),
+                            Part::Key("3"),
                             Part::Text(" Logs for details  "),
-                            Part::Key("[d]"),
-                            Part::Text(" Dismiss"),
                         ],
                     ));
                 }
@@ -235,7 +233,13 @@ impl App {
 
     fn handle_generic_event(&mut self, event: GenericEvent){
         match event {
-            Quit => self.running = false,
+            Quit => self.state.popup = Some(
+                Popup::new(Type::Confirm, "Confirm Quit".to_string(), vec![
+                    Part::Key("q"),
+                    Part::Text(" again to quit  "),
+                ]).with_action('q', "quit", Event::Generic(QuitConfirm))
+            ),
+            QuitConfirm => self.running = false,
             SetFocus(focus) => self.state.focus = focus,
             CopyToClipboard => match self.state.current_tool {
                 ServiceStatus => service_status::handle_generic_event(self, CopyToClipboard),
@@ -273,6 +277,18 @@ impl App {
     }
 
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
+        if self.state.has_popup() {
+            if let KeyCode::Char(c) = key.code {
+                if let Some(popup) = &self.state.popup {
+                    if let Some(action) = popup.actions.iter().find(|a| a.key == c){
+                        let event = action.event.clone();
+                        self.event_sender.send_event(event);
+                    }
+                }
+            }
+            self.state.popup = None;
+            return Ok(());
+        }
         // First-match-wins: the most specific context in the stack takes priority.
         // This prevents lower-priority contexts (e.g. Global Quit on Esc) from
         // also firing when a higher-priority context already handled the key.

@@ -31,7 +31,7 @@ pub fn render(frame: &mut Frame, popup: &Popup)
 
     let block = Block::bordered().border_style(style).title_style(style);
     let body_line = Line::from(popup.parts.iter().map(|part| match part {
-        Part::Key(s) => Span::styled(*s, key),
+        Part::Key(s) => Span::styled(format!("[{}]", *s), key),
         Part::Text(s) => Span::styled(*s, dim),
     }).collect::<Vec<_>>());
     let content = Paragraph::new(vec![

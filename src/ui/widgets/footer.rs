@@ -3,226 +3,211 @@ use crate::state::token_generator::Token;
 use crate::ui::styles::{key_desc_style, key_style};
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
 pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
-    let key = key_style();
-    let desc = key_desc_style();
-
-    let (line1, line2) = build_lines(state, key, desc);
-
+    let (line1, line2) = build_lines(state);
     let footer = Paragraph::new(vec![line1, line2]).block(Block::default().borders(Borders::TOP));
-
     frame.render_widget(footer, area);
 }
 
-fn build_lines<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+/// Named hint components. Each variant knows its own key label and description text.
+/// Add a new variant here and it is available everywhere — change it here and it
+/// updates everywhere.
+enum Hint {
+    // Navigation
+    Navigate,
+    // Global
+    Quit,
+    // Panel switching
+    Tools,
+    Config,
+    Logs,
+    // Actions
+    Toggle,
+    Add,
+    Edit,
+    Remove,
+    Scan,
+    Generate,
+    OpenInBrowser,
+    CopyUrl,
+    CopyToken,
+    Retry,
+    MoveItem,
+    // Form
+    Save,
+    NextField,
+    NavigateFields,
+    Cancel,
+    Submit,
+    // Popup
+    Dismiss,
+    // One-off with custom text (key_text, desc_text)
+    Status(&'static str),
+}
+
+impl Hint {
+    fn spans(&self) -> Vec<Span<'static>> {
+        let k = key_style();
+        let d = key_desc_style();
+        match self {
+            Hint::Navigate           => vec![Span::styled("[↑↓←→]", k),        Span::styled(" Navigate  ", d)],
+            Hint::Quit               => vec![Span::styled("[q]", k),      Span::styled(" Quit", d)],
+            Hint::Tools              => vec![Span::styled("[1]", k),          Span::styled(" Tools  ", d)],
+            Hint::Config             => vec![Span::styled("[2]", k),          Span::styled(" Config  ", d)],
+            Hint::Logs               => vec![Span::styled("[3]", k),          Span::styled(" Logs  ", d)],
+            Hint::Toggle             => vec![Span::styled("[return]", k),      Span::styled(" Toggle  ", d)],
+            Hint::Add                => vec![Span::styled("[a]", k),          Span::styled(" Add  ", d)],
+            Hint::Edit               => vec![Span::styled("[e]", k),          Span::styled(" Edit  ", d)],
+            Hint::Remove             => vec![Span::styled("[x]", k),          Span::styled(" Remove  ", d)],
+            Hint::Scan               => vec![Span::styled("[s]", k),          Span::styled(" Scan  ", d)],
+            Hint::Generate           => vec![Span::styled("[return]", k),     Span::styled(" Generate  ", d)],
+            Hint::OpenInBrowser      => vec![Span::styled("[o]", k),          Span::styled(" Open in browser  ", d)],
+            Hint::CopyUrl            => vec![Span::styled("[c]", k),          Span::styled(" Copy url  ", d)],
+            Hint::CopyToken          => vec![Span::styled("[c]", k),          Span::styled(" Copy token  ", d)],
+            Hint::Retry              => vec![Span::styled("[return]", k),     Span::styled(" Retry  ", d)],
+            Hint::MoveItem           => vec![Span::styled("[shift+↑↓]", k), Span::styled(" Move  ", d)],
+            Hint::Save               => vec![Span::styled("[return]", k),      Span::styled(" Save  ", d)],
+            Hint::NextField          => vec![Span::styled("[tab]", k),        Span::styled(" Next field  ", d)],
+            Hint::NavigateFields     => vec![Span::styled("[↑↓]", k),        Span::styled(" Navigate fields  ", d)],
+            Hint::Cancel             => vec![Span::styled("[esc]", k),        Span::styled(" Cancel  ", d)],
+            Hint::Submit => vec![Span::styled("[return]", k), Span::styled(" Add ticket  ", d)],
+            Hint::Dismiss => vec![Span::styled("[any]", k), Span::styled(" Dismiss  ", d)],
+            Hint::Status(text)       => vec![Span::styled(*text, key_desc_style())],
+        }
+    }
+}
+
+fn hints(items: &[Hint]) -> Line<'static> {
+    Line::from(items.iter().flat_map(|h| h.spans()).collect::<Vec<_>>())
+}
+
+fn build_lines(state: &AppState) -> (Line<'static>, Line<'static>) {
     if state.has_popup() {
-        return (hints(&[("[d]", key, " Dismiss", desc)]), Line::from(""));
+        return (hints(&[Hint::Dismiss]), Line::from(""));
     }
 
     match state.focus {
         AppFocus::JiraInput => (
-            hints(&[
-                ("[enter]", key, " Add ticket  ", desc),
-                ("[esc]", key, " Cancel", desc),
-            ]),
+            hints(&[Hint::Submit, Hint::Cancel]),
             Line::from(""),
         ),
         AppFocus::List => (
-            hints(&[
-                ("[↑↓]", key, " Navigate  ", desc),
-                ("[→]", key, " Open tool  ", desc),
-                ("[2]", key, " Config  ", desc),
-                ("[3]", key, " Logs  ", desc),
-                ("[q/esc]", key, " Quit", desc),
-            ]),
+            hints(&[Hint::Navigate, Hint::Config, Hint::Logs, Hint::Quit]),
             Line::from(""),
         ),
         AppFocus::Tool => match state.current_tool {
-            Tool::ServiceStatus => service_status_tool_hints(state, key, desc),
-            Tool::TokenGenerator => token_generator_tool_hints(state, key, desc),
-            Tool::Jira => jira_tool_hints(state, key, desc),
+            Tool::ServiceStatus => service_status_tool_hints(state),
+            Tool::TokenGenerator => token_generator_tool_hints(state),
+            Tool::Jira => jira_tool_hints(state),
         },
         AppFocus::Config => (
-            hints(&[
-                ("[↑↓]", key, " Navigate  ", desc),
-                ("[enter]", key, " Toggle  ", desc),
-                ("[→]", key, " Edit config  ", desc),
-                ("[1]", key, " Tools  ", desc),
-                ("[q/esc]", key, " Quit", desc),
-            ]),
+            hints(&[Hint::Navigate, Hint::Toggle, Hint::Edit, Hint::Tools, Hint::Logs, Hint::Quit]),
             Line::from(""),
         ),
         AppFocus::Logs => (
-            hints(&[
-                ("[↑↓]", key, " Switch panel  ", desc),
-                ("[1]", key, " Tools  ", desc),
-                ("[2]", key, " Config  ", desc),
-                ("[q/esc]", key, " Quit", desc),
-            ]),
+            hints(&[Hint::Navigate, Hint::Tools, Hint::Config, Hint::Quit]),
             Line::from(""),
         ),
-        AppFocus::ToolConfig(Tool::ServiceStatus) => service_status_config_hints(state, key, desc),
-        AppFocus::ToolConfig(Tool::TokenGenerator) => {
-            token_generator_config_hints(state, key, desc)
-        }
-        AppFocus::ToolConfig(Tool::Jira) => jira_config_hints(state, key, desc),
+        AppFocus::ToolConfig(Tool::ServiceStatus) => service_status_config_hints(state),
+        AppFocus::ToolConfig(Tool::TokenGenerator) => token_generator_config_hints(state),
+        AppFocus::ToolConfig(Tool::Jira) => jira_config_hints(state),
     }
 }
 
-fn service_status_tool_hints<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn service_status_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     let line2 = if state.service_status.has_link() {
-        hints(&[
-            ("[o]", key, " Open in browser  ", desc),
-            ("[c]", key, " Copy url", desc),
-        ])
+        hints(&[Hint::OpenInBrowser, Hint::CopyUrl])
     } else {
         Line::from("")
     };
     (
-        hints(&[
-            ("[↑↓]", key, " Navigate  ", desc),
-            ("[s]", key, " Scan  ", desc),
-            ("[←]", key, " Tool list  ", desc),
-            ("[2]", key, " Config  ", desc),
-            ("[3]", key, " Logs  ", desc),
-            ("[q/esc]", key, " Quit", desc),
-        ]),
+        hints(&[Hint::Navigate, Hint::Scan, Hint::Quit]),
         line2,
     )
 }
 
-fn token_generator_tool_hints<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn token_generator_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     let line2 = match state.token_generator.get_token_for_selected_service_env() {
         Token::Idle => Line::from(""),
-        Token::Requesting => hints(&[("Generating token…", desc, "", desc)]),
-        Token::Ready(_) => hints(&[("[c]", key, " Copy token", desc)]),
-        Token::Error => hints(&[("[return]", key, " Retry", desc)]),
+        Token::Requesting => hints(&[Hint::Status("Generating token…")]),
+        Token::Ready(_) => hints(&[Hint::CopyToken]),
+        Token::Error => hints(&[Hint::Retry]),
     };
     (
-        hints(&[
-            ("[←→]", key, " Switch panel  ", desc),
-            ("[↑↓]", key, " Navigate  ", desc),
-            ("[return]", key, " Generate  ", desc),
-            ("[2]", key, " Config  ", desc),
-            ("[q/esc]", key, " Quit", desc),
-        ]),
+        hints(&[Hint::Navigate, Hint::Generate, Hint::Quit]),
         line2,
     )
 }
 
-fn jira_tool_hints<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn jira_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     let line2 = if state.jira.list_state.selected().is_some() {
-        hints(&[
-            ("[x]", key, " Remove  ", desc),
-            ("[o]", key, " Open in browser  ", desc),
-            ("[shift+↑↓]", key, " Move", desc),
-        ])
+        hints(&[Hint::Remove, Hint::OpenInBrowser, Hint::MoveItem])
     } else {
         Line::from("")
     };
     (
-        hints(&[
-            ("[↑↓]", key, " Navigate  ", desc),
-            ("[a]", key, " Add ticket  ", desc),
-            ("[←]", key, " Tool list  ", desc),
-            ("[2]", key, " Config  ", desc),
-            ("[q/esc]", key, " Quit", desc),
-        ]),
+        hints(&[Hint::Navigate, Hint::Add, Hint::Quit]),
         line2,
     )
 }
 
-fn service_status_config_hints<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn service_status_config_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     if state.service_status_config_editor.has_open_form() {
-        return edit_form_lines(key, desc);
+        return edit_form_lines();
     }
     let line2 = if state.service_status_config_editor.table_state.selected().is_some() {
-        hints(&[("[e]", key, " Edit  ", desc), ("[x]", key, " Remove", desc)])
+        hints(&[Hint::Edit, Hint::Remove])
     } else {
         Line::from("")
     };
     (
-        hints(&[
-            ("[↑↓]", key, " Navigate  ", desc),
-            ("[a]", key, " Add  ", desc),
-            ("[←]", key, " Back  ", desc),
-            ("[q/esc]", key, " Quit", desc),
-        ]),
+        hints(&[Hint::Navigate, Hint::Add, Hint::Quit]),
         line2,
     )
 }
 
-fn token_generator_config_hints<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn token_generator_config_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     use crate::state::token_generator_config::ConfigFocus;
     if state.token_generator_config_editor.has_open_form() {
-        return edit_form_lines(key, desc);
+        return edit_form_lines();
     }
     match state.token_generator_config_editor.config_focus {
         ConfigFocus::Auth0 => (
-            hints(&[
-                ("[tab]", key, " Switch section  ", desc),
-                ("[a]", key, " Add service  ", desc),
-                ("[←]", key, " Back  ", desc),
-                ("[q/esc]", key, " Quit", desc),
-            ]),
-            hints(&[("[e]", key, " Edit", desc)]),
+            hints(&[Hint::Add, Hint::Edit, Hint::Quit]),
+            Line::from("")
         ),
         ConfigFocus::Services => {
             let line2 = if state.token_generator_config_editor.table_state.selected().is_some() {
-                hints(&[("[e]", key, " Edit  ", desc), ("[x]", key, " Remove", desc)])
+                hints(&[Hint::Edit, Hint::Remove])
             } else {
                 Line::from("")
             };
             (
-                hints(&[
-                    ("[↑↓]", key, " Navigate  ", desc),
-                    ("[tab]", key, " Switch section  ", desc),
-                    ("[a]", key, " Add service  ", desc),
-                    ("[←]", key, " Back  ", desc),
-                    ("[q/esc]", key, " Quit", desc),
-                ]),
+                hints(&[Hint::Navigate, Hint::Add, Hint::Quit]),
                 line2,
             )
         }
     }
 }
 
-fn jira_config_hints<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn jira_config_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     if state.jira_config_editor.has_open_form() {
-        return edit_form_lines(key, desc);
+        return edit_form_lines();
     }
     (
-        hints(&[
-            ("[e]", key, " Edit config  ", desc),
-            ("[←]", key, " Back  ", desc),
-            ("[q/esc]", key, " Quit", desc),
-        ]),
+        hints(&[Hint::Edit, Hint::Quit]),
         Line::from(""),
     )
 }
 
 /// Shared footer content when any inline edit form is active.
-fn edit_form_lines<'a>(key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
+fn edit_form_lines() -> (Line<'static>, Line<'static>) {
     (
-        hints(&[
-            ("[enter]", key, " Save  ", desc),
-            ("[tab]", key, " Next field  ", desc),
-            ("[↑↓]", key, " Navigate fields", desc),
-        ]),
-        hints(&[("[esc]", key, " Cancel", desc)]),
+        hints(&[Hint::Save, Hint::NextField, Hint::NavigateFields]),
+        hints(&[Hint::Cancel]),
     )
-}
-
-/// Build a Line from a sequence of (key_text, key_style, desc_text, desc_style) tuples.
-fn hints<'a>(items: &[(&'a str, Style, &'a str, Style)]) -> Line<'a> {
-    let spans: Vec<Span<'a>> = items
-        .iter()
-        .flat_map(|(k, ks, d, ds)| [Span::styled(*k, *ks), Span::styled(*d, *ds)])
-        .collect();
-    Line::from(spans)
 }
 

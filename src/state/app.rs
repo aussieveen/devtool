@@ -167,6 +167,7 @@ mod tests {
             popup_type: Type::Error,
             title: "".to_string(),
             parts: vec![],
+            actions: vec![]
         });
 
         assert_eq!(app_state.effective_focus(), AppFocus::JiraInput);

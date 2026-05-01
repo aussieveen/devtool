@@ -1,10 +1,12 @@
 use crate::app::App;
-use crate::event::events::{GenericEvent, TokenGeneratorEvent};
+use crate::event::events::{Event, GenericEvent, TokenGeneratorEvent};
 use crate::event::events::AppEvent::AppLog;
 use crate::event::events::GenericEvent::CopyToClipboard;
 use crate::event::events::TokenGeneratorEvent::{GenerateToken, SetFocus, TokenFailed, EnvListMove, ServiceListMove, TokenGenerated};
+use crate::popup::model::Popup;
 use crate::state::log::{log_source, LogEntry, LogLevel};
 use crate::state::token_generator::Token;
+use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 
@@ -96,6 +98,11 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
             app.state
                 .token_generator
                 .set_token_ready(service_idx, env_idx, token);
+
+            app.state.popup = Some(Popup::new(Type::Success, "Token Generated".to_string(), vec![
+                Part::Key("c"),
+                Part::Text(" copy to clipboard  "),
+            ]).with_action('c', "copy", Event::Generic(CopyToClipboard)));
         }
         TokenFailed(error, service_idx, env_idx) => {
             let svc_name = app
