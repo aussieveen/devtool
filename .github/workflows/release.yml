@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.DeployAndRelease }}
 
       - name: Get latest semver tag
         id: latest_tag
@@ -92,4 +92,4 @@ jobs:
             --title "${{ steps.version.outputs.new_version }}" \
             --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.DeployAndRelease }}
