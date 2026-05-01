@@ -3,6 +3,15 @@ use chrono::{DateTime, Local, TimeDelta};
 const MAX_ENTRIES: usize = 500;
 const EXPIRY_HOURS: i64 = 3;
 
+// ── Log source constants ──────────────────────────────────────────────────────
+
+pub mod log_source {
+    pub const APP: &str = "App";
+    pub const JIRA: &str = "Jira";
+    pub const SERVICE_STATUS: &str = "Service Status";
+    pub const TOKEN_GENERATOR: &str = "Token Generator";
+}
+
 // ── Activity feed ─────────────────────────────────────────────────────────────
 
 #[derive(Clone, Debug)]
@@ -16,7 +25,7 @@ pub struct ActivityEntry {
 
 /// RFC 5424 severity levels.
 #[allow(dead_code)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
     Emergency,
     Alert,
@@ -48,7 +57,34 @@ pub struct AppLogEntry {
     pub timestamp: DateTime<Local>,
     pub level: LogLevel,
     pub source: String,
-    pub message: String,
+    pub title: String,
+    pub detail: Option<String>,
+}
+
+// ── LogEntry (dispatch struct, no timestamp) ──────────────────────────────────
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LogEntry {
+    pub level: LogLevel,
+    pub source: String,
+    pub title: String,
+    pub detail: Option<String>,
+}
+
+impl LogEntry {
+    pub fn new(level: LogLevel, source: impl Into<String>, title: impl Into<String>) -> Self {
+        Self {
+            level,
+            source: source.into(),
+            title: title.into(),
+            detail: None,
+        }
+    }
+
+    pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
+        self.detail = Some(detail.into());
+        self
+    }
 }
 
 // ── Log state ─────────────────────────────────────────────────────────────────
@@ -89,12 +125,13 @@ impl LogState {
         }
     }
 
-    pub fn push_log(&mut self, level: LogLevel, source: String, message: String) {
+    pub fn push_log(&mut self, entry: LogEntry) {
         self.app_log.push(AppLogEntry {
             timestamp: Local::now(),
-            level,
-            source,
-            message,
+            level: entry.level,
+            source: entry.source,
+            title: entry.title,
+            detail: entry.detail,
         });
         if self.app_log.len() > MAX_ENTRIES {
             self.app_log.remove(0);

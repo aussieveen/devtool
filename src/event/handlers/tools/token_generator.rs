@@ -1,15 +1,14 @@
 use crate::app::App;
-use crate::error::model::Error;
 use crate::event::events::{GenericEvent, TokenGeneratorEvent};
-use crate::event::events::AppEvent::{AppLog, SystemError};
+use crate::event::events::AppEvent::AppLog;
 use crate::event::events::GenericEvent::CopyToClipboard;
 use crate::event::events::TokenGeneratorEvent::{GenerateToken, SetFocus, TokenFailed, EnvListMove, ServiceListMove, TokenGenerated};
-use crate::state::log::LogLevel;
+use crate::state::log::{log_source, LogEntry, LogLevel};
 use crate::state::token_generator::Token;
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 
-const SERVICE_NAME:&str = "token generator";
+const SERVICE_NAME: &str = log_source::TOKEN_GENERATOR;
 
 pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
     match event {
@@ -57,11 +56,11 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
                 .map(|c| c.env.to_string().to_lowercase())
                 .unwrap_or_default();
 
-            app.event_sender.send_app_event(AppLog(
+            app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Info,
-                SERVICE_NAME.to_string(),
+                SERVICE_NAME,
                 format!("Requesting token: {}/{}", svc_name, env_name),
-            ));
+            )));
 
             app.state.token_generator.start_token_request();
 
@@ -88,11 +87,11 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
                 .map(|c| c.env.to_string().to_lowercase())
                 .unwrap_or_default();
 
-            app.event_sender.send_app_event(AppLog(
+            app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Info,
-                SERVICE_NAME.to_string(),
+                SERVICE_NAME,
                 format!("Token generated: {}/{}", svc_name, env_name),
-            ));
+            )));
 
             app.state
                 .token_generator
@@ -115,25 +114,18 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
                 .map(|c| c.env.to_string().to_lowercase())
                 .unwrap_or_default();
 
-            app.event_sender.send_app_event(AppLog(
-                LogLevel::Error,
-                SERVICE_NAME.to_string(),
-                format!(
-                    "Token request failed: {}/{} — {}",
-                    svc_name, env_name, error
-                ),
-            ));
-
             app.state
                 .token_generator
                 .set_token_error(service_idx, env_idx);
-            let sender = app.event_sender.clone();
-            sender.send_app_event(SystemError(Error {
-                title: "Error requesting token".to_string(),
-                originating_event: "TokenFailed".to_string(),
-                tool: SERVICE_NAME.to_string(),
-                description: error,
-            }));
+
+            app.event_sender.send_app_event(AppLog(
+                LogEntry::new(
+                    LogLevel::Error,
+                    SERVICE_NAME,
+                    format!("Token request failed — {}/{}", svc_name, env_name),
+                )
+                .with_detail(error),
+            ));
         }
     }
 }
@@ -148,11 +140,11 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent){
             && let Some(value) = token.value()
             && let Err(e) = copy_to_clipboard(value)
         {
-            app.event_sender.send_app_event(AppLog(
+            app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Warning,
-                SERVICE_NAME.to_string(),
-                format!("Copy to clipboard failed: {}", e),
-            ));
+                SERVICE_NAME,
+                format!("Copy to clipboard failed: {e}"),
+            )));
         }
     }
 

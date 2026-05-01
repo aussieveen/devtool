@@ -16,24 +16,22 @@ use crate::event::handlers::config::{
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    Editing, Error, Global, List, Logs, TokenGen, ToolConfigEditing, ToolIgnore,
+    Editing, Popup as PopupCtx, Global, List, Logs, TokenGen, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
 pub(crate) use crate::state::app::{AppFocus, Tool};
-use crate::utils::overlay::overlay_area;
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
-use crate::ui::widgets::popup::Part;
+use crate::ui::widgets::popup::{Part, Type};
 use crossterm::event::{self, KeyEvent, KeyEventKind};
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Clear, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
 use crate::event::events::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, SetFocus};
 use crate::event::events::JiraEvent::ScanTickets;
 use crate::event::events::ServiceStatusEvent::Scan;
+use crate::popup::model::Popup;
+use crate::state::log::{log_source, LogEntry, LogLevel};
 
 /// The main application which holds the state and logic of the application.
 pub struct App {
@@ -76,9 +74,7 @@ impl App {
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
         // Log app startup
         self.state.log.push_log(
-            crate::state::log::LogLevel::Info,
-            "app".to_string(),
-            "App started — config loaded".to_string(),
+            LogEntry::new(LogLevel::Info, log_source::APP, "App started — config loaded"),
         );
 
         let async_sender = self.event_sender.clone();
@@ -121,8 +117,8 @@ impl App {
         match app_event {
             OpenLogs => {
                 self.state.focus = AppFocus::Logs;
-                if self.state.has_error() {
-                    self.event_sender.send_app_event(DismissError);
+                if self.state.has_popup() {
+                    self.event_sender.send_app_event(DismissPopup);
                     self.state.log.select_logs()
                 }else{
                     if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
@@ -147,8 +143,23 @@ impl App {
             ActivityEvent(source, message) => {
                 self.state.log.push_activity(source, message);
             }
-            AppLog(level, source, message) => {
-                self.state.log.push_log(level, source, message);
+            AppLog(entry) => {
+                let title = entry.title.clone();
+                let level = entry.level;
+                self.state.log.push_log(entry);
+                if level <= LogLevel::Error {
+                    self.state.popup = Some(Popup::new(
+                        Type::Error,
+                        title,
+                        vec![
+                            Part::Text("See "),
+                            Part::Key("[3]"),
+                            Part::Text(" Logs for details  "),
+                            Part::Key("[d]"),
+                            Part::Text(" Dismiss"),
+                        ],
+                    ));
+                }
             }
             ListSelect(tool_state) => self.state.current_tool = tool_state,
             ListMove(direction) => {
@@ -164,8 +175,7 @@ impl App {
                     self.event_sender.send_app_event(ListSelect(tool))
                 }
             }
-            SystemError(error) => self.state.error = Some(error),
-            DismissError => self.state.error = None,
+            DismissPopup => self.state.popup = None,
 
             // config panel event
             ConfigListMove(direction) => {
@@ -257,14 +267,8 @@ impl App {
 
         footer::render(frame, areas.footer, &self.state);
 
-        if let Some(error) = &self.state.error {
-            popup::render(frame, popup::Type::Error, error.title.as_str(), vec![
-                Part::Text("See "),
-                Part::Key("[3]"),
-                Part::Text(" Logs for details  "),
-                Part::Key("[d]"),
-                Part::Text(" Dismiss"),
-            ])
+        if let Some(popup) = &self.state.popup {
+            popup::render(frame, popup)
         }
     }
 
@@ -285,10 +289,10 @@ impl App {
     fn get_context_stack(&mut self) -> Vec<KeyContext> {
         let mut stack = Vec::new();
 
-        // If an Error pop up is displayed, don't allow additional contexts i.e
-        // disable all key contexts except global and the error form.
-        if self.state.has_error() {
-            stack.push(Error);
+        // If a popup is displayed, don't allow additional contexts i.e
+        // disable all key contexts except global and the popup dismiss binding.
+        if self.state.has_popup() {
+            stack.push(PopupCtx);
         } else {
             match self.state.focus {
                 AppFocus::List => {

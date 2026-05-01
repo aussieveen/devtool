@@ -19,7 +19,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &AppState) {
 }
 
 fn build_lines<'a>(state: &AppState, key: Style, desc: Style) -> (Line<'a>, Line<'a>) {
-    if state.error.is_some() {
+    if state.has_popup() {
         return (hints(&[("[d]", key, " Dismiss", desc)]), Line::from(""));
     }
 

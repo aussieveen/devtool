@@ -6,7 +6,7 @@ use crate::event::events::{
     TokenGeneratorEvent as TokenGen,
 };
 use crate::input::key_context::KeyContext::{
-    Config, Editing, Error, Global, List, Logs, TokenGen as TokenGenCtx, Tool as ToolCtx,
+    Config, Editing, Popup, Global, List, Logs, TokenGen as TokenGenCtx, Tool as ToolCtx,
     ToolConfig, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
@@ -22,7 +22,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     key_event_map.add_static(Global, KeyCode::Char('3'), KeyModifiers::NONE, App::OpenLogs.into());
     key_event_map.add_static(Global, KeyCode::Char('c'), KeyModifiers::NONE, Generic::CopyToClipboard.into());
     key_event_map.add_static(Global, KeyCode::Char('o'), KeyModifiers::NONE, Generic::OpenInBrowser.into());
-    key_event_map.add_static(Error, KeyCode::Char('d'), KeyModifiers::NONE, App::DismissError.into());
+    key_event_map.add_static(Popup, KeyCode::Char('d'), KeyModifiers::NONE, App::DismissPopup.into());
 
     // CONFIG EVENTS
     key_event_map.add_static(Config, KeyCode::Down, KeyModifiers::NONE, App::ConfigListMove(Direction::Down).into());
@@ -167,7 +167,7 @@ mod tests {
     #[test_case(Global, KeyCode::Char('3'), KeyModifiers::NONE, App::OpenLogs.into(); "3 opens logs")]
     #[test_case(Global, KeyCode::Char('c'), KeyModifiers::NONE, Generic::CopyToClipboard.into(); "c copies")]
     #[test_case(Global, KeyCode::Char('o'), KeyModifiers::NONE, Generic::OpenInBrowser.into(); "o opens browser")]
-    #[test_case(KeyContext::Error, KeyCode::Char('d'), KeyModifiers::NONE, App::DismissError.into(); "error dismissed")]
+    #[test_case(KeyContext::Popup, KeyCode::Char('d'), KeyModifiers::NONE, App::DismissPopup.into(); "popup dismissed")]
     #[test_case(Config, KeyCode::Down, KeyModifiers::NONE, App::ConfigListMove(Down).into(); "config down")]
     #[test_case(Config, KeyCode::Up, KeyModifiers::NONE, App::ConfigListMove(Up).into(); "config up")]
     #[test_case(Config, KeyCode::Enter, KeyModifiers::NONE, App::ToggleFeature.into(); "config enter toggles feature")]

@@ -1,6 +1,5 @@
 use crate::app::App;
-use crate::error::model::Error;
-use crate::event::events::AppEvent::{ActivityEvent, AppLog, SystemError};
+use crate::event::events::AppEvent::{ActivityEvent, AppLog};
 use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::event::events::GenericEvent::OpenInBrowser;
 use crate::event::events::JiraEvent::{
@@ -8,11 +7,11 @@ use crate::event::events::JiraEvent::{
     RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, TicketRetrieved
 };
 use crate::state::app::AppFocus;
-use crate::state::log::LogLevel;
+use crate::state::log::{log_source, LogEntry, LogLevel};
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
-const SERVICE_NAME:&str = "jira";
+const SERVICE_NAME: &str = log_source::JIRA;
 
 pub fn handle_event(app: &mut App, event: JiraEvent) {
     match event {
@@ -94,33 +93,31 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
         TicketListUpdate => {
             if let Err(e) = app.state.jira.jira_file.write_jira(&app.state.jira.tickets) {
                 let sender = app.event_sender.clone();
-                sender.send_app_event(SystemError(Error {
-                    title: "Unable to persist jira tickets".to_string(),
-                    originating_event: "JiraTicketListUpdate".to_string(),
-                    tool: SERVICE_NAME.to_string(),
-                    description: e.to_string(),
-                }))
+                sender.send_app_event(AppLog(
+                    LogEntry::new(LogLevel::Error, SERVICE_NAME, "Unable to persist Jira tickets")
+                        .with_detail(e.to_string()),
+                ));
             }
         }
         ScanTickets => {
             // If there are no tickets or a previous scan is still running
             if app.state.jira.tickets.is_empty() || app.state.jira.tickets_pending_scan > 0 {
                 if app.state.jira.tickets_pending_scan > 0 {
-                    app.event_sender.send_app_event(AppLog(
+                    app.event_sender.send_app_event(AppLog(LogEntry::new(
                         LogLevel::Warning,
-                        SERVICE_NAME.to_string(),
-                        "Ticket scan skipped — previous scan still running".to_string(),
-                    ));
+                        SERVICE_NAME,
+                        "Ticket scan skipped — previous scan still running",
+                    )));
                 }
                 return;
             }
             if let Some(config) = app.config.jira.clone() {
                 let count = app.state.jira.tickets.len();
-                app.event_sender.send_app_event(AppLog(
+                app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Info,
-                    SERVICE_NAME.to_string(),
+                    SERVICE_NAME,
                     format!("Ticket scan started — {} tickets", count),
-                ));
+                )));
                 app.state.jira.tickets_pending_scan = app.state.jira.tickets.len();
                 for t in app.state.jira.tickets.iter() {
                     app.jira_api.fetch_ticket(
@@ -144,11 +141,11 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent){
                 config.url, app.state.jira.tickets[jira_ticket_idx].id
             );
             if let Err(e) = open_link_in_browser(link.as_str()) {
-                app.event_sender.send_app_event(AppLog(
+                app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Warning,
-                    SERVICE_NAME.to_string(),
-                    format!("Open in browser failed: {}", e),
-                ));
+                    SERVICE_NAME,
+                    format!("Open in browser failed: {e}"),
+                )));
             }
         }
 }

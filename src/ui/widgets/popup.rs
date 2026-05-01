@@ -3,6 +3,7 @@ use ratatui::prelude::Line;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Clear, Paragraph};
+use crate::popup::model::Popup;
 use crate::utils::overlay::overlay_area;
 
 pub enum Type{
@@ -16,9 +17,9 @@ pub enum Part {
     Text(&'static str),
 }
 
-pub fn render(frame: &mut Frame, r#type: Type, title: &str, parts: Vec<Part>)
+pub fn render(frame: &mut Frame, popup: &Popup)
 {
-    let color = match r#type {
+    let color = match popup.popup_type {
         Type::Error => Color::Red,
         Type::Confirm => Color::Gray,
         Type::Success => Color::Green
@@ -29,12 +30,12 @@ pub fn render(frame: &mut Frame, r#type: Type, title: &str, parts: Vec<Part>)
     let key = crate::ui::styles::key_style();
 
     let block = Block::bordered().border_style(style).title_style(style);
-    let body_line = Line::from(parts.into_iter().map(|part| match part {
-        Part::Key(s) => Span::styled(s, key),
-        Part::Text(s) => Span::styled(s, dim),
+    let body_line = Line::from(popup.parts.iter().map(|part| match part {
+        Part::Key(s) => Span::styled(*s, key),
+        Part::Text(s) => Span::styled(*s, dim),
     }).collect::<Vec<_>>());
     let content = Paragraph::new(vec![
-        Line::from(Span::styled(title, style)),
+        Line::from(Span::styled(popup.title.as_str(), style)),
         Line::from(""),
         body_line,
     ]).block(block);

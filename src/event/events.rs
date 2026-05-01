@@ -1,7 +1,7 @@
 use crate::client::jira::models::TicketResponse;
 use crate::environment::Environment;
-use crate::error::model::Error;
 use crate::state::app::{AppFocus, Tool};
+use crate::state::log::LogEntry;
 use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
@@ -37,13 +37,12 @@ pub enum AppEvent {
     // List event
     ListMove(Direction), // Move up and down tool List
     ListSelect(Tool),    // Select item on tool list
-    SystemError(Error),
-    DismissError,
+    DismissPopup,
 
     // Log event
     LogsListMove(Direction),
     ActivityEvent(String, String), // source, message
-    AppLog(crate::state::log::LogLevel, String, String), // level, source, message
+    AppLog(LogEntry), // structured log entry
     OpenLogs,
 
     // Config event

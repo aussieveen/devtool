@@ -107,10 +107,18 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
     let entries = log.visible_log();
     let avail = inner_width(area);
 
-    // prefix: " HH:MM:SS  " (11) + "[LEVEL]  " (up to 9) + source padded to 12 + "  " (14) = ~34 chars
-    // Use the widest variant (NOTICE = 6 chars label) for consistent wrapping
-    const PREFIX_LEN: usize = 34;
-    let msg_width = avail.saturating_sub(PREFIX_LEN);
+    // " HH:MM:SS  " = 11, "[LABEL ]  " = 10 (label is always 6 chars), source col + 2
+    const TS_LEN: usize = 11;
+    const LEVEL_LEN: usize = 10; // [LABEL ]  — brackets(2) + 6 + 2 trailing spaces
+    const SOURCE_MIN: usize = 8;
+    let source_width = entries
+        .iter()
+        .map(|e| e.source.len())
+        .max()
+        .unwrap_or(SOURCE_MIN)
+        .max(SOURCE_MIN);
+    let prefix_len = TS_LEN + LEVEL_LEN + source_width + 2;
+    let msg_width = avail.saturating_sub(prefix_len);
 
     let items: Vec<ListItem> = if entries.is_empty() {
         vec![ListItem::new(Line::styled("No log entries yet.", dim))]
@@ -120,22 +128,30 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
             .map(|e| {
                 let ts = e.timestamp.format("%H:%M:%S").to_string();
                 let level_style = level_style(e.level);
-                let source = format!("{:<12}", e.source);
-                let mut chunks = wrap_message(&e.message, msg_width).into_iter();
+                let source = format!("{:<width$}", e.source, width = source_width);
+                let mut title_chunks = wrap_message(&e.title, msg_width).into_iter();
 
                 let mut lines: Vec<Line> = Vec::with_capacity(1);
                 lines.push(Line::from(vec![
                     Span::styled(format!(" {}  ", ts), dim),
-                    Span::styled(format!("[{}]  ", e.level.label().trim()), level_style),
+                    Span::styled(format!("{:<8}  ", format!("[{}]", e.level.label().trim())), level_style),
                     Span::styled(format!("{}  ", source), dim),
-                    Span::raw(chunks.next().unwrap_or_default()),
+                    Span::raw(title_chunks.next().unwrap_or_default()),
                 ]));
-                let indent = " ".repeat(PREFIX_LEN);
-                for chunk in chunks {
+                let indent = " ".repeat(prefix_len);
+                for chunk in title_chunks {
                     lines.push(Line::from(vec![
                         Span::raw(indent.clone()),
                         Span::raw(chunk),
                     ]));
+                }
+                if let Some(detail) = &e.detail {
+                    for chunk in wrap_message(detail, msg_width) {
+                        lines.push(Line::from(vec![
+                            Span::raw(indent.clone()),
+                            Span::styled(chunk, dim),
+                        ]));
+                    }
                 }
                 ListItem::new(Text::from(lines))
             })

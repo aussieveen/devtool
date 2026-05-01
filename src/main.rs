@@ -9,6 +9,7 @@ mod persistence;
 mod state;
 mod ui;
 mod utils;
+pub mod popup;
 
 use crate::app::App;
 use crate::config::loader::ConfigLoader;

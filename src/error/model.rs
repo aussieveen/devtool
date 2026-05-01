@@ -1,11 +1,3 @@
-#[derive(Clone, Debug, PartialEq)]
-pub struct Error {
-    pub title: String,
-    pub originating_event: String,
-    pub tool: String,
-    pub description: String,
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum ClientError {
     #[error("Failed to parse response: {0}")]
