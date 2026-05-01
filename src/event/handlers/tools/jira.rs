@@ -1,14 +1,14 @@
 use crate::app::App;
 use crate::event::events::AppEvent::{ActivityEvent, AppLog};
-use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::event::events::GenericEvent::OpenInBrowser;
 use crate::event::events::JiraEvent::{
-    AddTicketIdChar, ListMove, TicketListUpdate, TicketMove, NewTicket,
-    RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, TicketRetrieved,
-    TicketIdLeft, TicketIdRight, TicketIdHome, TicketIdEnd, TicketIdDelete,
+    AddTicketIdChar, ListMove, NewTicket, RemoveTicket, RemoveTicketIdChar, ScanTickets,
+    SubmitTicketId, TicketIdDelete, TicketIdEnd, TicketIdHome, TicketIdLeft, TicketIdRight,
+    TicketListUpdate, TicketMove, TicketRetrieved,
 };
+use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::state::app::AppFocus;
-use crate::state::log::{log_source, LogEntry, LogLevel};
+use crate::state::log::{LogEntry, LogLevel, log_source};
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
@@ -58,7 +58,8 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
                 app.state.jira.tickets_pending_scan =
                     app.state.jira.tickets_pending_scan.saturating_sub(1);
                 if let Some((id, change_msg)) = changes {
-                    app.event_sender.send_app_event(ActivityEvent(id, change_msg));
+                    app.event_sender
+                        .send_app_event(ActivityEvent(id, change_msg));
                 }
                 if app.state.jira.tickets_pending_scan == 0 {
                     app.event_sender.send_jira_event(TicketListUpdate)
@@ -103,8 +104,12 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
             if let Err(e) = app.state.jira.jira_file.write_jira(&app.state.jira.tickets) {
                 let sender = app.event_sender.clone();
                 sender.send_app_event(AppLog(
-                    LogEntry::new(LogLevel::Error, SERVICE_NAME, "Unable to persist Jira tickets")
-                        .with_detail(e.to_string()),
+                    LogEntry::new(
+                        LogLevel::Error,
+                        SERVICE_NAME,
+                        "Unable to persist Jira tickets",
+                    )
+                    .with_detail(e.to_string()),
                 ));
             }
         }
@@ -140,21 +145,21 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
     }
 }
 
-pub fn handle_generic_event(app: &mut App, event: GenericEvent){
+pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
     if event == OpenInBrowser
         && let Some(jira_ticket_idx) = app.state.jira.list_state.selected()
-            && let Some(config) = app.config.jira.clone()
-        {
-            let link = format!(
-                "{}/browse/{}",
-                config.url, app.state.jira.tickets[jira_ticket_idx].id
-            );
-            if let Err(e) = open_link_in_browser(link.as_str()) {
-                app.event_sender.send_app_event(AppLog(LogEntry::new(
-                    LogLevel::Warning,
-                    SERVICE_NAME,
-                    format!("Open in browser failed: {e}"),
-                )));
-            }
+        && let Some(config) = app.config.jira.clone()
+    {
+        let link = format!(
+            "{}/browse/{}",
+            config.url, app.state.jira.tickets[jira_ticket_idx].id
+        );
+        if let Err(e) = open_link_in_browser(link.as_str()) {
+            app.event_sender.send_app_event(AppLog(LogEntry::new(
+                LogLevel::Warning,
+                SERVICE_NAME,
+                format!("Open in browser failed: {e}"),
+            )));
         }
+    }
 }

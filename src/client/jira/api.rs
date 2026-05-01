@@ -3,10 +3,10 @@ use crate::client::jira::models::TicketResponse;
 use crate::config::model::JiraConfig;
 use crate::error::model::ClientError;
 use crate::event::events::AppEvent::AppLog;
-use crate::event::sender::EventSender;
-use crate::state::log::{log_source, LogEntry, LogLevel};
-use reqwest::Client;
 use crate::event::events::JiraEvent::TicketRetrieved;
+use crate::event::sender::EventSender;
+use crate::state::log::{LogEntry, LogLevel, log_source};
+use reqwest::Client;
 
 pub trait JiraApi {
     fn fetch_ticket(&self, ticket_id: String, jira_config: JiraConfig, sender: EventSender);
@@ -56,5 +56,3 @@ async fn get_ticket(
 ) -> Result<TicketResponse, ClientError> {
     jira_client::get(client, &config.url, ticket_id, &config.email, &config.token).await
 }
-
-

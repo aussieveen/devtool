@@ -116,13 +116,11 @@ impl ServiceStatusConfigEditor {
         self.form = Some(AddServiceForm::from_existing(idx, svc));
     }
 
-    pub fn has_open_form(&self) -> bool
-    {
+    pub fn has_open_form(&self) -> bool {
         self.form.is_some()
     }
 
-    pub fn close_form(&mut self)
-    {
+    pub fn close_form(&mut self) {
         self.form = None;
     }
 }

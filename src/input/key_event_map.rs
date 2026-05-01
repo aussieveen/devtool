@@ -46,8 +46,8 @@ impl KeyEventMap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::event::events::{Direction, TokenGeneratorEvent};
     use crate::event::events::AppEvent;
+    use crate::event::events::{Direction, TokenGeneratorEvent};
 
     #[test]
     fn map_add_static() {

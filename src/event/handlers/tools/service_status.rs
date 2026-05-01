@@ -1,9 +1,11 @@
 use crate::app::App;
 use crate::environment::Environment::{Preproduction, Production, Staging};
 use crate::event::events::AppEvent::{ActivityEvent, AppLog};
+use crate::event::events::ServiceStatusEvent::{
+    GetCommitRefErrored, GetCommitRefOk, ListMove, Scan, ScanServiceEnv,
+};
 use crate::event::events::{Direction, GenericEvent, ServiceStatusEvent};
-use crate::event::events::ServiceStatusEvent::{GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, Scan, ListMove};
-use crate::state::log::{log_source, LogEntry, LogLevel};
+use crate::state::log::{LogEntry, LogLevel, log_source};
 use crate::state::service_status::CommitRefStatus;
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::string_copy::copy_to_clipboard;
@@ -101,7 +103,7 @@ pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
     }
 }
 
-pub fn handle_generic_event(app: &mut App, event:GenericEvent){
+pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
     match event {
         GenericEvent::CopyToClipboard => {
             if let Some(link) = get_link_url(app)

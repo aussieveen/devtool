@@ -5,33 +5,35 @@ use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
 use crate::config::loader::ConfigLoader;
 use crate::config::model::Config;
 use crate::event::events::AppEvent::*;
+use crate::event::events::GenericEvent::{
+    CopyToClipboard, OpenInBrowser, Quit, QuitConfirm, SetFocus,
+};
+use crate::event::events::JiraEvent::ScanTickets;
+use crate::event::events::ServiceStatusEvent::Scan;
 use crate::event::events::{AppEvent, Event, GenericEvent};
 use crate::event::handler::EventHandler;
-use crate::event::sender::EventSender;
-use crate::event::handlers::tools::{jira, service_status, token_generator};
 use crate::event::handlers::config::{
     jira as jira_config, service_status as service_status_config,
-    token_generator as token_generator_config
+    token_generator as token_generator_config,
 };
+use crate::event::handlers::tools::{jira, service_status, token_generator};
+use crate::event::sender::EventSender;
 use crate::input::key_bindings::register_bindings;
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
-    Editing, Popup as PopupCtx, Global, List, Logs, TokenGen, ToolConfigEditing, ToolIgnore,
+    Editing, Global, List, Logs, Popup as PopupCtx, TokenGen, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
+use crate::popup::model::Popup;
 pub(crate) use crate::state::app::{AppFocus, Tool};
+use crate::state::log::{LogEntry, LogLevel, log_source};
+use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
-use crate::ui::widgets::popup::{Part, Type};
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{DefaultTerminal, Frame};
 use std::sync::Arc;
 use std::time::Duration;
-use crate::event::events::GenericEvent::{CopyToClipboard, OpenInBrowser, Quit, QuitConfirm, SetFocus};
-use crate::event::events::JiraEvent::ScanTickets;
-use crate::event::events::ServiceStatusEvent::Scan;
-use crate::popup::model::Popup;
-use crate::state::log::{log_source, LogEntry, LogLevel};
 
 /// The main application which holds the state and logic of the application.
 pub struct App {
@@ -73,9 +75,11 @@ impl App {
 
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
         // Log app startup
-        self.state.log.push_log(
-            LogEntry::new(LogLevel::Info, log_source::APP, "App started — config loaded"),
-        );
+        self.state.log.push_log(LogEntry::new(
+            LogLevel::Info,
+            log_source::APP,
+            "App started — config loaded",
+        ));
 
         let async_sender = self.event_sender.clone();
         tokio::spawn(async move {
@@ -101,13 +105,17 @@ impl App {
                     _ => {}
                 },
                 Event::App(event) => self.handle_app_event(event),
-                Event::ServiceStatus(event ) => service_status::handle_event(&mut self, event),
-                Event::ServiceStatusConfig(event) => service_status_config::handle_event(&mut self, event),
-                Event::TokenGenerator(event) => {token_generator::handle_event(&mut self, event)}
-                Event::TokenGeneratorConfig(event) => {token_generator_config::handle_event(&mut self, event)}
-                Event::Jira(event) => {jira::handle_event(&mut self, event)}
-                Event::JiraConfig(event) => {jira_config::handle_event(&mut self, event)}
-                Event::Generic(event) => self.handle_generic_event(event)
+                Event::ServiceStatus(event) => service_status::handle_event(&mut self, event),
+                Event::ServiceStatusConfig(event) => {
+                    service_status_config::handle_event(&mut self, event)
+                }
+                Event::TokenGenerator(event) => token_generator::handle_event(&mut self, event),
+                Event::TokenGeneratorConfig(event) => {
+                    token_generator_config::handle_event(&mut self, event)
+                }
+                Event::Jira(event) => jira::handle_event(&mut self, event),
+                Event::JiraConfig(event) => jira_config::handle_event(&mut self, event),
+                Event::Generic(event) => self.handle_generic_event(event),
             }
         }
         Ok(())
@@ -120,7 +128,7 @@ impl App {
                 if self.state.has_popup() {
                     self.event_sender.send_app_event(DismissPopup);
                     self.state.log.select_logs()
-                }else{
+                } else {
                     if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
                         self.state.log.mark_activity_seen();
                     }
@@ -231,14 +239,18 @@ impl App {
         }
     }
 
-    fn handle_generic_event(&mut self, event: GenericEvent){
+    fn handle_generic_event(&mut self, event: GenericEvent) {
         match event {
-            Quit => self.state.popup = Some(
-                Popup::new(Type::Confirm, "Confirm Quit".to_string(), vec![
-                    Part::Key("q"),
-                    Part::Text(" again to quit  "),
-                ]).with_action('q', "quit", Event::Generic(QuitConfirm))
-            ),
+            Quit => {
+                self.state.popup = Some(
+                    Popup::new(
+                        Type::Confirm,
+                        "Confirm Quit".to_string(),
+                        vec![Part::Key("q"), Part::Text(" again to quit  ")],
+                    )
+                    .with_action('q', "quit", Event::Generic(QuitConfirm)),
+                )
+            }
             QuitConfirm => self.running = false,
             SetFocus(focus) => self.state.focus = focus,
             CopyToClipboard => match self.state.current_tool {
@@ -278,13 +290,12 @@ impl App {
 
     fn handle_key_events(&mut self, key: KeyEvent) -> color_eyre::Result<()> {
         if self.state.has_popup() {
-            if let KeyCode::Char(c) = key.code {
-                if let Some(popup) = &self.state.popup {
-                    if let Some(action) = popup.actions.iter().find(|a| a.key == c){
-                        let event = action.event.clone();
-                        self.event_sender.send_event(event);
-                    }
-                }
+            if let KeyCode::Char(c) = key.code
+                && let Some(popup) = &self.state.popup
+                && let Some(action) = popup.actions.iter().find(|a| a.key == c)
+            {
+                let event = action.event.clone();
+                self.event_sender.send_event(event);
             }
             self.state.popup = None;
             return Ok(());

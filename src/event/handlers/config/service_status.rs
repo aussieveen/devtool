@@ -1,9 +1,9 @@
 use crate::app::App;
 use crate::event::events::ServiceStatusConfigEvent;
 use crate::event::events::ServiceStatusConfigEvent::{
-    OpenAddService, OpenEditService, RemoveService, ListMove,
-    FormBackspace, FormChar, FormDelete, FormEnd, FormHome, FormLeft, FormRight, FormNextField,
-    PrevField, SubmitConfig};
+    FormBackspace, FormChar, FormDelete, FormEnd, FormHome, FormLeft, FormNextField, FormRight,
+    ListMove, OpenAddService, OpenEditService, PrevField, RemoveService, SubmitConfig,
+};
 
 pub fn handle_event(app: &mut App, event: ServiceStatusConfigEvent) {
     let editor = &mut app.state.service_status_config_editor;

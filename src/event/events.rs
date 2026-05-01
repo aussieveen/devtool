@@ -5,9 +5,7 @@ use crate::state::log::LogEntry;
 use crate::state::token_generator::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
-#[derive(Clone)]
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Event {
     /// An event that is emitted on a regular schedule.
     ///
@@ -42,7 +40,7 @@ pub enum AppEvent {
     // Log event
     LogsListMove(Direction),
     ActivityEvent(String, String), // source, message
-    AppLog(LogEntry), // structured log entry
+    AppLog(LogEntry),              // structured log entry
     OpenLogs,
 
     // Config event
@@ -85,7 +83,7 @@ pub enum ServiceStatusConfigEvent {
     FormEnd,
     FormDelete,
     SubmitConfig,
-    RemoveService
+    RemoveService,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -158,33 +156,49 @@ pub enum Direction {
 }
 
 impl From<AppEvent> for Event {
-    fn from(e: AppEvent) -> Self { Event::App(e) }
+    fn from(e: AppEvent) -> Self {
+        Event::App(e)
+    }
 }
 
 impl From<GenericEvent> for Event {
-    fn from(e: GenericEvent) -> Self { Event::Generic(e) }
+    fn from(e: GenericEvent) -> Self {
+        Event::Generic(e)
+    }
 }
 
 impl From<ServiceStatusEvent> for Event {
-    fn from(e: ServiceStatusEvent) -> Self { Event::ServiceStatus(e) }
+    fn from(e: ServiceStatusEvent) -> Self {
+        Event::ServiceStatus(e)
+    }
 }
 
 impl From<ServiceStatusConfigEvent> for Event {
-    fn from(e: ServiceStatusConfigEvent) -> Self { Event::ServiceStatusConfig(e) }
+    fn from(e: ServiceStatusConfigEvent) -> Self {
+        Event::ServiceStatusConfig(e)
+    }
 }
 
 impl From<TokenGeneratorEvent> for Event {
-    fn from(e: TokenGeneratorEvent) -> Self { Event::TokenGenerator(e) }
+    fn from(e: TokenGeneratorEvent) -> Self {
+        Event::TokenGenerator(e)
+    }
 }
 
 impl From<TokenGeneratorConfigEvent> for Event {
-    fn from(e: TokenGeneratorConfigEvent) -> Self { Event::TokenGeneratorConfig(e) }
+    fn from(e: TokenGeneratorConfigEvent) -> Self {
+        Event::TokenGeneratorConfig(e)
+    }
 }
 
 impl From<JiraEvent> for Event {
-    fn from(e: JiraEvent) -> Self { Event::Jira(e) }
+    fn from(e: JiraEvent) -> Self {
+        Event::Jira(e)
+    }
 }
 
 impl From<JiraConfigEvent> for Event {
-    fn from(e: JiraConfigEvent) -> Self { Event::JiraConfig(e) }
+    fn from(e: JiraConfigEvent) -> Self {
+        Event::JiraConfig(e)
+    }
 }

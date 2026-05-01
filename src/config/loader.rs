@@ -19,7 +19,7 @@ impl ConfigLoader {
     pub(crate) fn from_path(file_path: PathBuf) -> ConfigLoader {
         ConfigLoader { file_path }
     }
-    
+
     pub fn read_or_create_config(&self) -> Result<Config, ConfigError> {
         match fs::read_to_string(&self.file_path) {
             Ok(content) => Ok(serde_yaml::from_str::<Config>(content.as_str())?.normalize()),

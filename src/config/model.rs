@@ -56,7 +56,7 @@ impl Config {
         self
     }
 
-    fn normalize_urls(&mut self){
+    fn normalize_urls(&mut self) {
         for service in &mut self.servicestatus {
             service.staging = Self::strip_trailing_slash(&service.staging);
             service.preproduction = Self::strip_trailing_slash(&service.preproduction);
@@ -78,7 +78,7 @@ impl Config {
         }
     }
 
-    pub fn enforce_feature_invariants(&mut self){
+    pub fn enforce_feature_invariants(&mut self) {
         if self.servicestatus.is_empty() {
             self.features.service_status = false;
         }

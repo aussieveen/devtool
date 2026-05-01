@@ -53,29 +53,38 @@ impl Hint {
         let k = key_style();
         let d = key_desc_style();
         match self {
-            Hint::Navigate           => vec![Span::styled("[↑↓←→]", k),        Span::styled(" Navigate  ", d)],
-            Hint::Quit               => vec![Span::styled("[q]", k),      Span::styled(" Quit", d)],
-            Hint::Tools              => vec![Span::styled("[1]", k),          Span::styled(" Tools  ", d)],
-            Hint::Config             => vec![Span::styled("[2]", k),          Span::styled(" Config  ", d)],
-            Hint::Logs               => vec![Span::styled("[3]", k),          Span::styled(" Logs  ", d)],
-            Hint::Toggle             => vec![Span::styled("[return]", k),      Span::styled(" Toggle  ", d)],
-            Hint::Add                => vec![Span::styled("[a]", k),          Span::styled(" Add  ", d)],
-            Hint::Edit               => vec![Span::styled("[e]", k),          Span::styled(" Edit  ", d)],
-            Hint::Remove             => vec![Span::styled("[x]", k),          Span::styled(" Remove  ", d)],
-            Hint::Scan               => vec![Span::styled("[s]", k),          Span::styled(" Scan  ", d)],
-            Hint::Generate           => vec![Span::styled("[return]", k),     Span::styled(" Generate  ", d)],
-            Hint::OpenInBrowser      => vec![Span::styled("[o]", k),          Span::styled(" Open in browser  ", d)],
-            Hint::CopyUrl            => vec![Span::styled("[c]", k),          Span::styled(" Copy url  ", d)],
-            Hint::CopyToken          => vec![Span::styled("[c]", k),          Span::styled(" Copy token  ", d)],
-            Hint::Retry              => vec![Span::styled("[return]", k),     Span::styled(" Retry  ", d)],
-            Hint::MoveItem           => vec![Span::styled("[shift+↑↓]", k), Span::styled(" Move  ", d)],
-            Hint::Save               => vec![Span::styled("[return]", k),      Span::styled(" Save  ", d)],
-            Hint::NextField          => vec![Span::styled("[tab]", k),        Span::styled(" Next field  ", d)],
-            Hint::NavigateFields     => vec![Span::styled("[↑↓]", k),        Span::styled(" Navigate fields  ", d)],
-            Hint::Cancel             => vec![Span::styled("[esc]", k),        Span::styled(" Cancel  ", d)],
-            Hint::Submit => vec![Span::styled("[return]", k), Span::styled(" Add ticket  ", d)],
+            Hint::Navigate => vec![Span::styled("[↑↓←→]", k), Span::styled(" Navigate  ", d)],
+            Hint::Quit => vec![Span::styled("[q]", k), Span::styled(" Quit", d)],
+            Hint::Tools => vec![Span::styled("[1]", k), Span::styled(" Tools  ", d)],
+            Hint::Config => vec![Span::styled("[2]", k), Span::styled(" Config  ", d)],
+            Hint::Logs => vec![Span::styled("[3]", k), Span::styled(" Logs  ", d)],
+            Hint::Toggle => vec![Span::styled("[return]", k), Span::styled(" Toggle  ", d)],
+            Hint::Add => vec![Span::styled("[a]", k), Span::styled(" Add  ", d)],
+            Hint::Edit => vec![Span::styled("[e]", k), Span::styled(" Edit  ", d)],
+            Hint::Remove => vec![Span::styled("[x]", k), Span::styled(" Remove  ", d)],
+            Hint::Scan => vec![Span::styled("[s]", k), Span::styled(" Scan  ", d)],
+            Hint::Generate => vec![Span::styled("[return]", k), Span::styled(" Generate  ", d)],
+            Hint::OpenInBrowser => vec![
+                Span::styled("[o]", k),
+                Span::styled(" Open in browser  ", d),
+            ],
+            Hint::CopyUrl => vec![Span::styled("[c]", k), Span::styled(" Copy url  ", d)],
+            Hint::CopyToken => vec![Span::styled("[c]", k), Span::styled(" Copy token  ", d)],
+            Hint::Retry => vec![Span::styled("[return]", k), Span::styled(" Retry  ", d)],
+            Hint::MoveItem => vec![Span::styled("[shift+↑↓]", k), Span::styled(" Move  ", d)],
+            Hint::Save => vec![Span::styled("[return]", k), Span::styled(" Save  ", d)],
+            Hint::NextField => vec![Span::styled("[tab]", k), Span::styled(" Next field  ", d)],
+            Hint::NavigateFields => vec![
+                Span::styled("[↑↓]", k),
+                Span::styled(" Navigate fields  ", d),
+            ],
+            Hint::Cancel => vec![Span::styled("[esc]", k), Span::styled(" Cancel  ", d)],
+            Hint::Submit => vec![
+                Span::styled("[return]", k),
+                Span::styled(" Add ticket  ", d),
+            ],
             Hint::Dismiss => vec![Span::styled("[any]", k), Span::styled(" Dismiss  ", d)],
-            Hint::Status(text)       => vec![Span::styled(*text, key_desc_style())],
+            Hint::Status(text) => vec![Span::styled(*text, key_desc_style())],
         }
     }
 }
@@ -90,10 +99,7 @@ fn build_lines(state: &AppState) -> (Line<'static>, Line<'static>) {
     }
 
     match state.focus {
-        AppFocus::JiraInput => (
-            hints(&[Hint::Submit, Hint::Cancel]),
-            Line::from(""),
-        ),
+        AppFocus::JiraInput => (hints(&[Hint::Submit, Hint::Cancel]), Line::from("")),
         AppFocus::List => (
             hints(&[Hint::Navigate, Hint::Config, Hint::Logs, Hint::Quit]),
             Line::from(""),
@@ -104,7 +110,14 @@ fn build_lines(state: &AppState) -> (Line<'static>, Line<'static>) {
             Tool::Jira => jira_tool_hints(state),
         },
         AppFocus::Config => (
-            hints(&[Hint::Navigate, Hint::Toggle, Hint::Edit, Hint::Tools, Hint::Logs, Hint::Quit]),
+            hints(&[
+                Hint::Navigate,
+                Hint::Toggle,
+                Hint::Edit,
+                Hint::Tools,
+                Hint::Logs,
+                Hint::Quit,
+            ]),
             Line::from(""),
         ),
         AppFocus::Logs => (
@@ -123,10 +136,7 @@ fn service_status_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>)
     } else {
         Line::from("")
     };
-    (
-        hints(&[Hint::Navigate, Hint::Scan, Hint::Quit]),
-        line2,
-    )
+    (hints(&[Hint::Navigate, Hint::Scan, Hint::Quit]), line2)
 }
 
 fn token_generator_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
@@ -136,10 +146,7 @@ fn token_generator_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>
         Token::Ready(_) => hints(&[Hint::CopyToken]),
         Token::Error => hints(&[Hint::Retry]),
     };
-    (
-        hints(&[Hint::Navigate, Hint::Generate, Hint::Quit]),
-        line2,
-    )
+    (hints(&[Hint::Navigate, Hint::Generate, Hint::Quit]), line2)
 }
 
 fn jira_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
@@ -148,25 +155,24 @@ fn jira_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     } else {
         Line::from("")
     };
-    (
-        hints(&[Hint::Navigate, Hint::Add, Hint::Quit]),
-        line2,
-    )
+    (hints(&[Hint::Navigate, Hint::Add, Hint::Quit]), line2)
 }
 
 fn service_status_config_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     if state.service_status_config_editor.has_open_form() {
         return edit_form_lines();
     }
-    let line2 = if state.service_status_config_editor.table_state.selected().is_some() {
+    let line2 = if state
+        .service_status_config_editor
+        .table_state
+        .selected()
+        .is_some()
+    {
         hints(&[Hint::Edit, Hint::Remove])
     } else {
         Line::from("")
     };
-    (
-        hints(&[Hint::Navigate, Hint::Add, Hint::Quit]),
-        line2,
-    )
+    (hints(&[Hint::Navigate, Hint::Add, Hint::Quit]), line2)
 }
 
 fn token_generator_config_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
@@ -175,20 +181,19 @@ fn token_generator_config_hints(state: &AppState) -> (Line<'static>, Line<'stati
         return edit_form_lines();
     }
     match state.token_generator_config_editor.config_focus {
-        ConfigFocus::Auth0 => (
-            hints(&[Hint::Add, Hint::Edit, Hint::Quit]),
-            Line::from("")
-        ),
+        ConfigFocus::Auth0 => (hints(&[Hint::Add, Hint::Edit, Hint::Quit]), Line::from("")),
         ConfigFocus::Services => {
-            let line2 = if state.token_generator_config_editor.table_state.selected().is_some() {
+            let line2 = if state
+                .token_generator_config_editor
+                .table_state
+                .selected()
+                .is_some()
+            {
                 hints(&[Hint::Edit, Hint::Remove])
             } else {
                 Line::from("")
             };
-            (
-                hints(&[Hint::Navigate, Hint::Add, Hint::Quit]),
-                line2,
-            )
+            (hints(&[Hint::Navigate, Hint::Add, Hint::Quit]), line2)
         }
     }
 }
@@ -197,10 +202,7 @@ fn jira_config_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
     if state.jira_config_editor.has_open_form() {
         return edit_form_lines();
     }
-    (
-        hints(&[Hint::Edit, Hint::Quit]),
-        Line::from(""),
-    )
+    (hints(&[Hint::Edit, Hint::Quit]), Line::from(""))
 }
 
 /// Shared footer content when any inline edit form is active.
@@ -210,4 +212,3 @@ fn edit_form_lines() -> (Line<'static>, Line<'static>) {
         hints(&[Hint::Cancel]),
     )
 }
-

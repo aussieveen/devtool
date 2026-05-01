@@ -2,12 +2,12 @@ use crate::config::model::Config;
 use crate::state::app::{AppFocus, AppState, Tool};
 use crate::ui::styles;
 use crate::ui::widgets::config;
+use crate::ui::widgets::tools::{jira, service_status, token_generator};
 use ratatui::Frame;
 use ratatui::prelude::Alignment;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
-use crate::ui::widgets::tools::{jira, service_status, token_generator};
 
 pub fn render(
     frame: &mut Frame,
@@ -141,9 +141,12 @@ pub fn render(
     frame.render_widget(pane, area);
 
     match state.current_tool {
-        Tool::ServiceStatus => {
-            service_status::render(frame, inner, &mut state.service_status, &config_data.servicestatus)
-        }
+        Tool::ServiceStatus => service_status::render(
+            frame,
+            inner,
+            &mut state.service_status,
+            &config_data.servicestatus,
+        ),
         Tool::TokenGenerator => token_generator::render(
             frame,
             inner,

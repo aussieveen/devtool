@@ -222,7 +222,11 @@ fn render_service_inline(
     let lines = vec![
         field_line("Name      ", form.name.value(), af == ServiceField::Name),
         Line::from(""),
-        field_line("Audience  ", form.audience.value(), af == ServiceField::Audience),
+        field_line(
+            "Audience  ",
+            form.audience.value(),
+            af == ServiceField::Audience,
+        ),
         Line::from(""),
         divider_line("Local"),
         field_line(

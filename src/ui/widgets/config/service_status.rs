@@ -111,7 +111,7 @@ fn render_inline_edit(frame: &mut Frame, area: Rect, form: &AddServiceForm) {
             "Repo URL    ",
             form.repo.value(),
             form.active_field == FormField::Repo,
-        )
+        ),
     ];
 
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);

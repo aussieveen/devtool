@@ -17,7 +17,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
         Style::default().add_modifier(Modifier::DIM)
     };
 
-    let highlight = if is_focused { selection_highlight() } else { Style::default() };
+    let highlight = if is_focused {
+        selection_highlight()
+    } else {
+        Style::default()
+    };
 
     let unread_dot = if state.log.has_unread_activity() {
         "● "
@@ -45,14 +49,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
         Span::raw(" Logs "),
     ]);
 
-    let list = List::new(items)
-        .highlight_style(highlight)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(border_style)
-                .title(title),
-        );
+    let list = List::new(items).highlight_style(highlight).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(border_style)
+            .title(title),
+    );
 
     frame.render_stateful_widget(list, area, &mut list_state);
 }

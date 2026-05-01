@@ -134,7 +134,10 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
                 let mut lines: Vec<Line> = Vec::with_capacity(1);
                 lines.push(Line::from(vec![
                     Span::styled(format!(" {}  ", ts), dim),
-                    Span::styled(format!("{:<8}  ", format!("[{}]", e.level.label().trim())), level_style),
+                    Span::styled(
+                        format!("{:<8}  ", format!("[{}]", e.level.label().trim())),
+                        level_style,
+                    ),
                     Span::styled(format!("{}  ", source), dim),
                     Span::raw(title_chunks.next().unwrap_or_default()),
                 ]));

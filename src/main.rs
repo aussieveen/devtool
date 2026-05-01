@@ -6,10 +6,10 @@ mod error;
 mod event;
 mod input;
 mod persistence;
+pub mod popup;
 mod state;
 mod ui;
 mod utils;
-pub mod popup;
 
 use crate::app::App;
 use crate::config::loader::ConfigLoader;

@@ -1,2 +1,2 @@
-pub(crate) mod tools;
 pub(crate) mod config;
+pub(crate) mod tools;

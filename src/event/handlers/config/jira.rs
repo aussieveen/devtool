@@ -1,8 +1,11 @@
 use crate::app::App;
 use crate::event::events::JiraConfigEvent;
-use crate::event::events::JiraConfigEvent::{FormBackspace, FormChar, FormDelete, FormEnd, FormHome, FormLeft, FormNextField, FormPrevField, FormRight, OpenEdit, SubmitConfig};
+use crate::event::events::JiraConfigEvent::{
+    FormBackspace, FormChar, FormDelete, FormEnd, FormHome, FormLeft, FormNextField, FormPrevField,
+    FormRight, OpenEdit, SubmitConfig,
+};
 
-pub fn handle_event(app: &mut App, event: JiraConfigEvent){
+pub fn handle_event(app: &mut App, event: JiraConfigEvent) {
     match event {
         OpenEdit => {
             app.state

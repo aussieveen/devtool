@@ -96,13 +96,11 @@ impl JiraConfigEditor {
         });
     }
 
-    pub fn has_open_form(&self) -> bool
-    {
+    pub fn has_open_form(&self) -> bool {
         self.form.is_some()
     }
 
-    pub fn close_form(&mut self)
-    {
+    pub fn close_form(&mut self) {
         self.form = None;
     }
 }

@@ -17,7 +17,11 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
         Style::default().add_modifier(Modifier::DIM)
     };
 
-    let highlight = if is_focused { styles::selection_highlight() } else { Style::default() };
+    let highlight = if is_focused {
+        styles::selection_highlight()
+    } else {
+        Style::default()
+    };
 
     let title = Line::from(vec![
         Span::raw(" "),

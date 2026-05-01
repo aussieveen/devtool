@@ -255,7 +255,7 @@ pub enum ConfigFocus {
 #[derive(Clone)]
 pub enum ActiveEdit {
     Auth0(Auth0Form),
-    Service(ServiceForm),
+    Service(Box<ServiceForm>),
 }
 
 #[derive(Clone)]
@@ -279,20 +279,18 @@ impl TokenGeneratorConfigEditor {
     }
 
     pub fn open_add_service_form(&mut self) {
-        self.form = Some(ActiveEdit::Service(ServiceForm::new()));
+        self.form = Some(ActiveEdit::Service(Box::new(ServiceForm::new())));
     }
 
     pub fn open_edit_service_form(&mut self, idx: usize, svc: &ServiceConfig) {
-        self.form = Some(ActiveEdit::Service(ServiceForm::from_existing(idx, svc)));
+        self.form = Some(ActiveEdit::Service(Box::new(ServiceForm::from_existing(idx, svc))));
     }
 
-    pub fn has_open_form(&self) -> bool
-    {
+    pub fn has_open_form(&self) -> bool {
         self.form.is_some()
     }
 
-    pub fn close_form(&mut self)
-    {
+    pub fn close_form(&mut self) {
         self.form = None;
     }
 }
