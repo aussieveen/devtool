@@ -283,7 +283,9 @@ impl TokenGeneratorConfigEditor {
     }
 
     pub fn open_edit_service_form(&mut self, idx: usize, svc: &ServiceConfig) {
-        self.form = Some(ActiveEdit::Service(Box::new(ServiceForm::from_existing(idx, svc))));
+        self.form = Some(ActiveEdit::Service(Box::new(ServiceForm::from_existing(
+            idx, svc,
+        ))));
     }
 
     pub fn has_open_form(&self) -> bool {
