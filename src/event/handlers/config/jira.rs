@@ -1,6 +1,6 @@
 use crate::app::App;
 use crate::event::events::JiraConfigEvent;
-use crate::event::events::JiraConfigEvent::{FormBackspace, FormChar, FormNextField, FormPrevField, OpenEdit, SubmitConfig};
+use crate::event::events::JiraConfigEvent::{FormBackspace, FormChar, FormDelete, FormEnd, FormHome, FormLeft, FormNextField, FormPrevField, FormRight, OpenEdit, SubmitConfig};
 
 pub fn handle_event(app: &mut App, event: JiraConfigEvent){
     match event {
@@ -21,12 +21,37 @@ pub fn handle_event(app: &mut App, event: JiraConfigEvent){
         }
         FormChar(c) => {
             if let Some(p) = &mut app.state.jira_config_editor.form {
-                p.active_field_value_mut().push(c);
+                p.active_field_mut().insert(c);
             }
         }
         FormBackspace => {
             if let Some(p) = &mut app.state.jira_config_editor.form {
-                p.active_field_value_mut().pop();
+                p.active_field_mut().backspace();
+            }
+        }
+        FormLeft => {
+            if let Some(p) = &mut app.state.jira_config_editor.form {
+                p.active_field_mut().move_left();
+            }
+        }
+        FormRight => {
+            if let Some(p) = &mut app.state.jira_config_editor.form {
+                p.active_field_mut().move_right();
+            }
+        }
+        FormHome => {
+            if let Some(p) = &mut app.state.jira_config_editor.form {
+                p.active_field_mut().home();
+            }
+        }
+        FormEnd => {
+            if let Some(p) = &mut app.state.jira_config_editor.form {
+                p.active_field_mut().end();
+            }
+        }
+        FormDelete => {
+            if let Some(p) = &mut app.state.jira_config_editor.form {
+                p.active_field_mut().delete_forward();
             }
         }
         SubmitConfig => {
@@ -35,9 +60,9 @@ pub fn handle_event(app: &mut App, event: JiraConfigEvent){
                     app.config.jira = None;
                 } else {
                     app.config.jira = Some(crate::config::model::JiraConfig {
-                        url: form.url.trim().to_string(),
-                        email: form.email.trim().to_string(),
-                        token: form.token.trim().to_string(),
+                        url: form.url.value().trim().to_string(),
+                        email: form.email.value().trim().to_string(),
+                        token: form.token.value().trim().to_string(),
                     });
                 }
                 let has_jira_config = app.config.jira.is_some();

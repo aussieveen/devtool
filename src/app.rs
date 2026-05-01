@@ -254,7 +254,7 @@ impl App {
         }
     }
     fn render(&mut self, frame: &mut Frame) {
-        let areas = layout::main(frame.area(), self.state.effective_focus(), self.state.tool_list.items.len());
+        let areas = layout::main(frame.area(), self.state.effective_focus());
 
         list::render(frame, areas.tools_list, &mut self.state);
 

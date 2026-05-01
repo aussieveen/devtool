@@ -6,6 +6,7 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Wrap};
+use tui_text_field::TextField;
 
 pub fn render(
     frame: &mut Frame,
@@ -72,16 +73,24 @@ fn render_inline_edit(
 
     let af = form.active_field;
     let lines = vec![
-        field_line("URL  ", &form.url, af == JiraField::Url),
+        field_line("URL  ", form.url.value(), af == JiraField::Url),
         Line::from(""),
-        field_line("Email", &form.email, af == JiraField::Email),
+        field_line("Email", form.email.value(), af == JiraField::Email),
         Line::from(""),
-        field_line("Token", &form.token, af == JiraField::Token),
-        Line::from(""),
-        hint_line(),
+        field_line("Token", form.token.value(), af == JiraField::Token),
     ];
 
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
+
+    // Place the terminal cursor on the active field.
+    // Format is "{label}: {value}" where label is 5 chars → prefix = 7 chars.
+    let row: u16 = match form.active_field {
+        JiraField::Url => 0,
+        JiraField::Email => 2,
+        JiraField::Token => 4,
+    };
+    let char_offset = char_offset_to_cursor(form.active_field());
+    frame.set_cursor_position((inner.x + 7 + char_offset, inner.y + row));
 }
 
 fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
@@ -99,16 +108,13 @@ fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
     } else {
         Style::default().fg(Color::White)
     };
-    let cursor = if active { "_" } else { "" };
     Line::from(vec![
         Span::styled(format!("{label}: "), label_style),
-        Span::styled(format!("{value}{cursor}"), value_style),
+        Span::styled(value.to_string(), value_style),
     ])
 }
 
-fn hint_line() -> Line<'static> {
-    Line::from(Span::styled(
-        "[enter] Save   [esc] Cancel   [↑/↓] Navigate",
-        Style::default().fg(Color::Gray),
-    ))
+/// Returns the number of display columns from the start of the value to the cursor position.
+fn char_offset_to_cursor(field: &TextField) -> u16 {
+    field.value()[..field.cursor()].chars().count() as u16
 }

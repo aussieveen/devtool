@@ -2,7 +2,7 @@ use crate::app::App;
 use crate::event::events::ServiceStatusConfigEvent;
 use crate::event::events::ServiceStatusConfigEvent::{
     OpenAddService, OpenEditService, RemoveService, ListMove,
-    FormBackspace, FormChar, FormNextField,
+    FormBackspace, FormChar, FormDelete, FormEnd, FormHome, FormLeft, FormRight, FormNextField,
     PrevField, SubmitConfig};
 
 pub fn handle_event(app: &mut App, event: ServiceStatusConfigEvent) {
@@ -54,12 +54,37 @@ pub fn handle_event(app: &mut App, event: ServiceStatusConfigEvent) {
         }
         FormChar(c) => {
             if let Some(form) = &mut editor.form {
-                form.active_field_value_mut().push(c);
+                form.active_field_mut().insert(c);
             }
         }
         FormBackspace => {
             if let Some(form) = &mut editor.form {
-                form.active_field_value_mut().pop();
+                form.active_field_mut().backspace();
+            }
+        }
+        FormLeft => {
+            if let Some(form) = &mut editor.form {
+                form.active_field_mut().move_left();
+            }
+        }
+        FormRight => {
+            if let Some(form) = &mut editor.form {
+                form.active_field_mut().move_right();
+            }
+        }
+        FormHome => {
+            if let Some(form) = &mut editor.form {
+                form.active_field_mut().home();
+            }
+        }
+        FormEnd => {
+            if let Some(form) = &mut editor.form {
+                form.active_field_mut().end();
+            }
+        }
+        FormDelete => {
+            if let Some(form) = &mut editor.form {
+                form.active_field_mut().delete_forward();
             }
         }
         SubmitConfig => {
@@ -67,11 +92,11 @@ pub fn handle_event(app: &mut App, event: ServiceStatusConfigEvent) {
                 && form.is_valid()
             {
                 let service = crate::config::model::ServiceStatusConfig {
-                    name: form.name.trim().to_string(),
-                    staging: form.staging.trim().to_string(),
-                    preproduction: form.preprod.trim().to_string(),
-                    production: form.prod.trim().to_string(),
-                    repo: form.repo.trim().to_string(),
+                    name: form.name.value().trim().to_string(),
+                    staging: form.staging.value().trim().to_string(),
+                    preproduction: form.preprod.value().trim().to_string(),
+                    production: form.prod.value().trim().to_string(),
+                    repo: form.repo.value().trim().to_string(),
                 };
                 if let Some(idx) = form.edit_index {
                     // Edit existing

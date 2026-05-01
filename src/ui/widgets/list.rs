@@ -40,5 +40,9 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
             .title(title),
     );
 
+    if is_focused {
+        *state.tool_list.list_state.offset_mut() = 0;
+    }
+
     frame.render_stateful_widget(menu, area, &mut state.tool_list.list_state);
 }

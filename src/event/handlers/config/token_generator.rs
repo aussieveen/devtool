@@ -1,7 +1,7 @@
 use crate::event::handlers::config::token_generator::TokenGeneratorConfigEvent::FormChar;
 use crate::app::App;
 use crate::event::events::TokenGeneratorConfigEvent;
-use crate::event::events::TokenGeneratorConfigEvent::{ConfigEdit, ConfigListMove, FormBackspace, FormNextField, FormPrevField, OpenAddService, RemoveService, SubmitConfig, SwitchFocus};
+use crate::event::events::TokenGeneratorConfigEvent::{ConfigEdit, ConfigListMove, FormBackspace, FormDelete, FormEnd, FormHome, FormLeft, FormNextField, FormPrevField, FormRight, OpenAddService, RemoveService, SubmitConfig, SwitchFocus};
 use crate::state::token_generator_config::ActiveEdit;
 
 pub fn handle_event(app: &mut App, event: TokenGeneratorConfigEvent){
@@ -58,36 +58,57 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorConfigEvent){
             }
         }
         FormChar(c) => match &mut app.state.token_generator_config_editor.form {
-            Some(ActiveEdit::Auth0(p)) => p.active_field_value_mut().push(c),
-            Some(ActiveEdit::Service(p)) => p.active_field_value_mut().push(c),
+            Some(ActiveEdit::Auth0(p)) => p.active_field_mut().insert(c),
+            Some(ActiveEdit::Service(p)) => p.active_field_mut().insert(c),
             None => {}
         },
         FormBackspace => {
             match &mut app.state.token_generator_config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => {
-                    p.active_field_value_mut().pop();
-                }
-                Some(ActiveEdit::Service(p)) => {
-                    p.active_field_value_mut().pop();
-                }
+                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().backspace(),
+                Some(ActiveEdit::Service(p)) => p.active_field_mut().backspace(),
                 None => {}
             }
         }
+        FormLeft => match &mut app.state.token_generator_config_editor.form {
+            Some(ActiveEdit::Auth0(p)) => p.active_field_mut().move_left(),
+            Some(ActiveEdit::Service(p)) => p.active_field_mut().move_left(),
+            None => {}
+        },
+        FormRight => match &mut app.state.token_generator_config_editor.form {
+            Some(ActiveEdit::Auth0(p)) => p.active_field_mut().move_right(),
+            Some(ActiveEdit::Service(p)) => p.active_field_mut().move_right(),
+            None => {}
+        },
+        FormHome => match &mut app.state.token_generator_config_editor.form {
+            Some(ActiveEdit::Auth0(p)) => p.active_field_mut().home(),
+            Some(ActiveEdit::Service(p)) => p.active_field_mut().home(),
+            None => {}
+        },
+        FormEnd => match &mut app.state.token_generator_config_editor.form {
+            Some(ActiveEdit::Auth0(p)) => p.active_field_mut().end(),
+            Some(ActiveEdit::Service(p)) => p.active_field_mut().end(),
+            None => {}
+        },
+        FormDelete => match &mut app.state.token_generator_config_editor.form {
+            Some(ActiveEdit::Auth0(p)) => p.active_field_mut().delete_forward(),
+            Some(ActiveEdit::Service(p)) => p.active_field_mut().delete_forward(),
+            None => {}
+        },
         SubmitConfig => {
             if let Some(form) = app.state.token_generator_config_editor.form.take() {
                 match form {
                     ActiveEdit::Auth0(p) => {
-                        app.config.tokengenerator.auth0.local = p.local.trim().to_string();
-                        app.config.tokengenerator.auth0.staging = p.staging.trim().to_string();
+                        app.config.tokengenerator.auth0.local = p.local.value().trim().to_string();
+                        app.config.tokengenerator.auth0.staging = p.staging.value().trim().to_string();
                         app.config.tokengenerator.auth0.preproduction =
-                            p.preprod.trim().to_string();
-                        app.config.tokengenerator.auth0.production = p.prod.trim().to_string();
+                            p.preprod.value().trim().to_string();
+                        app.config.tokengenerator.auth0.production = p.prod.value().trim().to_string();
                         let _ = app.config_loader.write_config(&app.config);
                     }
                     ActiveEdit::Service(p) if p.is_valid() => {
                         let svc = crate::config::model::ServiceConfig {
-                            name: p.name.trim().to_string(),
-                            audience: p.audience.trim().to_string(),
+                            name: p.name.value().trim().to_string(),
+                            audience: p.audience.value().trim().to_string(),
                             credentials: p.to_credentials(),
                         };
                         if let Some(idx) = p.edit_index {

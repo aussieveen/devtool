@@ -35,6 +35,9 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
         LogsItem::AppLog => 1,
     };
     let mut list_state = ListState::default().with_selected(Some(selected_idx));
+    if is_focused {
+        *list_state.offset_mut() = 0;
+    }
 
     let title = Line::from(vec![
         Span::raw(" "),

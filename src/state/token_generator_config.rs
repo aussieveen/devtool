@@ -1,6 +1,7 @@
 use crate::config::model::{Auth0Config, Credentials, ServiceConfig};
 use crate::environment::Environment;
 use ratatui::widgets::TableState;
+use tui_text_field::TextField;
 
 // ── Field enums ───────────────────────────────────────────────────────────────
 
@@ -82,25 +83,34 @@ impl ServiceField {
 
 #[derive(Clone)]
 pub struct Auth0Form {
-    pub local: String,
-    pub staging: String,
-    pub preprod: String,
-    pub prod: String,
+    pub local: TextField,
+    pub staging: TextField,
+    pub preprod: TextField,
+    pub prod: TextField,
     pub active_field: Auth0Field,
 }
 
 impl Auth0Form {
     pub fn from_existing(config: &Auth0Config) -> Self {
         Self {
-            local: config.local.clone(),
-            staging: config.staging.clone(),
-            preprod: config.preproduction.clone(),
-            prod: config.production.clone(),
+            local: TextField::new(config.local.clone()),
+            staging: TextField::new(config.staging.clone()),
+            preprod: TextField::new(config.preproduction.clone()),
+            prod: TextField::new(config.production.clone()),
             active_field: Auth0Field::Local,
         }
     }
 
-    pub fn active_field_value_mut(&mut self) -> &mut String {
+    pub fn active_field(&self) -> &TextField {
+        match self.active_field {
+            Auth0Field::Local => &self.local,
+            Auth0Field::Staging => &self.staging,
+            Auth0Field::Preprod => &self.preprod,
+            Auth0Field::Prod => &self.prod,
+        }
+    }
+
+    pub fn active_field_mut(&mut self) -> &mut TextField {
         match self.active_field {
             Auth0Field::Local => &mut self.local,
             Auth0Field::Staging => &mut self.staging,
@@ -112,16 +122,16 @@ impl Auth0Form {
 
 #[derive(Clone)]
 pub struct ServiceForm {
-    pub name: String,
-    pub audience: String,
-    pub local_id: String,
-    pub local_secret: String,
-    pub staging_id: String,
-    pub staging_secret: String,
-    pub preprod_id: String,
-    pub preprod_secret: String,
-    pub prod_id: String,
-    pub prod_secret: String,
+    pub name: TextField,
+    pub audience: TextField,
+    pub local_id: TextField,
+    pub local_secret: TextField,
+    pub staging_id: TextField,
+    pub staging_secret: TextField,
+    pub preprod_id: TextField,
+    pub preprod_secret: TextField,
+    pub prod_id: TextField,
+    pub prod_secret: TextField,
     pub active_field: ServiceField,
     /// Some(idx) = editing existing; None = adding new.
     pub edit_index: Option<usize>,
@@ -130,16 +140,16 @@ pub struct ServiceForm {
 impl ServiceForm {
     pub fn new() -> Self {
         Self {
-            name: String::new(),
-            audience: String::new(),
-            local_id: String::new(),
-            local_secret: String::new(),
-            staging_id: String::new(),
-            staging_secret: String::new(),
-            preprod_id: String::new(),
-            preprod_secret: String::new(),
-            prod_id: String::new(),
-            prod_secret: String::new(),
+            name: TextField::empty(),
+            audience: TextField::empty(),
+            local_id: TextField::empty(),
+            local_secret: TextField::empty(),
+            staging_id: TextField::empty(),
+            staging_secret: TextField::empty(),
+            preprod_id: TextField::empty(),
+            preprod_secret: TextField::empty(),
+            prod_id: TextField::empty(),
+            prod_secret: TextField::empty(),
             active_field: ServiceField::Name,
             edit_index: None,
         }
@@ -158,22 +168,37 @@ impl ServiceForm {
         let (preprod_id, preprod_secret) = creds(Environment::Preproduction);
         let (prod_id, prod_secret) = creds(Environment::Production);
         Self {
-            name: svc.name.clone(),
-            audience: svc.audience.clone(),
-            local_id,
-            local_secret,
-            staging_id,
-            staging_secret,
-            preprod_id,
-            preprod_secret,
-            prod_id,
-            prod_secret,
+            name: TextField::new(svc.name.clone()),
+            audience: TextField::new(svc.audience.clone()),
+            local_id: TextField::new(local_id),
+            local_secret: TextField::new(local_secret),
+            staging_id: TextField::new(staging_id),
+            staging_secret: TextField::new(staging_secret),
+            preprod_id: TextField::new(preprod_id),
+            preprod_secret: TextField::new(preprod_secret),
+            prod_id: TextField::new(prod_id),
+            prod_secret: TextField::new(prod_secret),
             active_field: ServiceField::Name,
             edit_index: Some(idx),
         }
     }
 
-    pub fn active_field_value_mut(&mut self) -> &mut String {
+    pub fn active_field(&self) -> &TextField {
+        match self.active_field {
+            ServiceField::Name => &self.name,
+            ServiceField::Audience => &self.audience,
+            ServiceField::LocalClientId => &self.local_id,
+            ServiceField::LocalClientSecret => &self.local_secret,
+            ServiceField::StagingClientId => &self.staging_id,
+            ServiceField::StagingClientSecret => &self.staging_secret,
+            ServiceField::PreprodClientId => &self.preprod_id,
+            ServiceField::PreprodClientSecret => &self.preprod_secret,
+            ServiceField::ProdClientId => &self.prod_id,
+            ServiceField::ProdClientSecret => &self.prod_secret,
+        }
+    }
+
+    pub fn active_field_mut(&mut self) -> &mut TextField {
         match self.active_field {
             ServiceField::Name => &mut self.name,
             ServiceField::Audience => &mut self.audience,
@@ -189,7 +214,7 @@ impl ServiceForm {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.name.trim().is_empty()
+        !self.name.value().trim().is_empty()
     }
 
     /// Build the credentials vec, omitting environments where both fields are empty.
@@ -206,11 +231,11 @@ impl ServiceForm {
             (Environment::Production, &self.prod_id, &self.prod_secret),
         ];
         for (env, id, secret) in pairs {
-            if !id.trim().is_empty() || !secret.trim().is_empty() {
+            if !id.value().trim().is_empty() || !secret.value().trim().is_empty() {
                 creds.push(Credentials {
                     env,
-                    client_id: id.trim().to_string(),
-                    client_secret: secret.trim().to_string(),
+                    client_id: id.value().trim().to_string(),
+                    client_secret: secret.value().trim().to_string(),
                 });
             }
         }
@@ -305,9 +330,9 @@ mod tests {
     #[test]
     fn service_form_to_credentials_omits_empty_envs() {
         let mut form = ServiceForm::new();
-        form.name = "svc".to_string();
-        form.staging_id = "id".to_string();
-        form.staging_secret = "sec".to_string();
+        form.name = TextField::new("svc".to_string());
+        form.staging_id = TextField::new("id".to_string());
+        form.staging_secret = TextField::new("sec".to_string());
 
         let creds = form.to_credentials();
         assert_eq!(creds.len(), 1);
@@ -332,9 +357,9 @@ mod tests {
             }],
         };
         let form = ServiceForm::from_existing(0, &svc);
-        assert_eq!(form.name, "my-svc");
-        assert_eq!(form.staging_id, "cid");
-        assert_eq!(form.local_id, "");
+        assert_eq!(form.name.value(), "my-svc");
+        assert_eq!(form.staging_id.value(), "cid");
+        assert_eq!(form.local_id.value(), "");
         assert_eq!(form.edit_index, Some(0));
     }
 }

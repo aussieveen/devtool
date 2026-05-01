@@ -24,6 +24,7 @@ log = "0.4.29"
 serde_json = "1"
 thiserror = "2.0.18"
 chrono = { version = "0.4", features = ["serde"] }
+tui-text-field = { git = "https://github.com/aussieveen/tui-text-field", features = ["crossterm"] }
 
 [dev-dependencies]
 tempfile = "3"

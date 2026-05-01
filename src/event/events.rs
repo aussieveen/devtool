@@ -79,6 +79,11 @@ pub enum ServiceStatusConfigEvent {
     PrevField,
     FormChar(char),
     FormBackspace,
+    FormLeft,
+    FormRight,
+    FormHome,
+    FormEnd,
+    FormDelete,
     SubmitConfig,
     RemoveService
 }
@@ -101,6 +106,11 @@ pub enum TokenGeneratorConfigEvent {
     FormPrevField,
     FormChar(char),
     FormBackspace,
+    FormLeft,
+    FormRight,
+    FormHome,
+    FormEnd,
+    FormDelete,
     SubmitConfig,
     RemoveService,
     SwitchFocus,
@@ -113,6 +123,11 @@ pub enum JiraEvent {
     NewTicket,
     AddTicketIdChar(char),
     RemoveTicketIdChar,
+    TicketIdLeft,
+    TicketIdRight,
+    TicketIdHome,
+    TicketIdEnd,
+    TicketIdDelete,
     SubmitTicketId,
     RemoveTicket,
     TicketMove(Direction), // Move selected ticket up and down list
@@ -128,6 +143,11 @@ pub enum JiraConfigEvent {
     FormPrevField,
     FormChar(char),
     FormBackspace,
+    FormLeft,
+    FormRight,
+    FormHome,
+    FormEnd,
+    FormDelete,
     SubmitConfig,
 }
 

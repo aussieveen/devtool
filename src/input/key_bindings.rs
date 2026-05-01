@@ -48,6 +48,11 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
     key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Enter, KeyModifiers::NONE, ServiceStatusConfig::SubmitConfig.into());
     key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Backspace, KeyModifiers::NONE, ServiceStatusConfig::FormBackspace.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Left, KeyModifiers::NONE, ServiceStatusConfig::FormLeft.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Right, KeyModifiers::NONE, ServiceStatusConfig::FormRight.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Home, KeyModifiers::NONE, ServiceStatusConfig::FormHome.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::End, KeyModifiers::NONE, ServiceStatusConfig::FormEnd.into());
+    key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Delete, KeyModifiers::NONE, ServiceStatusConfig::FormDelete.into());
     key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusConfig::FormNextField.into());
     key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Up, KeyModifiers::NONE, ServiceStatusConfig::PrevField.into());
     key_event_map.add_static(Editing(Tool::ServiceStatus), KeyCode::Tab, KeyModifiers::NONE, ServiceStatusConfig::FormNextField.into());
@@ -56,6 +61,11 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
 
     // POP UP EVENTS
     key_event_map.add_static(Editing(Tool::Jira), KeyCode::Backspace, KeyModifiers::NONE, Jira::RemoveTicketIdChar.into());
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::Left, KeyModifiers::NONE, Jira::TicketIdLeft.into());
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::Right, KeyModifiers::NONE, Jira::TicketIdRight.into());
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::Home, KeyModifiers::NONE, Jira::TicketIdHome.into());
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::End, KeyModifiers::NONE, Jira::TicketIdEnd.into());
+    key_event_map.add_static(Editing(Tool::Jira), KeyCode::Delete, KeyModifiers::NONE, Jira::TicketIdDelete.into());
     key_event_map.add_static(Editing(Tool::Jira), KeyCode::Enter, KeyModifiers::NONE, Jira::SubmitTicketId.into());
     key_event_map.add_dynamic(Editing(Tool::Jira), add_ticket_id_char);
 
@@ -96,6 +106,11 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
     key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Enter, KeyModifiers::NONE, TokenGenConfig::SubmitConfig.into());
     key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Backspace, KeyModifiers::NONE, TokenGenConfig::FormBackspace.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Left, KeyModifiers::NONE, TokenGenConfig::FormLeft.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Right, KeyModifiers::NONE, TokenGenConfig::FormRight.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Home, KeyModifiers::NONE, TokenGenConfig::FormHome.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::End, KeyModifiers::NONE, TokenGenConfig::FormEnd.into());
+    key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Delete, KeyModifiers::NONE, TokenGenConfig::FormDelete.into());
     key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Down, KeyModifiers::NONE, TokenGenConfig::FormNextField.into());
     key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Up, KeyModifiers::NONE, TokenGenConfig::FormPrevField.into());
     key_event_map.add_static(Editing(Tool::TokenGenerator), KeyCode::Tab, KeyModifiers::NONE, TokenGenConfig::FormNextField.into());
@@ -119,6 +134,11 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
     key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Esc, KeyModifiers::NONE, App::CloseToolConfig.into());
     key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Enter, KeyModifiers::NONE, JiraConfig::SubmitConfig.into());
     key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Backspace, KeyModifiers::NONE, JiraConfig::FormBackspace.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Left, KeyModifiers::NONE, JiraConfig::FormLeft.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Right, KeyModifiers::NONE, JiraConfig::FormRight.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Home, KeyModifiers::NONE, JiraConfig::FormHome.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::End, KeyModifiers::NONE, JiraConfig::FormEnd.into());
+    key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Delete, KeyModifiers::NONE, JiraConfig::FormDelete.into());
     key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Down, KeyModifiers::NONE, JiraConfig::FormNextField.into());
     key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Up, KeyModifiers::NONE, JiraConfig::FormPrevField.into());
     key_event_map.add_static(ToolConfigEditing(Tool::Jira), KeyCode::Tab, KeyModifiers::NONE, JiraConfig::FormNextField.into());

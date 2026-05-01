@@ -1,4 +1,5 @@
 use crate::config::model::JiraConfig;
+use tui_text_field::TextField;
 
 // ── Field enum ────────────────────────────────────────────────────────────────
 
@@ -30,32 +31,40 @@ impl JiraField {
 // ── Inline edit form ─────────────────────────────────────────────────────────────────────
 #[derive(Clone)]
 pub struct JiraConfigForm {
-    pub url: String,
-    pub email: String,
-    pub token: String,
+    pub url: TextField,
+    pub email: TextField,
+    pub token: TextField,
     pub active_field: JiraField,
 }
 
 impl JiraConfigForm {
     pub fn from_existing(config: &JiraConfig) -> Self {
         Self {
-            url: config.url.clone(),
-            email: config.email.clone(),
-            token: config.token.clone(),
+            url: TextField::new(config.url.clone()),
+            email: TextField::new(config.email.clone()),
+            token: TextField::new(config.token.clone()),
             active_field: JiraField::Url,
         }
     }
 
     pub fn empty() -> Self {
         Self {
-            url: String::new(),
-            email: String::new(),
-            token: String::new(),
+            url: TextField::empty(),
+            email: TextField::empty(),
+            token: TextField::empty(),
             active_field: JiraField::Url,
         }
     }
 
-    pub fn active_field_value_mut(&mut self) -> &mut String {
+    pub fn active_field(&self) -> &TextField {
+        match self.active_field {
+            JiraField::Url => &self.url,
+            JiraField::Email => &self.email,
+            JiraField::Token => &self.token,
+        }
+    }
+
+    pub fn active_field_mut(&mut self) -> &mut TextField {
         match self.active_field {
             JiraField::Url => &mut self.url,
             JiraField::Email => &mut self.email,
@@ -64,7 +73,9 @@ impl JiraConfigForm {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.url.trim().is_empty() && self.email.trim().is_empty() && self.token.trim().is_empty()
+        self.url.value().trim().is_empty()
+            && self.email.value().trim().is_empty()
+            && self.token.value().trim().is_empty()
     }
 }
 
@@ -122,9 +133,9 @@ mod tests {
             token: "secret".to_string(),
         };
         let form = JiraConfigForm::from_existing(&cfg);
-        assert_eq!(form.url, "https://jira.example.com");
-        assert_eq!(form.email, "user@example.com");
-        assert_eq!(form.token, "secret");
+        assert_eq!(form.url.value(), "https://jira.example.com");
+        assert_eq!(form.email.value(), "user@example.com");
+        assert_eq!(form.token.value(), "secret");
         assert_eq!(form.active_field, JiraField::Url);
     }
 
@@ -137,7 +148,7 @@ mod tests {
     #[test]
     fn form_is_not_empty_when_url_set() {
         let mut form = JiraConfigForm::empty();
-        form.url = "https://jira.example.com".to_string();
+        form.url = TextField::new("https://jira.example.com".to_string());
         assert!(!form.is_empty());
     }
 }

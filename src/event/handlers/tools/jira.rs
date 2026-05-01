@@ -4,7 +4,8 @@ use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::event::events::GenericEvent::OpenInBrowser;
 use crate::event::events::JiraEvent::{
     AddTicketIdChar, ListMove, TicketListUpdate, TicketMove, NewTicket,
-    RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, TicketRetrieved
+    RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, TicketRetrieved,
+    TicketIdLeft, TicketIdRight, TicketIdHome, TicketIdEnd, TicketIdDelete,
 };
 use crate::state::app::AppFocus;
 use crate::state::log::{log_source, LogEntry, LogLevel};
@@ -24,6 +25,7 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
             );
         }
         NewTicket => {
+            app.state.jira.new_ticket_id.clear();
             app.state.jira.adding_ticket = true;
             app.state.focus = AppFocus::JiraInput
         }
@@ -31,16 +33,23 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
         RemoveTicketIdChar => {
             app.state.jira.remove_char_from_ticket_id();
         }
+        TicketIdLeft => app.state.jira.new_ticket_id.move_left(),
+        TicketIdRight => app.state.jira.new_ticket_id.move_right(),
+        TicketIdHome => app.state.jira.new_ticket_id.home(),
+        TicketIdEnd => app.state.jira.new_ticket_id.end(),
+        TicketIdDelete => app.state.jira.new_ticket_id.delete_forward(),
         SubmitTicketId => {
+            let ticket_id = app.state.jira.new_ticket_id.value().to_string();
             if let Some(config) = app.config.jira.clone()
-                && let Some(new_ticket_id) = app.state.jira.new_ticket_id.clone()
+                && !ticket_id.is_empty()
             {
                 app.state.jira.adding_ticket = false;
+                app.state.jira.new_ticket_id.clear();
                 app.state.focus = AppFocus::Tool;
 
                 let sender = app.event_sender.clone();
 
-                app.jira_api.fetch_ticket(new_ticket_id, config, sender);
+                app.jira_api.fetch_ticket(ticket_id, config, sender);
             }
         }
         TicketRetrieved(ticket_response) => {
@@ -57,7 +66,7 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
             } else {
                 let ticket_id = ticket_response.key.clone();
                 app.state.jira.add_ticket(ticket_response);
-                app.state.jira.new_ticket_id = None;
+                app.state.jira.new_ticket_id.clear();
                 app.event_sender
                     .send_app_event(ActivityEvent(ticket_id, "Added to watchlist".to_string()));
                 app.event_sender.send_jira_event(TicketListUpdate);

@@ -39,5 +39,9 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
                 .title(title),
         );
 
+    if is_focused {
+        *state.config_editor.list_state.offset_mut() = 0;
+    }
+
     frame.render_stateful_widget(list, area, &mut state.config_editor.list_state);
 }

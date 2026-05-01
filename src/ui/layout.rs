@@ -10,7 +10,7 @@ pub struct Areas {
     pub footer: Rect,
 }
 
-pub fn main(area: Rect, focus: AppFocus, tool_count: usize) -> Areas {
+pub fn main(area: Rect, focus: AppFocus) -> Areas {
     let outer_chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(3)])
@@ -23,10 +23,7 @@ pub fn main(area: Rect, focus: AppFocus, tool_count: usize) -> Areas {
 
     // Collapsed height: just border + title line (3 rows).
     // Active panel gets Min(0) to fill remaining space.
-    // Tools panel when inactive: border + title + one row per tool + padding = tool_count + 2,
-    // capped so it doesn't grow unboundedly when another panel is active.
     const COLLAPSED: u16 = 3;
-    let tools_inactive_height = (tool_count as u16 + 2).max(COLLAPSED);
 
     let (tools_c, config_c, logs_c) = match focus {
         AppFocus::List => (
@@ -34,19 +31,19 @@ pub fn main(area: Rect, focus: AppFocus, tool_count: usize) -> Areas {
             Constraint::Length(COLLAPSED),
             Constraint::Length(COLLAPSED),
         ),
-        AppFocus::Config | AppFocus::ToolConfig(_) => (
-            Constraint::Length(tools_inactive_height),
+        AppFocus::Config => (
+            Constraint::Length(COLLAPSED),
             Constraint::Min(0),
             Constraint::Length(COLLAPSED),
         ),
         AppFocus::Logs => (
-            Constraint::Length(tools_inactive_height),
+            Constraint::Length(COLLAPSED),
             Constraint::Length(COLLAPSED),
             Constraint::Min(0),
         ),
-        // Tool / JiraInput / popup: tools list stays expanded (user is inside a tool)
-        AppFocus::Tool | AppFocus::JiraInput => (
-            Constraint::Length(tools_inactive_height),
+        // ToolConfig / Tool / JiraInput: content area owns the space, all panels collapse
+        AppFocus::ToolConfig(_) | AppFocus::Tool | AppFocus::JiraInput => (
+            Constraint::Length(COLLAPSED),
             Constraint::Length(COLLAPSED),
             Constraint::Length(COLLAPSED),
         ),

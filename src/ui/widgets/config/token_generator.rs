@@ -8,6 +8,7 @@ use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
+use tui_text_field::TextField;
 
 pub fn render(
     frame: &mut Frame,
@@ -159,32 +160,43 @@ fn render_auth0_inline(
     let lines = vec![
         field_line(
             "Local      ",
-            &form.local,
+            form.local.value(),
             form.active_field == Auth0Field::Local,
         ),
         Line::from(""),
         field_line(
             "Staging    ",
-            &form.staging,
+            form.staging.value(),
             form.active_field == Auth0Field::Staging,
         ),
         Line::from(""),
         field_line(
             "Preprod    ",
-            &form.preprod,
+            form.preprod.value(),
             form.active_field == Auth0Field::Preprod,
         ),
         Line::from(""),
         field_line(
             "Production ",
-            &form.prod,
+            form.prod.value(),
             form.active_field == Auth0Field::Prod,
         ),
         Line::from(""),
-        hint_line(),
     ];
 
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
+
+    if focused {
+        // Format is "  {label}: {value}" where label is 11 chars → prefix = 15 chars.
+        let row: u16 = match form.active_field {
+            Auth0Field::Local => 0,
+            Auth0Field::Staging => 2,
+            Auth0Field::Preprod => 4,
+            Auth0Field::Prod => 6,
+        };
+        let char_offset = char_offset_to_cursor(form.active_field());
+        frame.set_cursor_position((inner.x + 15 + char_offset, inner.y + row));
+    }
 }
 
 // ── Service inline edit ───────────────────────────────────────────────────────
@@ -208,62 +220,81 @@ fn render_service_inline(
 
     let af = form.active_field;
     let lines = vec![
-        field_line("Name      ", &form.name, af == ServiceField::Name),
+        field_line("Name      ", form.name.value(), af == ServiceField::Name),
         Line::from(""),
-        field_line("Audience  ", &form.audience, af == ServiceField::Audience),
+        field_line("Audience  ", form.audience.value(), af == ServiceField::Audience),
         Line::from(""),
         divider_line("Local"),
         field_line(
             "Client ID ",
-            &form.local_id,
+            form.local_id.value(),
             af == ServiceField::LocalClientId,
         ),
         field_line(
             "Client Sec",
-            &form.local_secret,
+            form.local_secret.value(),
             af == ServiceField::LocalClientSecret,
         ),
         Line::from(""),
         divider_line("Staging"),
         field_line(
             "Client ID ",
-            &form.staging_id,
+            form.staging_id.value(),
             af == ServiceField::StagingClientId,
         ),
         field_line(
             "Client Sec",
-            &form.staging_secret,
+            form.staging_secret.value(),
             af == ServiceField::StagingClientSecret,
         ),
         Line::from(""),
         divider_line("Preprod"),
         field_line(
             "Client ID ",
-            &form.preprod_id,
+            form.preprod_id.value(),
             af == ServiceField::PreprodClientId,
         ),
         field_line(
             "Client Sec",
-            &form.preprod_secret,
+            form.preprod_secret.value(),
             af == ServiceField::PreprodClientSecret,
         ),
         Line::from(""),
         divider_line("Production"),
         field_line(
             "Client ID ",
-            &form.prod_id,
+            form.prod_id.value(),
             af == ServiceField::ProdClientId,
         ),
         field_line(
             "Client Sec",
-            &form.prod_secret,
+            form.prod_secret.value(),
             af == ServiceField::ProdClientSecret,
         ),
         Line::from(""),
-        hint_line(),
     ];
 
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
+
+    // Format is "  {label}: {value}" where label is 10 chars → prefix = 14 chars.
+    // Row indices in the lines vec above:
+    // Name=0, blank=1, Audience=2, blank=3, "Local"=4, LocalId=5, LocalSec=6,
+    // blank=7, "Staging"=8, StagingId=9, StagingSec=10, blank=11, "Preprod"=12,
+    // PreprodId=13, PreprodSec=14, blank=15, "Production"=16, ProdId=17, ProdSec=18
+    let row: u16 = match form.active_field {
+        ServiceField::Name => 0,
+        ServiceField::Audience => 2,
+        ServiceField::LocalClientId => 5,
+        ServiceField::LocalClientSecret => 6,
+        ServiceField::StagingClientId => 9,
+        ServiceField::StagingClientSecret => 10,
+        ServiceField::PreprodClientId => 13,
+        ServiceField::PreprodClientSecret => 14,
+        ServiceField::ProdClientId => 17,
+        ServiceField::ProdClientSecret => 18,
+    };
+    let char_offset = char_offset_to_cursor(form.active_field());
+    frame.set_cursor_position((inner.x + 14 + char_offset, inner.y + row));
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -283,23 +314,19 @@ fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
     } else {
         Style::default().fg(Color::White)
     };
-    let cursor = if active { "_" } else { "" };
     Line::from(vec![
         Span::styled(format!("  {label}: "), label_style),
-        Span::styled(format!("{value}{cursor}"), value_style),
+        Span::styled(value.to_string(), value_style),
     ])
+}
+
+fn char_offset_to_cursor(field: &TextField) -> u16 {
+    field.value()[..field.cursor()].chars().count() as u16
 }
 
 fn divider_line(label: &str) -> Line<'static> {
     Line::from(Span::styled(
         format!("  ── {label} "),
-        Style::default().fg(Color::Gray),
-    ))
-}
-
-fn hint_line() -> Line<'static> {
-    Line::from(Span::styled(
-        "  [enter] Save   [esc] Cancel   [↑/↓] Navigate",
         Style::default().fg(Color::Gray),
     ))
 }
