@@ -1,14 +1,14 @@
-use crate::events::event::AppEvent;
+use crate::event::events::Event;
 use crate::input::key_context::KeyContext;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashMap;
 
 type Key = (KeyCode, KeyModifiers);
-type KeyHandler = fn(KeyEvent) -> Option<AppEvent>;
+type KeyHandler = fn(KeyEvent) -> Option<Event>;
 
 #[derive(Default)]
 pub struct KeyEventMap {
-    static_events: HashMap<(KeyContext, Key), AppEvent>,
+    static_events: HashMap<(KeyContext, Key), Event>,
     dynamic_events: HashMap<KeyContext, KeyHandler>,
 }
 
@@ -18,7 +18,7 @@ impl KeyEventMap {
         context: KeyContext,
         key_code: KeyCode,
         key_modifiers: KeyModifiers,
-        event: AppEvent,
+        event: Event,
     ) {
         self.static_events
             .insert((context, (key_code, key_modifiers)), event);
@@ -28,7 +28,7 @@ impl KeyEventMap {
         self.dynamic_events.insert(context, function);
     }
 
-    pub fn resolve(&self, context: KeyContext, key: KeyEvent) -> Option<AppEvent> {
+    pub fn resolve(&self, context: KeyContext, key: KeyEvent) -> Option<Event> {
         let event = self
             .static_events
             .get(&(context.clone(), (key.code, key.modifiers)))
@@ -46,7 +46,8 @@ impl KeyEventMap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::event::Direction;
+    use crate::event::events::AppEvent;
+    use crate::event::events::{Direction, TokenGeneratorEvent};
 
     #[test]
     fn map_add_static() {
@@ -56,13 +57,13 @@ mod tests {
             KeyContext::Global,
             KeyCode::Up,
             KeyModifiers::SHIFT,
-            AppEvent::ListMove(Direction::Up),
+            Event::App(AppEvent::ListMove(Direction::Up)),
         );
 
         assert_eq!(
             map.static_events
                 .get(&(KeyContext::Global, (KeyCode::Up, KeyModifiers::SHIFT))),
-            Some(&AppEvent::ListMove(Direction::Up))
+            Some(&Event::App(AppEvent::ListMove(Direction::Up)))
         );
     }
 
@@ -76,7 +77,7 @@ mod tests {
 
         assert_eq!(
             saved_dynamic_event(KeyEvent::new(KeyCode::Up, KeyModifiers::SHIFT)),
-            Some(AppEvent::GenerateToken)
+            Some(Event::TokenGenerator(TokenGeneratorEvent::GenerateToken))
         );
     }
 
@@ -87,7 +88,7 @@ mod tests {
             KeyContext::Global,
             KeyCode::Up,
             KeyModifiers::SHIFT,
-            AppEvent::ListMove(Direction::Up),
+            Event::App(AppEvent::ListMove(Direction::Up)),
         );
         map.add_dynamic(KeyContext::Global, dynamic_function);
 
@@ -96,7 +97,7 @@ mod tests {
                 KeyContext::Global,
                 KeyEvent::new(KeyCode::Up, KeyModifiers::SHIFT)
             ),
-            Some(AppEvent::ListMove(Direction::Up))
+            Some(Event::App(AppEvent::ListMove(Direction::Up)))
         );
 
         assert_eq!(
@@ -104,7 +105,7 @@ mod tests {
                 KeyContext::Global,
                 KeyEvent::new(KeyCode::Down, KeyModifiers::SHIFT)
             ),
-            Some(AppEvent::GenerateToken)
+            Some(Event::TokenGenerator(TokenGeneratorEvent::GenerateToken))
         );
 
         assert_eq!(
@@ -116,7 +117,7 @@ mod tests {
         );
     }
 
-    fn dynamic_function(_key_event: KeyEvent) -> Option<AppEvent> {
-        Some(AppEvent::GenerateToken)
+    fn dynamic_function(_key_event: KeyEvent) -> Option<Event> {
+        Some(Event::TokenGenerator(TokenGeneratorEvent::GenerateToken))
     }
 }

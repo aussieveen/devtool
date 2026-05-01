@@ -51,6 +51,12 @@ impl Default for Config {
 
 impl Config {
     pub fn normalize(mut self) -> Self {
+        self.normalize_urls();
+        self.enforce_feature_invariants();
+        self
+    }
+
+    fn normalize_urls(&mut self) {
         for service in &mut self.servicestatus {
             service.staging = Self::strip_trailing_slash(&service.staging);
             service.preproduction = Self::strip_trailing_slash(&service.preproduction);
@@ -70,8 +76,9 @@ impl Config {
         if let Some(ref mut jira) = self.jira {
             jira.url = Self::strip_trailing_slash(&jira.url);
         }
+    }
 
-        // Auto-disable features whose backing config is absent or empty.
+    pub fn enforce_feature_invariants(&mut self) {
         if self.servicestatus.is_empty() {
             self.features.service_status = false;
         }
@@ -81,8 +88,6 @@ impl Config {
         if self.jira.is_none() {
             self.features.jira = false;
         }
-
-        self
     }
 
     fn strip_trailing_slash(s: &str) -> String {

@@ -1,4 +1,4 @@
-use crate::events::event::Event;
+use crate::event::events::Event;
 use futures::FutureExt;
 use futures::StreamExt;
 use std::time::Duration;
@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 
 const TICK_FPS: f64 = 30.0;
 
-/// A thread that handles reading crossterm events and emitting tick events on a regular schedule.
+/// A thread that handles reading crossterm event and emitting tick event on a regular schedule.
 pub struct EventTask {
     /// Event sender channel.
     sender: mpsc::UnboundedSender<Event>,
@@ -20,7 +20,7 @@ impl EventTask {
 
     /// Runs the event thread.
     ///
-    /// This function emits tick events at a fixed rate and polls for crossterm events in between.
+    /// This function emits tick event at a fixed rate and polls for crossterm event in between.
     pub(crate) async fn run(self) -> color_eyre::Result<()> {
         let tick_rate = Duration::from_secs_f64(1.0 / TICK_FPS);
         let mut reader = crossterm::event::EventStream::new();

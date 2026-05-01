@@ -1,17 +1,18 @@
 use crate::client::jira::models::TicketResponse;
-use crate::events::event::Direction;
+use crate::event::events::Direction;
 use crate::persistence;
 use crate::persistence::persister::JiraFile;
 use log::error;
 use ratatui::widgets::ListState;
 use serde::{Deserialize, Serialize};
+use tui_text_field::TextField;
 
 #[derive(Clone)]
 pub struct Jira {
     pub tickets: Vec<Ticket>,
     pub list_state: ListState,
     pub adding_ticket: bool,
-    pub new_ticket_id: Option<String>,
+    pub new_ticket_id: TextField,
     pub jira_file: JiraFile,
     pub tickets_pending_scan: usize,
 }
@@ -30,7 +31,7 @@ impl Jira {
             tickets,
             list_state: ListState::default().with_selected(None),
             adding_ticket: false,
-            new_ticket_id: None,
+            new_ticket_id: TextField::empty(),
             jira_file,
             tickets_pending_scan: 0,
         }
@@ -42,25 +43,18 @@ impl Jira {
             tickets: Vec::new(),
             list_state: ListState::default().with_selected(None),
             adding_ticket: false,
-            new_ticket_id: None,
+            new_ticket_id: TextField::empty(),
             jira_file,
             tickets_pending_scan: 0,
         }
     }
 
     pub fn add_char_to_ticket_id(&mut self, c: char) {
-        self.new_ticket_id
-            .get_or_insert_with(String::new)
-            .push(c.to_ascii_uppercase());
+        self.new_ticket_id.insert(c.to_ascii_uppercase());
     }
 
     pub fn remove_char_from_ticket_id(&mut self) {
-        if let Some(id) = &mut self.new_ticket_id {
-            id.pop();
-            if id.is_empty() {
-                self.new_ticket_id = None;
-            }
-        }
+        self.new_ticket_id.backspace();
     }
 
     pub fn add_ticket(&mut self, ticket_response: TicketResponse) {
@@ -174,12 +168,13 @@ impl Ticket {
 #[cfg(test)]
 mod tests {
     use crate::client::jira::models::{Assignee, Fields, Status, TicketResponse};
-    use crate::events::event::Direction;
+    use crate::event::events::Direction;
     use crate::persistence::persister::JiraFile;
     use crate::state::jira::{Jira, Ticket};
     use std::path::PathBuf;
     use tempfile::TempDir;
     use test_case::test_case;
+    use tui_text_field::TextField;
 
     fn get_jira_with_path(path: PathBuf) -> Jira {
         Jira {
@@ -199,7 +194,7 @@ mod tests {
             ],
             list_state: Default::default(),
             adding_ticket: false,
-            new_ticket_id: None,
+            new_ticket_id: TextField::empty(),
             jira_file: JiraFile::new_from_path(path),
             tickets_pending_scan: 0,
         }
@@ -325,23 +320,23 @@ mod tests {
 
         let mut jira = get_jira_with_path(file_path);
         jira.add_char_to_ticket_id('s');
-        assert_eq!(jira.new_ticket_id.as_deref().unwrap(), "S");
+        assert_eq!(jira.new_ticket_id.value(), "S");
 
         jira.add_char_to_ticket_id('-');
-        assert_eq!(jira.new_ticket_id.as_deref().unwrap(), "S-");
+        assert_eq!(jira.new_ticket_id.value(), "S-");
     }
 
-    #[test_case(None, None; "String not changed when NONE")]
-    #[test_case(Some(String::from("S")), None; "Removing last character set ticket_id to NONE")]
-    #[test_case(Some(String::from("SE")), Some(String::from("S")); "Removes a single character")]
-    fn jira_remove_char_from_ticket_id(current: Option<String>, expected: Option<String>) {
+    #[test_case("", ""; "empty field is noop")]
+    #[test_case("S", ""; "removing last char leaves empty")]
+    #[test_case("SE", "S"; "removes a single character")]
+    fn jira_remove_char_from_ticket_id(initial: &str, expected: &str) {
         let dir = TempDir::new().unwrap();
         let file_path = temp_file_path(&dir);
 
         let mut jira = get_jira_with_path(file_path);
-        jira.new_ticket_id = current;
+        jira.new_ticket_id = TextField::new(initial.to_string());
         jira.remove_char_from_ticket_id();
-        assert_eq!(jira.new_ticket_id, expected);
+        assert_eq!(jira.new_ticket_id.value(), expected);
     }
 
     #[test]

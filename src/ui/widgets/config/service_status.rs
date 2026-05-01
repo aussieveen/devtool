@@ -6,6 +6,7 @@ use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
+use tui_text_field::TextField;
 
 pub fn render(
     frame: &mut Frame,
@@ -84,41 +85,49 @@ fn render_inline_edit(frame: &mut Frame, area: Rect, form: &AddServiceForm) {
     let lines = vec![
         field_line(
             "Name        ",
-            &form.name,
+            form.name.value(),
             form.active_field == FormField::Name,
         ),
         Line::from(""),
         field_line(
             "Staging URL ",
-            &form.staging,
+            form.staging.value(),
             form.active_field == FormField::Staging,
         ),
         Line::from(""),
         field_line(
             "Preprod URL ",
-            &form.preprod,
+            form.preprod.value(),
             form.active_field == FormField::Preprod,
         ),
         Line::from(""),
         field_line(
             "Prod URL    ",
-            &form.prod,
+            form.prod.value(),
             form.active_field == FormField::Prod,
         ),
         Line::from(""),
         field_line(
             "Repo URL    ",
-            &form.repo,
+            form.repo.value(),
             form.active_field == FormField::Repo,
         ),
-        Line::from(""),
-        Line::from(Span::styled(
-            "  [enter] Save   [esc] Cancel   [tab] Next field   [shift+tab] Prev field",
-            Style::default().fg(Color::Gray),
-        )),
     ];
 
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
+
+    // Place the terminal cursor on the active field.
+    // Format is "  {label}: {value}" where label is 12 chars → prefix = 16 chars.
+    let row: u16 = match form.active_field {
+        FormField::Name => 0,
+        FormField::Staging => 2,
+        FormField::Preprod => 4,
+        FormField::Prod => 6,
+        FormField::Repo => 8,
+    };
+    let field = form.active_field();
+    let char_offset = char_offset_to_cursor(field);
+    frame.set_cursor_position((inner.x + 16 + char_offset, inner.y + row));
 }
 
 fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
@@ -136,12 +145,16 @@ fn field_line(label: &str, value: &str, active: bool) -> Line<'static> {
     } else {
         Style::default().fg(Color::White)
     };
-    let cursor = if active { "_" } else { "" };
 
     Line::from(vec![
         Span::styled(format!("  {label}: "), label_style),
-        Span::styled(format!("{value}{cursor}"), value_style),
+        Span::styled(value.to_string(), value_style),
     ])
+}
+
+/// Returns the number of display columns from the start of the value to the cursor position.
+fn char_offset_to_cursor(field: &TextField) -> u16 {
+    field.value()[..field.cursor()].chars().count() as u16
 }
 
 fn truncate(s: &str, max: usize) -> String {

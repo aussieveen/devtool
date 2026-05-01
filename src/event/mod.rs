@@ -1,5 +1,5 @@
-pub(crate) mod event;
+pub(crate) mod events;
 pub(crate) mod handler;
+pub mod handlers;
 pub(crate) mod sender;
 mod task;
-pub(crate) mod tools;

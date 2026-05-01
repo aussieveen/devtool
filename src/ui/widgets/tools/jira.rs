@@ -6,10 +6,10 @@ use ratatui::prelude::Span;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, List, ListItem, Paragraph};
+use tui_text_field::TextField;
 
 pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     let adding_ticket = state.adding_ticket;
-    let new_ticket_id = state.new_ticket_id.as_deref().unwrap_or_default();
 
     // When adding a ticket, reserve 3 rows for the inline input; otherwise use full area.
     let ticket_area = if adding_ticket {
@@ -18,7 +18,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
             .constraints([Constraint::Min(0), Constraint::Length(3)])
             .split(area);
         let input_area = vertical[1];
-        render_add_ticket_input(frame, input_area, new_ticket_id);
+        render_add_ticket_input(frame, input_area, &state.new_ticket_id);
         vertical[0]
     } else {
         area
@@ -66,7 +66,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut Jira) {
     );
 }
 
-fn render_add_ticket_input(frame: &mut Frame, area: Rect, value: &str) {
+fn render_add_ticket_input(frame: &mut Frame, area: Rect, field: &TextField) {
     let block = Block::bordered()
         .title(" Add Jira Ticket ")
         .border_style(edit_border_style());
@@ -75,11 +75,14 @@ fn render_add_ticket_input(frame: &mut Frame, area: Rect, value: &str) {
 
     frame.render_widget(
         Paragraph::new(Line::from(vec![Span::styled(
-            format!("{value}_"),
+            field.value().to_string(),
             Style::default()
                 .fg(Color::White)
                 .add_modifier(Modifier::BOLD),
         )])),
         inner,
     );
+
+    let char_offset = field.value()[..field.cursor()].chars().count() as u16;
+    frame.set_cursor_position((inner.x + char_offset, inner.y));
 }

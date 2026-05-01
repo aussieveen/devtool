@@ -1,18 +1,20 @@
 use crate::app::App;
 use crate::environment::Environment::{Preproduction, Production, Staging};
-use crate::events::event::AppEvent::{
-    ActivityEvent, AppLog, GetCommitRefErrored, GetCommitRefOk, ScanServiceEnv, ScanServices,
-    ServiceStatusListMove,
+use crate::event::events::AppEvent::{ActivityEvent, AppLog};
+use crate::event::events::ServiceStatusEvent::{
+    GetCommitRefErrored, GetCommitRefOk, ListMove, Scan, ScanServiceEnv,
 };
-use crate::events::event::{AppEvent, Direction};
-use crate::state::log::LogLevel;
+use crate::event::events::{Direction, GenericEvent, ServiceStatusEvent};
+use crate::state::log::{LogEntry, LogLevel, log_source};
 use crate::state::service_status::CommitRefStatus;
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::string_copy::copy_to_clipboard;
 
-pub fn handle_event(app: &mut App, app_event: AppEvent) {
-    match app_event {
-        ServiceStatusListMove(direction) => {
+const SERVICE_NAME: &str = log_source::SERVICE_STATUS;
+
+pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
+    match event {
+        ListMove(direction) => {
             let state = &mut app.state.service_status;
             let len = state.services.len();
             let table_state = &mut state.table_state;
@@ -41,21 +43,21 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 }
             }
         }
-        ScanServices => {
+        Scan => {
             let len = app.state.service_status.services.len();
             let sender = app.event_sender.clone();
 
             let service_count = len;
-            sender.send(AppLog(
+            sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Info,
-                "healthcheck".to_string(),
+                SERVICE_NAME,
                 format!("Scan started — {} services × 3 environments", service_count),
-            ));
+            )));
 
             for service_idx in 0..len {
-                sender.send(ScanServiceEnv(service_idx, Staging));
-                sender.send(ScanServiceEnv(service_idx, Preproduction));
-                sender.send(ScanServiceEnv(service_idx, Production));
+                sender.send_service_status_event(ScanServiceEnv(service_idx, Staging));
+                sender.send_service_status_event(ScanServiceEnv(service_idx, Preproduction));
+                sender.send_service_status_event(ScanServiceEnv(service_idx, Production));
             }
         }
         ScanServiceEnv(service_idx, env) => {
@@ -81,7 +83,7 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
             {
                 let msg = status_activity_message(&new_status);
                 app.event_sender
-                    .send(ActivityEvent(svc_cfg.name.clone(), msg));
+                    .send_app_event(ActivityEvent(svc_cfg.name.clone(), msg));
             }
         }
         GetCommitRefErrored(error, service_idx, env) => {
@@ -90,33 +92,39 @@ pub fn handle_event(app: &mut App, app_event: AppEvent) {
                 .set_commit_error(service_idx, &env, error.clone());
 
             if let Some(svc_cfg) = app.config.servicestatus.get(service_idx) {
-                let source = "healthcheck".to_string();
                 let env_label = env.to_string().to_lowercase();
-                let message = format!("{}/{}: {}", svc_cfg.name, env_label, friendly_error(&error));
-                app.event_sender
-                    .send(AppLog(LogLevel::Error, source, message));
+                app.event_sender.send_app_event(AppLog(LogEntry::new(
+                    LogLevel::Warning,
+                    SERVICE_NAME,
+                    format!("{}/{}: {}", svc_cfg.name, env_label, friendly_error(&error)),
+                )));
             }
         }
-        AppEvent::CopyToClipboard => {
+    }
+}
+
+pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
+    match event {
+        GenericEvent::CopyToClipboard => {
             if let Some(link) = get_link_url(app)
                 && let Err(e) = copy_to_clipboard(link.as_str())
             {
-                app.event_sender.send(AppLog(
+                app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Warning,
-                    "service-status".to_string(),
-                    format!("Copy to clipboard failed: {}", e),
-                ));
+                    SERVICE_NAME,
+                    format!("Copy to clipboard failed: {e}"),
+                )));
             }
         }
-        AppEvent::OpenInBrowser => {
+        GenericEvent::OpenInBrowser => {
             if let Some(link) = get_link_url(app)
                 && let Err(e) = open_link_in_browser(link.as_str())
             {
-                app.event_sender.send(AppLog(
+                app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Warning,
-                    "service-status".to_string(),
-                    format!("Open in browser failed: {}", e),
-                ));
+                    SERVICE_NAME,
+                    format!("Open in browser failed: {e}"),
+                )));
             }
         }
         _ => {}
