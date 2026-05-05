@@ -29,15 +29,21 @@ fn wrap_message(msg: &str, width: usize) -> Vec<String> {
     let mut lines = Vec::new();
     let mut remaining = msg;
     while !remaining.is_empty() {
-        if remaining.len() <= width {
+        if remaining.chars().count() <= width {
             lines.push(remaining.to_string());
             break;
         }
+        // Byte position of the `width`-th character — a valid char boundary.
+        let byte_width = remaining
+            .char_indices()
+            .nth(width)
+            .map(|(i, _)| i)
+            .unwrap_or(remaining.len());
         // Try to break at a space boundary within the width.
-        let break_at = remaining[..width]
+        let break_at = remaining[..byte_width]
             .rfind(' ')
             .map(|i| i + 1) // include the space on the current line, trim on next
-            .unwrap_or(width);
+            .unwrap_or(byte_width);
         lines.push(remaining[..break_at].trim_end().to_string());
         remaining = remaining[break_at..].trim_start();
     }
@@ -222,5 +228,19 @@ mod tests {
     fn wrap_message_zero_width_returns_original() {
         let result = wrap_message("hello", 0);
         assert_eq!(result, vec!["hello"]);
+    }
+
+    #[test]
+    fn wrap_message_multibyte_chars_no_panic() {
+        // '—' is 3 bytes; without char-aware slicing this panics at a byte boundary.
+        let msg = "Token failed — connection timed out after 30s";
+        let result = wrap_message(msg, 22);
+        for line in &result {
+            assert!(line.chars().count() <= 22, "line too long: {:?}", line);
+        }
+        assert_eq!(
+            result.join(" ").split_whitespace().collect::<Vec<_>>(),
+            msg.split_whitespace().collect::<Vec<_>>()
+        );
     }
 }
