@@ -238,7 +238,9 @@ mod tests {
         for line in &result {
             assert!(line.chars().count() <= 22, "line too long: {:?}", line);
         }
-        assert_eq!(result.join(" ").split_whitespace().collect::<Vec<_>>(),
-                   msg.split_whitespace().collect::<Vec<_>>());
+        assert_eq!(
+            result.join(" ").split_whitespace().collect::<Vec<_>>(),
+            msg.split_whitespace().collect::<Vec<_>>()
+        );
     }
 }
