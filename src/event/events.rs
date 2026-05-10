@@ -46,7 +46,7 @@ pub enum AppEvent {
     // Config event
     ConfigListMove(Direction),
     ToggleFeature,
-    OpenToolConfig(Tool),
+    OpenToolConfig,
     CloseToolConfig,
 }
 

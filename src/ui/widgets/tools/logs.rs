@@ -119,7 +119,7 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
     const SOURCE_MIN: usize = 8;
     let source_width = entries
         .iter()
-        .map(|e| e.source.len())
+        .map(|e| format!("{}", e.source).len())
         .max()
         .unwrap_or(SOURCE_MIN)
         .max(SOURCE_MIN);
@@ -134,7 +134,7 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
             .map(|e| {
                 let ts = e.timestamp.format("%H:%M:%S").to_string();
                 let level_style = level_style(e.level);
-                let source = format!("{:<width$}", e.source, width = source_width);
+                let source = format!("{}", e.source);
                 let mut title_chunks = wrap_message(&e.title, msg_width).into_iter();
 
                 let mut lines: Vec<Line> = Vec::with_capacity(1);

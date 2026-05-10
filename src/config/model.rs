@@ -105,7 +105,7 @@ pub(crate) struct ServiceStatusConfig {
 }
 
 impl ServiceStatusConfig {
-    pub fn get_from_env(&self, env: &Environment) -> &str {
+    pub fn config_for_env(&self, env: &Environment) -> &str {
         match env {
             Environment::Local => &self.staging,
             Environment::Staging => &self.staging,
@@ -130,7 +130,7 @@ pub struct Auth0Config {
 }
 
 impl Auth0Config {
-    pub fn get_from_env(&self, env: &Environment) -> &str {
+    pub fn config_for_env(&self, env: &Environment) -> &str {
         match env {
             Environment::Local => &self.local,
             Environment::Staging => &self.staging,

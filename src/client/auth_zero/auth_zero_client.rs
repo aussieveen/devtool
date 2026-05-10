@@ -7,7 +7,7 @@ use reqwest::Client;
 use std::collections::HashMap;
 use std::time::Duration;
 
-pub async fn get_token(
+pub async fn token(
     client: Client,
     auth0_url: &str,
     client_id: &str,
@@ -61,7 +61,7 @@ mod tests {
 
         let base_url = format!("{}/token", server.url());
         let client = Client::new();
-        let result = get_token(client, &base_url, "id", "secret", "audience").await;
+        let result = token(client, &base_url, "id", "secret", "audience").await;
         let token_response = result.unwrap();
 
         assert_eq!(
@@ -94,7 +94,7 @@ mod tests {
 
         let base_url = format!("{}/token", server.url());
         let client = Client::new();
-        let result = get_token(client, &base_url, "id", "secret", "audience").await;
+        let result = token(client, &base_url, "id", "secret", "audience").await;
         let error = result.err();
 
         assert_eq!(
@@ -119,7 +119,7 @@ mod tests {
 
         let base_url = format!("{}/token", server.url());
         let client = Client::new();
-        let result = get_token(client, &base_url, "id", "secret", "audience").await;
+        let result = token(client, &base_url, "id", "secret", "audience").await;
 
         assert!(result.is_err());
 

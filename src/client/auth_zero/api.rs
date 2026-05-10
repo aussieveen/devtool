@@ -43,7 +43,7 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
     ) {
         let client = self.client.clone();
         tokio::spawn(async move {
-            match get_token(client, service_idx, env_idx, config).await {
+            match token(client, service_idx, env_idx, config).await {
                 Ok(token) => {
                     sender.send_token_generator_event(TokenGenerated(token, service_idx, env_idx));
                 }
@@ -59,7 +59,7 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
     }
 }
 
-async fn get_token(
+async fn token(
     client: Client,
     service_idx: usize,
     env_idx: usize,
@@ -68,9 +68,9 @@ async fn get_token(
     let service = &config.services[service_idx];
     let credentials = &service.credentials[env_idx];
 
-    Ok(auth_zero_client::get_token(
+    Ok(auth_zero_client::token(
         client,
-        config.auth0.get_from_env(&credentials.env),
+        config.auth0.config_for_env(&credentials.env),
         &credentials.client_id,
         &credentials.client_secret,
         &service.audience,

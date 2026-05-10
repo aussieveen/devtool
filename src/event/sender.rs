@@ -3,12 +3,12 @@ use tokio::sync::mpsc;
 
 #[derive(Clone)]
 pub struct EventSender {
-    pub(crate) sender: mpsc::UnboundedSender<Event>,
+    pub(crate) sender: mpsc::Sender<Event>,
 }
 
 impl EventSender {
     pub fn send_event(&self, event: Event) {
-        let _ = self.sender.send(event);
+        let _ = self.sender.try_send(event);
     }
 
     pub fn send_app_event(&self, event: AppEvent) {

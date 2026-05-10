@@ -140,7 +140,7 @@ fn service_status_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>)
 }
 
 fn token_generator_tool_hints(state: &AppState) -> (Line<'static>, Line<'static>) {
-    let line2 = match state.token_generator.get_token_for_selected_service_env() {
+    let line2 = match state.token_generator.token_for_selected_service_env() {
         Token::Idle => Line::from(""),
         Token::Requesting => hints(&[Hint::Status("Generating token…")]),
         Token::Ready(_) => hints(&[Hint::CopyToken]),

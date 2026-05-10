@@ -81,7 +81,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         Config,
         KeyCode::Right,
         KeyModifiers::NONE,
-        App::OpenToolConfig(Tool::ServiceStatus).into(),
+        App::OpenToolConfig.into(),
     );
     key_event_map.add_static(
         Config,
@@ -692,7 +692,7 @@ mod tests {
     #[test_case(Config, KeyCode::Up, KeyModifiers::NONE, App::ConfigListMove(Up).into(); "config up")]
     #[test_case(Config, KeyCode::Enter, KeyModifiers::NONE, App::ToggleFeature.into(); "config enter toggles feature")]
     #[test_case(Config, KeyCode::Left, KeyModifiers::NONE, Generic::SetFocus(AppFocus::List).into(); "config left focuses tools list")]
-    #[test_case(Config, KeyCode::Right, KeyModifiers::NONE, App::OpenToolConfig(Tool::ServiceStatus).into(); "config right opens tool config")]
+    #[test_case(Config, KeyCode::Right, KeyModifiers::NONE, App::OpenToolConfig.into(); "config right opens tool config")]
     #[test_case(Logs, KeyCode::Down, KeyModifiers::NONE, App::LogsListMove(Down).into(); "logs down navigates")]
     #[test_case(Logs, KeyCode::Up, KeyModifiers::NONE, App::LogsListMove(Up).into(); "logs up navigates")]
     #[test_case(ToolConfig(Tool::ServiceStatus), KeyCode::Down, KeyModifiers::NONE, ServiceStatusConfig::ListMove(Down).into(); "tool config down")]

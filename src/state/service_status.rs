@@ -37,7 +37,7 @@ impl ServiceStatus {
         }
     }
 
-    pub fn get_selected_service_idx(&self) -> Option<usize> {
+    pub fn selected_service_idx(&self) -> Option<usize> {
         self.table_state.selected()
     }
 
@@ -51,12 +51,12 @@ impl ServiceStatus {
         }
     }
 
-    pub(crate) fn get_link(&self, repo_url: &str) -> Option<String> {
+    pub(crate) fn link(&self, repo_url: &str) -> Option<String> {
         let service_idx = self.table_state.selected()?;
         let service = &self.services[service_idx];
 
-        if let Some(prod_ref) = service.production.get_ref()
-            && let Some(preprod_ref) = service.preproduction.get_ref()
+        if let Some(prod_ref) = service.production.commit_ref()
+            && let Some(preprod_ref) = service.preproduction.commit_ref()
         {
             Some(format!(
                 "{}/compare/{}...{}",
@@ -77,14 +77,16 @@ pub enum Commit {
 }
 
 impl Commit {
-    pub fn get_ref(&self) -> Option<&str> {
+    const COMMIT_SEGMENT_LENGTH:usize = 6;
+
+    pub fn commit_ref(&self) -> Option<&str> {
         match self {
             Commit::Ok(s) => Some(s.as_str()),
             _ => None,
         }
     }
 
-    pub fn get_error(&self) -> Option<&str> {
+    pub fn error(&self) -> Option<&str> {
         match self {
             Commit::Error(s) => Some(s.as_str()),
             _ => None,
@@ -92,7 +94,7 @@ impl Commit {
     }
 
     pub fn short_value(&self) -> Option<String> {
-        let n = 6;
+        let n = Self::COMMIT_SEGMENT_LENGTH;
         match self {
             Commit::Ok(s) if s.len() >= n * 2 => {
                 Some(format!("{}...{}", &s[..n], &s[s.len() - n..]))
@@ -142,8 +144,8 @@ impl Service {
             return CommitRefStatus::CommitMissing;
         }
 
-        let preprod_prod_match = self.production.get_ref() == self.preproduction.get_ref();
-        let staging_preprod_match = self.preproduction.get_ref() == self.staging.get_ref();
+        let preprod_prod_match = self.production.commit_ref() == self.preproduction.commit_ref();
+        let staging_preprod_match = self.preproduction.commit_ref() == self.staging.commit_ref();
 
         if preprod_prod_match && staging_preprod_match {
             return CommitRefStatus::AllMatches;
@@ -205,10 +207,10 @@ mod tests {
     #[test]
     fn get_selected_service_idx_returns_selected() {
         let mut service_status = ServiceStatus::new(3);
-        assert_eq!(service_status.get_selected_service_idx(), None);
+        assert_eq!(service_status.selected_service_idx(), None);
 
         service_status.table_state.select(Some(2));
-        assert_eq!(service_status.get_selected_service_idx(), Some(2));
+        assert_eq!(service_status.selected_service_idx(), Some(2));
     }
 
     #[test]
@@ -240,7 +242,7 @@ mod tests {
         service_status.services[1].preproduction = Commit::Ok(String::from("preprod"));
         service_status.services[1].production = Commit::Ok(String::from("prod"));
 
-        let actual = service_status.get_link("https://github.com/myrepo");
+        let actual = service_status.link("https://github.com/myrepo");
 
         assert_eq!(
             actual.unwrap(),
@@ -262,19 +264,19 @@ mod tests {
         service_status.services[1].preproduction = preprod_commit;
         service_status.services[1].production = prod_commit;
 
-        assert_eq!(None, service_status.get_link("repo_url"));
+        assert_eq!(None, service_status.link("repo_url"));
     }
 
     #[test_case(Commit::Ok(String::from("commit")), Some("commit"); "Returns value from Ok Commit")]
     #[test_case(Commit::Fetching, None; "Returns NONE when no Commit::Ok")]
     fn commit_get_ref_returns_expected_value(commit: Commit, expected: Option<&str>) {
-        assert_eq!(commit.get_ref(), expected);
+        assert_eq!(commit.commit_ref(), expected);
     }
 
     #[test_case(Commit::Ok(String::from("commit")), None; "Returns NONE when no Commit::Ok")]
     #[test_case(Commit::Error(String::from("No good")), Some("No good"); "Returns value from Error Commit")]
     fn commit_get_error_returns_expected_value(commit: Commit, expected: Option<&str>) {
-        assert_eq!(commit.get_error(), expected);
+        assert_eq!(commit.error(), expected);
     }
 
     #[test_case(

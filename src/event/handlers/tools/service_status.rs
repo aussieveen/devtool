@@ -5,12 +5,12 @@ use crate::event::events::ServiceStatusEvent::{
     GetCommitRefErrored, GetCommitRefOk, ListMove, Scan, ScanServiceEnv,
 };
 use crate::event::events::{Direction, GenericEvent, ServiceStatusEvent};
-use crate::state::log::{LogEntry, LogLevel, log_source};
+use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::state::service_status::CommitRefStatus;
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::string_copy::copy_to_clipboard;
 
-const SERVICE_NAME: &str = log_source::SERVICE_STATUS;
+const LOG_SOURCE: LogSource = LogSource::ServiceStatus;
 
 pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
     match event {
@@ -50,7 +50,7 @@ pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
             let service_count = len;
             sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Info,
-                SERVICE_NAME,
+                LOG_SOURCE,
                 format!("Scan started — {} services × 3 environments", service_count),
             )));
 
@@ -68,7 +68,7 @@ pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
             let config = app.config.servicestatus.clone();
 
             app.healthcheck_api
-                .get_commit_ref(service_idx, env, config, sender);
+                .commit_ref(service_idx, env, config.into(), sender);
         }
         GetCommitRefOk(commit, service_idx, env) => {
             let old_status = app.state.service_status.services[service_idx].commit_ref_status();
@@ -95,7 +95,7 @@ pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
                 let env_label = env.to_string().to_lowercase();
                 app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Warning,
-                    SERVICE_NAME,
+                    LOG_SOURCE,
                     format!("{}/{}: {}", svc_cfg.name, env_label, friendly_error(&error)),
                 )));
             }
@@ -106,23 +106,23 @@ pub fn handle_event(app: &mut App, event: ServiceStatusEvent) {
 pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
     match event {
         GenericEvent::CopyToClipboard => {
-            if let Some(link) = get_link_url(app)
+            if let Some(link) = link_url(app)
                 && let Err(e) = copy_to_clipboard(link.as_str())
             {
                 app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Warning,
-                    SERVICE_NAME,
+                    LOG_SOURCE,
                     format!("Copy to clipboard failed: {e}"),
                 )));
             }
         }
         GenericEvent::OpenInBrowser => {
-            if let Some(link) = get_link_url(app)
+            if let Some(link) = link_url(app)
                 && let Err(e) = open_link_in_browser(link.as_str())
             {
                 app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Warning,
-                    SERVICE_NAME,
+                    LOG_SOURCE,
                     format!("Open in browser failed: {e}"),
                 )));
             }
@@ -131,14 +131,14 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
     }
 }
 
-fn get_link_url(app: &App) -> Option<String> {
+fn link_url(app: &App) -> Option<String> {
     if !app.state.service_status.has_link() {
         return None;
     }
-    let service_idx = app.state.service_status.get_selected_service_idx()?;
+    let service_idx = app.state.service_status.selected_service_idx()?;
     app.state
         .service_status
-        .get_link(&app.config.servicestatus[service_idx].repo)
+        .link(&app.config.servicestatus[service_idx].repo)
 }
 
 fn status_activity_message(status: &CommitRefStatus) -> String {

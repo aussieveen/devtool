@@ -2,7 +2,7 @@ use crate::app::Tool::{Jira, ServiceStatus, TokenGenerator};
 use crate::client::auth_zero::api::{AuthZeroApi, ImmediateAuthZeroApi};
 use crate::client::healthcheck::api::{HealthcheckApi, ImmediateHealthcheckApi};
 use crate::client::jira::api::{ImmediateJiraApi, JiraApi};
-use crate::config::loader::ConfigLoader;
+use crate::config::loader::ConfigFile;
 use crate::config::model::Config;
 use crate::event::events::AppEvent::*;
 use crate::event::events::GenericEvent::{
@@ -26,7 +26,7 @@ use crate::input::key_context::KeyContext::{
 use crate::input::key_event_map::KeyEventMap;
 use crate::popup::model::Popup;
 pub(crate) use crate::state::app::{AppFocus, Tool};
-use crate::state::log::{LogEntry, LogLevel, log_source};
+use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
@@ -43,7 +43,7 @@ pub struct App {
     event_handler: EventHandler,
     pub(crate) event_sender: EventSender,
     pub(crate) config: Config,
-    pub(crate) config_loader: ConfigLoader,
+    pub(crate) config_loader: ConfigFile,
     key_event_map: KeyEventMap,
 
     // External Services
@@ -54,7 +54,7 @@ pub struct App {
 
 impl App {
     /// Construct a new instance of [`App`].
-    pub fn new(config: Config, config_loader: ConfigLoader) -> Self {
+    pub fn new(config: Config, config_loader: ConfigFile) -> Self {
         let event_handler = EventHandler::new();
         let event_sender = event_handler.sender();
         Self {
@@ -77,7 +77,7 @@ impl App {
         // Log app startup
         self.state.log.push_log(LogEntry::new(
             LogLevel::Info,
-            log_source::APP,
+            LogSource::App,
             "App started — config loaded",
         ));
 
@@ -213,7 +213,7 @@ impl App {
                     }
                 }
             }
-            OpenToolConfig(_) => {
+            OpenToolConfig => {
                 // Use the config editor's currently selected tool rather than the event payload
                 if let Some(idx) = self.state.config_editor.list_state.selected()
                     && let Some(item) = self.state.config_editor.items.get(idx)
@@ -303,7 +303,7 @@ impl App {
         // First-match-wins: the most specific context in the stack takes priority.
         // This prevents lower-priority contexts (e.g. Global Quit on Esc) from
         // also firing when a higher-priority context already handled the key.
-        for context in self.get_context_stack() {
+        for context in self.context_stack() {
             if let Some(event) = self.key_event_map.resolve(context, key) {
                 self.event_sender.send_event(event.clone());
                 break;
@@ -313,7 +313,7 @@ impl App {
         Ok(())
     }
 
-    fn get_context_stack(&mut self) -> Vec<KeyContext> {
+    fn context_stack(&mut self) -> Vec<KeyContext> {
         let mut stack = Vec::new();
 
         // If a popup is displayed, don't allow additional contexts i.e

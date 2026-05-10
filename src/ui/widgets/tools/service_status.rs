@@ -50,7 +50,7 @@ pub fn render(
                 &service.production,
             ]
             .iter()
-            .filter(|c| c.get_error().is_some())
+            .filter(|c| c.error().is_some())
             .count() as u16
         } else {
             0
@@ -148,7 +148,7 @@ pub fn render(
         ];
         for commit in commits {
             let (c, env) = commit;
-            if let Some(error) = c.get_error() {
+            if let Some(error) = c.error() {
                 lines.push(format!("{}: {}", env, error).into());
             }
         }

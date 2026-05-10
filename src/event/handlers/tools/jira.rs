@@ -8,11 +8,11 @@ use crate::event::events::JiraEvent::{
 };
 use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::state::app::AppFocus;
-use crate::state::log::{LogEntry, LogLevel, log_source};
+use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::utils::browser::open_link_in_browser;
 use crate::utils::update_list_state;
 
-const SERVICE_NAME: &str = log_source::JIRA;
+const LOG_SOURCE: LogSource = LogSource::Jira;
 
 pub fn handle_event(app: &mut App, event: JiraEvent) {
     match event {
@@ -106,7 +106,7 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
                 sender.send_app_event(AppLog(
                     LogEntry::new(
                         LogLevel::Error,
-                        SERVICE_NAME,
+                        LOG_SOURCE,
                         "Unable to persist Jira tickets",
                     )
                     .with_detail(e.to_string()),
@@ -119,17 +119,17 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
                 if app.state.jira.tickets_pending_scan > 0 {
                     app.event_sender.send_app_event(AppLog(LogEntry::new(
                         LogLevel::Warning,
-                        SERVICE_NAME,
+                        LOG_SOURCE,
                         "Ticket scan skipped — previous scan still running",
                     )));
                 }
                 return;
             }
-            if let Some(config) = app.config.jira.clone() {
+            if let Some(config) = &app.config.jira {
                 let count = app.state.jira.tickets.len();
                 app.event_sender.send_app_event(AppLog(LogEntry::new(
                     LogLevel::Info,
-                    SERVICE_NAME,
+                    LOG_SOURCE,
                     format!("Ticket scan started — {} tickets", count),
                 )));
                 app.state.jira.tickets_pending_scan = app.state.jira.tickets.len();
@@ -157,7 +157,7 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
         if let Err(e) = open_link_in_browser(link.as_str()) {
             app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Warning,
-                SERVICE_NAME,
+                LOG_SOURCE,
                 format!("Open in browser failed: {e}"),
             )));
         }

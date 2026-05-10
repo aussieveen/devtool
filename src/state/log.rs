@@ -1,3 +1,4 @@
+use core::fmt;
 use chrono::{DateTime, Local, TimeDelta};
 
 const MAX_ENTRIES: usize = 500;
@@ -5,11 +6,24 @@ const EXPIRY_HOURS: i64 = 3;
 
 // ── Log source constants ──────────────────────────────────────────────────────
 
-pub mod log_source {
-    pub const APP: &str = "App";
-    pub const JIRA: &str = "Jira";
-    pub const SERVICE_STATUS: &str = "Service Status";
-    pub const TOKEN_GENERATOR: &str = "Token Generator";
+#[derive(Clone, Debug, PartialEq)]
+pub enum LogSource{
+    App,
+    Jira,
+    ServiceStatus,
+    TokenGenerator
+}
+
+impl fmt::Display for LogSource {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Use `self.number` to refer to each positional data point.
+        write!(f, "{}", match self{
+            LogSource::App => "App",
+            LogSource::Jira => "Jira",
+            LogSource::ServiceStatus => "Service Status",
+            LogSource::TokenGenerator => "Token Generator"
+        })
+    }
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
@@ -56,7 +70,7 @@ impl LogLevel {
 pub struct AppLogEntry {
     pub timestamp: DateTime<Local>,
     pub level: LogLevel,
-    pub source: String,
+    pub source: LogSource,
     pub title: String,
     pub detail: Option<String>,
 }
@@ -66,13 +80,13 @@ pub struct AppLogEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub struct LogEntry {
     pub level: LogLevel,
-    pub source: String,
+    pub source: LogSource,
     pub title: String,
     pub detail: Option<String>,
 }
 
 impl LogEntry {
-    pub fn new(level: LogLevel, source: impl Into<String>, title: impl Into<String>) -> Self {
+    pub fn new(level: LogLevel, source: LogSource, title: impl Into<String>) -> Self {
         Self {
             level,
             source: source.into(),

@@ -5,7 +5,7 @@ use crate::error::model::ClientError;
 use crate::event::events::AppEvent::AppLog;
 use crate::event::events::JiraEvent::TicketRetrieved;
 use crate::event::sender::EventSender;
-use crate::state::log::{LogEntry, LogLevel, log_source};
+use crate::state::log::{LogEntry, LogLevel, LogSource};
 use reqwest::Client;
 
 pub trait JiraApi {
@@ -34,13 +34,13 @@ impl JiraApi for ImmediateJiraApi {
     fn fetch_ticket(&self, ticket_id: String, jira_config: JiraConfig, sender: EventSender) {
         let client = self.client.clone();
         tokio::spawn(async move {
-            match get_ticket(client, &ticket_id, &jira_config).await {
+            match ticket(client, &ticket_id, &jira_config).await {
                 Ok(ticket) => {
                     sender.send_jira_event(TicketRetrieved(ticket));
                 }
                 Err(err) => {
                     sender.send_app_event(AppLog(
-                        LogEntry::new(LogLevel::Error, log_source::JIRA, "Failed to get ticket")
+                        LogEntry::new(LogLevel::Error, LogSource::Jira, "Failed to get ticket")
                             .with_detail(err.to_string()),
                     ));
                 }
@@ -49,7 +49,7 @@ impl JiraApi for ImmediateJiraApi {
     }
 }
 
-async fn get_ticket(
+async fn ticket(
     client: Client,
     ticket_id: &str,
     config: &JiraConfig,

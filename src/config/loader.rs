@@ -3,21 +3,21 @@ use crate::error::model::ConfigError;
 use std::fs;
 use std::path::PathBuf;
 
-pub struct ConfigLoader {
+pub struct ConfigFile {
     file_path: PathBuf,
 }
 
-impl ConfigLoader {
-    pub fn new(folder: &str, config_file: &str) -> ConfigLoader {
+impl ConfigFile {
+    pub fn new(folder: &str, config_file: &str) -> ConfigFile {
         let home_dir = dirs::home_dir().expect("Could not find home directory");
-        ConfigLoader {
+        ConfigFile {
             file_path: home_dir.join(folder).join(config_file),
         }
     }
 
     #[cfg(test)]
-    pub(crate) fn from_path(file_path: PathBuf) -> ConfigLoader {
-        ConfigLoader { file_path }
+    pub(crate) fn from_path(file_path: PathBuf) -> ConfigFile {
+        ConfigFile { file_path }
     }
 
     pub fn read_or_create_config(&self) -> Result<Config, ConfigError> {
@@ -60,19 +60,19 @@ mod tests {
             repo: "http://repo.test.com".to_string(),
         };
         assert_eq!(
-            status.get_from_env(&Environment::Staging),
+            status.config_for_env(&Environment::Staging),
             "http://staging.test.com"
         );
         assert_eq!(
-            status.get_from_env(&Environment::Preproduction),
+            status.config_for_env(&Environment::Preproduction),
             "http://preproduction.test.com"
         );
         assert_eq!(
-            status.get_from_env(&Environment::Production),
+            status.config_for_env(&Environment::Production),
             "http://production.test.com"
         );
         assert_eq!(
-            status.get_from_env(&Environment::Local),
+            status.config_for_env(&Environment::Local),
             "http://staging.test.com"
         );
     }
@@ -86,13 +86,13 @@ mod tests {
             production: "production".to_string(),
         };
 
-        assert_eq!(config.get_from_env(&Environment::Local), "local");
-        assert_eq!(config.get_from_env(&Environment::Staging), "staging");
+        assert_eq!(config.config_for_env(&Environment::Local), "local");
+        assert_eq!(config.config_for_env(&Environment::Staging), "staging");
         assert_eq!(
-            config.get_from_env(&Environment::Preproduction),
+            config.config_for_env(&Environment::Preproduction),
             "preproduction"
         );
-        assert_eq!(config.get_from_env(&Environment::Production), "production");
+        assert_eq!(config.config_for_env(&Environment::Production), "production");
     }
 
     fn temp_loader_path(dir: &TempDir) -> PathBuf {
@@ -105,7 +105,7 @@ mod tests {
         let file_path = temp_loader_path(&dir);
         assert!(!file_path.exists());
 
-        let config_loader = ConfigLoader::from_path(file_path.clone());
+        let config_loader = ConfigFile::from_path(file_path.clone());
         let config = config_loader.read_or_create_config().unwrap();
 
         // Returns default config with all features disabled
@@ -140,7 +140,7 @@ tokengenerator:
         let file_path = temp_loader_path(&dir);
         fs::write(&file_path, yaml).expect("Unable to write temp config file");
 
-        let config_loader = ConfigLoader::from_path(file_path);
+        let config_loader = ConfigFile::from_path(file_path);
         let config = config_loader.read_or_create_config().unwrap();
 
         assert_eq!(config.servicestatus[0].name, "My Api");

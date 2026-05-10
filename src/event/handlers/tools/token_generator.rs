@@ -6,18 +6,18 @@ use crate::event::events::TokenGeneratorEvent::{
 };
 use crate::event::events::{Event, GenericEvent, TokenGeneratorEvent};
 use crate::popup::model::Popup;
-use crate::state::log::{LogEntry, LogLevel, log_source};
+use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::state::token_generator::Token;
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::string_copy::copy_to_clipboard;
 use crate::utils::update_list_state;
 
-const SERVICE_NAME: &str = log_source::TOKEN_GENERATOR;
+const LOG_SOURCE: LogSource = LogSource::TokenGenerator;
 
 pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
     match event {
         EnvListMove(direction) => {
-            let (selected_service, _) = app.state.token_generator.get_selected_service_env();
+            let (selected_service, _) = app.state.token_generator.selected_service_env();
 
             let env_count = app.config.tokengenerator.services[selected_service]
                 .credentials
@@ -42,7 +42,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
             app.state.token_generator.focus = focus;
         }
         GenerateToken => {
-            let (service_idx, env_idx) = app.state.token_generator.get_selected_service_env();
+            let (service_idx, env_idx) = app.state.token_generator.selected_service_env();
 
             let svc_name = app
                 .config
@@ -62,7 +62,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
 
             app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Info,
-                SERVICE_NAME,
+                LOG_SOURCE,
                 format!("Requesting token: {}/{}", svc_name, env_name),
             )));
 
@@ -93,7 +93,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
 
             app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Info,
-                SERVICE_NAME,
+                LOG_SOURCE,
                 format!("Token generated: {}/{}", svc_name, env_name),
             )));
 
@@ -134,7 +134,7 @@ pub fn handle_event(app: &mut App, event: TokenGeneratorEvent) {
             app.event_sender.send_app_event(AppLog(
                 LogEntry::new(
                     LogLevel::Error,
-                    SERVICE_NAME,
+                    LOG_SOURCE,
                     format!("Token request failed — {}/{}", svc_name, env_name),
                 )
                 .with_detail(error),
@@ -148,14 +148,14 @@ pub fn handle_generic_event(app: &mut App, event: GenericEvent) {
         let token = app
             .state
             .token_generator
-            .get_token_for_selected_service_env();
+            .token_for_selected_service_env();
         if matches!(token, Token::Ready(_))
             && let Some(value) = token.value()
             && let Err(e) = copy_to_clipboard(value)
         {
             app.event_sender.send_app_event(AppLog(LogEntry::new(
                 LogLevel::Warning,
-                SERVICE_NAME,
+                LOG_SOURCE,
                 format!("Copy to clipboard failed: {e}"),
             )));
         }
