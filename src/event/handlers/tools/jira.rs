@@ -2,9 +2,9 @@ use crate::app::App;
 use crate::event::events::AppEvent::{ActivityEvent, AppLog};
 use crate::event::events::GenericEvent::OpenInBrowser;
 use crate::event::events::JiraEvent::{
-    AddTicketIdChar, ListMove, NewTicket, RemoveTicket, RemoveTicketIdChar, ScanTickets,
-    SubmitTicketId, TicketIdDelete, TicketIdEnd, TicketIdHome, TicketIdLeft, TicketIdRight,
-    TicketListUpdate, TicketMove, TicketRetrieved,
+    AddTicketIdChar, CancelNewTicket, ListMove, NewTicket, RemoveTicket, RemoveTicketIdChar,
+    ScanTickets, SubmitTicketId, TicketIdDelete, TicketIdEnd, TicketIdHome, TicketIdLeft,
+    TicketIdRight, TicketListUpdate, TicketMove, TicketRetrieved,
 };
 use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::state::app::AppFocus;
@@ -28,6 +28,11 @@ pub fn handle_event(app: &mut App, event: JiraEvent) {
             app.state.jira.new_ticket_id.clear();
             app.state.jira.adding_ticket = true;
             app.state.focus = AppFocus::JiraInput
+        }
+        CancelNewTicket => {
+            app.state.jira.new_ticket_id.clear();
+            app.state.jira.adding_ticket = false;
+            app.state.focus = AppFocus::Tool;
         }
         AddTicketIdChar(char) => app.state.jira.add_char_to_ticket_id(char),
         RemoveTicketIdChar => {
