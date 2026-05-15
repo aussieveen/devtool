@@ -48,6 +48,7 @@ pub enum AppEvent {
     ToggleFeature,
     OpenToolConfig,
     CloseToolConfig,
+    RebuildToolList,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -8,7 +8,7 @@ use crate::event::sender::EventSender;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
 use reqwest::Client;
 
-pub trait JiraApi {
+pub trait JiraApi: Send + Sync {
     fn fetch_ticket(&self, ticket_id: String, jira_config: JiraConfig, sender: EventSender);
 }
 

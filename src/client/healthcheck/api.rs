@@ -7,7 +7,7 @@ use crate::event::events::ServiceStatusEvent::{GetCommitRefErrored, GetCommitRef
 use crate::event::sender::EventSender;
 use reqwest::Client;
 
-pub trait HealthcheckApi {
+pub trait HealthcheckApi: Send + Sync {
     fn commit_ref(
         &self,
         service_idx: usize,

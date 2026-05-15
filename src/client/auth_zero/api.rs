@@ -5,7 +5,7 @@ use crate::event::events::TokenGeneratorEvent::{TokenFailed, TokenGenerated};
 use crate::event::sender::EventSender;
 use reqwest::Client;
 
-pub trait AuthZeroApi {
+pub trait AuthZeroApi: Send + Sync {
     fn fetch_token(
         &self,
         service_idx: usize,
