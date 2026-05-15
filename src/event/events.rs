@@ -119,6 +119,7 @@ pub enum TokenGeneratorConfigEvent {
 pub enum JiraEvent {
     ListMove(Direction), // Move down ticket list
     NewTicket,
+    CancelNewTicket,
     AddTicketIdChar(char),
     RemoveTicketIdChar,
     TicketIdLeft,
