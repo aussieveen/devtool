@@ -536,7 +536,7 @@ pub fn register_bindings(key_event_map: &mut KeyEventMap) {
         Editing(Tool::Jira),
         KeyCode::Esc,
         KeyModifiers::NONE,
-        Jira::CancelNewTicket.into()
+        Jira::CancelNewTicket.into(),
     );
     key_event_map.add_static(
         ToolCtx(Tool::Jira),

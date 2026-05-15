@@ -1,7 +1,11 @@
 use crate::app::App;
 use crate::event::events::AppEvent::{ActivityEvent, AppLog};
 use crate::event::events::GenericEvent::OpenInBrowser;
-use crate::event::events::JiraEvent::{AddTicketIdChar, CancelNewTicket, ListMove, NewTicket, RemoveTicket, RemoveTicketIdChar, ScanTickets, SubmitTicketId, TicketIdDelete, TicketIdEnd, TicketIdHome, TicketIdLeft, TicketIdRight, TicketListUpdate, TicketMove, TicketRetrieved};
+use crate::event::events::JiraEvent::{
+    AddTicketIdChar, CancelNewTicket, ListMove, NewTicket, RemoveTicket, RemoveTicketIdChar,
+    ScanTickets, SubmitTicketId, TicketIdDelete, TicketIdEnd, TicketIdHome, TicketIdLeft,
+    TicketIdRight, TicketListUpdate, TicketMove, TicketRetrieved,
+};
 use crate::event::events::{Direction, GenericEvent, JiraEvent};
 use crate::state::app::AppFocus;
 use crate::state::log::{LogEntry, LogLevel, log_source};
