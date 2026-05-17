@@ -1,5 +1,4 @@
 use crate::config::model::ServiceConfig;
-use crate::state::token_generator::Token::Idle;
 use ratatui::widgets::ListState;
 
 #[derive(Eq, Hash, PartialEq, Copy, Clone, Debug)]
@@ -19,7 +18,7 @@ impl TokenGenerator {
     pub(crate) fn new(services: &[ServiceConfig]) -> TokenGenerator {
         let tokens = services
             .iter()
-            .map(|s| vec![Idle; s.credentials.len()])
+            .map(|s| vec![Token::Idle; s.credentials.len()])
             .collect();
 
         Self {
@@ -88,7 +87,7 @@ mod tests {
 
     fn get_default_token_generator() -> TokenGenerator {
         TokenGenerator {
-            tokens: vec![vec![Idle; 4], vec![Idle; 2]],
+            tokens: vec![vec![Token::Idle; 4], vec![Token::Idle; 2]],
             env_list_state: Default::default(),
             service_list_state: Default::default(),
             focus: Focus::Service,

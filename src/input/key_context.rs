@@ -1,5 +1,5 @@
 use crate::app::Tool;
-use crate::state::token_generator::Focus as TokenFocus;
+use crate::tools::token_generator::state::Focus as TokenFocus;
 
 #[derive(Eq, Hash, PartialEq, Clone)]
 pub enum KeyContext {

@@ -2,7 +2,7 @@ use crate::client::jira::models::TicketResponse;
 use crate::environment::Environment;
 use crate::state::app::{AppFocus, Tool};
 use crate::state::log::LogEntry;
-use crate::state::token_generator::Focus;
+use crate::tools::token_generator::state::Focus;
 use ratatui::crossterm::event::Event as CrosstermEvent;
 
 #[derive(Clone, PartialEq, Debug)]

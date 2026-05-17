@@ -166,7 +166,7 @@ impl Service {
 #[cfg(test)]
 mod tests {
     use crate::environment::Environment;
-    use crate::state::service_status::{Commit, CommitRefStatus, Service, ServiceStatus};
+    use super::{Commit, CommitRefStatus, Service, ServiceStatus};
     use test_case::test_case;
 
     #[test]

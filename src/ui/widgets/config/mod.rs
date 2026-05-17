@@ -1,3 +1,1 @@
-pub(crate) mod jira;
-pub(crate) mod service_status;
-pub(crate) mod token_generator;
+// config widgets are now co-located with their tool plugins

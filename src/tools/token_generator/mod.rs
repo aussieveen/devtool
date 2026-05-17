@@ -1,3 +1,9 @@
+pub mod state;
+pub mod config_editor;
+pub(super) mod widget;
+pub(super) mod config_widget;
+mod handlers;
+
 use std::sync::Arc;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::Frame;
@@ -6,41 +12,27 @@ use ratatui::prelude::Rect;
 use crate::client::auth_zero::api::AuthZeroApi;
 use crate::config::model::{Config, Features};
 use crate::event::events::AppEvent::AppLog;
-use crate::event::events::AppEvent::RebuildToolList;
 use crate::event::events::GenericEvent::CopyToClipboard;
-use crate::event::events::TokenGeneratorConfigEvent::{
-    ConfigEdit, ConfigListMove, FormBackspace, FormDelete, FormEnd, FormHome, FormLeft,
-    FormNextField, FormPrevField, FormRight, OpenAddService, RemoveService, SubmitConfig,
-    SwitchFocus,
-};
-use crate::event::events::TokenGeneratorEvent::{
-    EnvListMove, GenerateToken, ServiceListMove, SetFocus, TokenFailed, TokenGenerated,
-};
 use crate::event::events::{Event, GenericEvent, TokenGeneratorConfigEvent, TokenGeneratorEvent};
 use crate::input::key_context::KeyContext;
 use crate::input::key_context::KeyContext::{
     Editing, TokenGen as TokenGenCtx, Tool as ToolCtx, ToolConfig,
 };
 use crate::input::key_event_map::KeyEventMap;
-use crate::popup::model::Popup;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
-use crate::state::token_generator::{Focus, Token, TokenGenerator};
-use crate::state::token_generator_config::{ActiveEdit, TokenGeneratorConfigEditor};
 use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
 use crate::tools::plugin::Plugin;
-use crate::ui::widgets::config::token_generator as config_widget;
-use crate::ui::widgets::popup::{Part, Type};
-use crate::ui::widgets::tools::token_generator as widget;
 use crate::utils::string_copy::copy_to_clipboard;
-use crate::utils::update_list_state;
+use self::state::{Focus, Token, TokenGenerator};
+use self::config_editor::TokenGeneratorConfigEditor;
 
 const LOG_SOURCE: LogSource = LogSource::TokenGenerator;
 
 pub struct TokenGeneratorPlugin {
-    state:         TokenGenerator,
-    config_editor: TokenGeneratorConfigEditor,
-    auth_zero_api: Arc<dyn AuthZeroApi>,
+    pub(super) state:          TokenGenerator,
+    pub(super) config_editor:  TokenGeneratorConfigEditor,
+    pub(super) auth_zero_api:  Arc<dyn AuthZeroApi>,
 }
 
 impl TokenGeneratorPlugin {
@@ -51,270 +43,7 @@ impl TokenGeneratorPlugin {
             auth_zero_api,
         }
     }
-
-    fn handle_tool_event(&mut self, event: TokenGeneratorEvent, ctx: &mut PluginContext) {
-        match event {
-            EnvListMove(direction) => {
-                let (selected_service, _) = self.state.selected_service_env();
-                let env_count = ctx.config.tokengenerator.services[selected_service]
-                    .credentials
-                    .len();
-                update_list_state::update_list(
-                    &mut self.state.env_list_state,
-                    direction,
-                    env_count,
-                );
-            }
-            ServiceListMove(direction) => {
-                update_list_state::update_list(
-                    &mut self.state.service_list_state,
-                    direction,
-                    ctx.config.tokengenerator.services.len(),
-                );
-                self.state.env_list_state.select_first();
-            }
-            SetFocus(focus) => {
-                self.state.focus = focus;
-            }
-            GenerateToken => {
-                let (service_idx, env_idx) = self.state.selected_service_env();
-                let svc_name = ctx.config.tokengenerator.services
-                    .get(service_idx)
-                    .map(|s| s.name.clone())
-                    .unwrap_or_default();
-                let env_name = ctx.config.tokengenerator.services
-                    .get(service_idx)
-                    .and_then(|s| s.credentials.get(env_idx))
-                    .map(|c| c.env.to_string().to_lowercase())
-                    .unwrap_or_default();
-
-                ctx.sender.send_app_event(AppLog(LogEntry::new(
-                    LogLevel::Info,
-                    LOG_SOURCE,
-                    format!("Requesting token: {}/{}", svc_name, env_name),
-                )));
-
-                self.state.start_token_request();
-
-                let sender = ctx.sender.clone();
-                let config = ctx.config.tokengenerator.clone();
-                self.auth_zero_api.fetch_token(service_idx, env_idx, config, sender);
-            }
-            TokenGenerated(token, service_idx, env_idx) => {
-                let svc_name = ctx.config.tokengenerator.services
-                    .get(service_idx)
-                    .map(|s| s.name.clone())
-                    .unwrap_or_default();
-                let env_name = ctx.config.tokengenerator.services
-                    .get(service_idx)
-                    .and_then(|s| s.credentials.get(env_idx))
-                    .map(|c| c.env.to_string().to_lowercase())
-                    .unwrap_or_default();
-
-                ctx.sender.send_app_event(AppLog(LogEntry::new(
-                    LogLevel::Info,
-                    LOG_SOURCE,
-                    format!("Token generated: {}/{}", svc_name, env_name),
-                )));
-
-                self.state.set_token_ready(service_idx, env_idx, token);
-
-                *ctx.popup = Some(
-                    Popup::new(
-                        Type::Success,
-                        "Token Generated".to_string(),
-                        vec![Part::Key("c"), Part::Text(" copy to clipboard  ")],
-                    )
-                    .with_action('c', "copy", Event::Generic(CopyToClipboard)),
-                );
-            }
-            TokenFailed(error, service_idx, env_idx) => {
-                let svc_name = ctx.config.tokengenerator.services
-                    .get(service_idx)
-                    .map(|s| s.name.clone())
-                    .unwrap_or_default();
-                let env_name = ctx.config.tokengenerator.services
-                    .get(service_idx)
-                    .and_then(|s| s.credentials.get(env_idx))
-                    .map(|c| c.env.to_string().to_lowercase())
-                    .unwrap_or_default();
-
-                self.state.set_token_error(service_idx, env_idx);
-
-                ctx.sender.send_app_event(AppLog(
-                    LogEntry::new(
-                        LogLevel::Error,
-                        LOG_SOURCE,
-                        format!("Token request failed — {}/{}", svc_name, env_name),
-                    )
-                    .with_detail(error),
-                ));
-            }
-        }
-    }
-
-    fn handle_config_event(&mut self, event: TokenGeneratorConfigEvent, ctx: &mut PluginContext) {
-        match event {
-            ConfigListMove(direction) => {
-                use crate::state::token_generator_config::ConfigFocus;
-                let len = ctx.config.tokengenerator.services.len();
-                let editor = &mut self.config_editor;
-                match direction {
-                    crate::event::events::Direction::Up => {
-                        if editor.config_focus == ConfigFocus::Services {
-                            match editor.table_state.selected() {
-                                None | Some(0) => {
-                                    editor.config_focus = ConfigFocus::Auth0;
-                                    editor.table_state.select(None);
-                                }
-                                _ => editor.table_state.select_previous(),
-                            }
-                        }
-                    }
-                    crate::event::events::Direction::Down => {
-                        if editor.config_focus == ConfigFocus::Auth0 {
-                            if len > 0 {
-                                editor.config_focus = ConfigFocus::Services;
-                                editor.table_state.select(Some(0));
-                            }
-                        } else if len > 0 {
-                            let next = editor.table_state.selected().map(|i| i + 1).unwrap_or(0);
-                            editor.table_state.select(Some(next.min(len - 1)));
-                        }
-                    }
-                }
-            }
-            OpenAddService => {
-                self.config_editor.open_add_service_form();
-            }
-            FormNextField => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field = p.active_field.next(),
-                Some(ActiveEdit::Service(p)) => p.active_field = p.active_field.next(),
-                None => {}
-            },
-            FormPrevField => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field = p.active_field.prev(),
-                Some(ActiveEdit::Service(p)) => p.active_field = p.active_field.prev(),
-                None => {}
-            },
-            crate::event::events::TokenGeneratorConfigEvent::FormChar(c) => {
-                match &mut self.config_editor.form {
-                    Some(ActiveEdit::Auth0(p)) => p.active_field_mut().insert(c),
-                    Some(ActiveEdit::Service(p)) => p.active_field_mut().insert(c),
-                    None => {}
-                }
-            }
-            FormBackspace => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().backspace(),
-                Some(ActiveEdit::Service(p)) => p.active_field_mut().backspace(),
-                None => {}
-            },
-            FormLeft => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().move_left(),
-                Some(ActiveEdit::Service(p)) => p.active_field_mut().move_left(),
-                None => {}
-            },
-            FormRight => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().move_right(),
-                Some(ActiveEdit::Service(p)) => p.active_field_mut().move_right(),
-                None => {}
-            },
-            FormHome => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().home(),
-                Some(ActiveEdit::Service(p)) => p.active_field_mut().home(),
-                None => {}
-            },
-            FormEnd => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().end(),
-                Some(ActiveEdit::Service(p)) => p.active_field_mut().end(),
-                None => {}
-            },
-            FormDelete => match &mut self.config_editor.form {
-                Some(ActiveEdit::Auth0(p)) => p.active_field_mut().delete_forward(),
-                Some(ActiveEdit::Service(p)) => p.active_field_mut().delete_forward(),
-                None => {}
-            },
-            SubmitConfig => {
-                if let Some(form) = self.config_editor.form.take() {
-                    match form {
-                        ActiveEdit::Auth0(p) => {
-                            ctx.config.tokengenerator.auth0.local = p.local.value().trim().to_string();
-                            ctx.config.tokengenerator.auth0.staging = p.staging.value().trim().to_string();
-                            ctx.config.tokengenerator.auth0.preproduction = p.preprod.value().trim().to_string();
-                            ctx.config.tokengenerator.auth0.production = p.prod.value().trim().to_string();
-                            let _ = ctx.config_loader.write_config(ctx.config);
-                        }
-                        ActiveEdit::Service(p) if p.is_valid() => {
-                            let svc = crate::config::model::ServiceConfig {
-                                name: p.name.value().trim().to_string(),
-                                audience: p.audience.value().trim().to_string(),
-                                credentials: p.to_credentials(),
-                            };
-                            if let Some(idx) = p.edit_index {
-                                if let Some(existing) = ctx.config.tokengenerator.services.get_mut(idx) {
-                                    *existing = svc;
-                                }
-                            } else {
-                                ctx.config.tokengenerator.services.push(svc);
-                            }
-                            self.state = TokenGenerator::new(&ctx.config.tokengenerator.services);
-                            let _ = ctx.config_loader.write_config(ctx.config);
-                        }
-                        _ => {}
-                    }
-                }
-            }
-            RemoveService => {
-                if let Some(idx) = self.config_editor.table_state.selected()
-                    && idx < ctx.config.tokengenerator.services.len()
-                {
-                    ctx.config.tokengenerator.services.remove(idx);
-                    self.state = TokenGenerator::new(&ctx.config.tokengenerator.services);
-                    let new_len = ctx.config.tokengenerator.services.len();
-                    if new_len == 0 {
-                        self.config_editor.table_state.select(None);
-                        ctx.config.enforce_feature_invariants();
-                        ctx.sender.send_app_event(RebuildToolList);
-                    } else {
-                        self.config_editor.table_state.select(Some(idx.min(new_len - 1)));
-                    }
-                    let _ = ctx.config_loader.write_config(ctx.config);
-                }
-            }
-            ConfigEdit => {
-                use crate::state::token_generator_config::ConfigFocus;
-                match self.config_editor.config_focus {
-                    ConfigFocus::Auth0 => {
-                        let auth0 = ctx.config.tokengenerator.auth0.clone();
-                        self.config_editor.open_auth0_form(&auth0);
-                    }
-                    ConfigFocus::Services => {
-                        if let Some(idx) = self.config_editor.table_state.selected()
-                            && let Some(svc) = ctx.config.tokengenerator.services.get(idx)
-                        {
-                            let svc = svc.clone();
-                            self.config_editor.open_edit_service_form(idx, &svc);
-                        }
-                    }
-                }
-            }
-            SwitchFocus => {
-                use crate::state::token_generator_config::ConfigFocus;
-                let editor = &mut self.config_editor;
-                editor.config_focus = match editor.config_focus {
-                    ConfigFocus::Auth0 => ConfigFocus::Services,
-                    ConfigFocus::Services => ConfigFocus::Auth0,
-                };
-                if editor.config_focus == ConfigFocus::Auth0 {
-                    editor.table_state.select(None);
-                } else if !ctx.config.tokengenerator.services.is_empty() {
-                    editor.table_state.select(Some(0));
-                }
-            }
-        }
-    }
 }
-
 impl Plugin for TokenGeneratorPlugin {
     fn id(&self)           -> Tool        { Tool::TokenGenerator }
     fn title(&self)        -> &'static str { "M2M Auth0 Token Generator" }
@@ -451,7 +180,7 @@ impl Plugin for TokenGeneratorPlugin {
     }
 
     fn has_open_form(&self) -> bool { self.config_editor.has_open_form() }
-    fn close_form(&mut self)        { self.config_editor.close_form(); }
+    fn close_form(&mut self) { self.config_editor.close_form(); }
 
     fn tool_hints(&self) -> (ratatui::text::Line<'static>, ratatui::text::Line<'static>) {
         use crate::ui::styles::{key_desc_style, key_style};
@@ -472,7 +201,7 @@ impl Plugin for TokenGeneratorPlugin {
     }
 
     fn config_hints(&self) -> (ratatui::text::Line<'static>, ratatui::text::Line<'static>) {
-        use crate::state::token_generator_config::ConfigFocus;
+        use crate::tools::token_generator::config_editor::ConfigFocus;
         use crate::ui::styles::{key_desc_style, key_style};
         use ratatui::text::{Line, Span};
         if self.config_editor.has_open_form() {

@@ -1,4 +1,4 @@
-use crate::state::jira::Ticket;
+use crate::tools::jira::state::Ticket;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]

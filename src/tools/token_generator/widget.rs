@@ -1,5 +1,5 @@
+use super::state::{Focus, Token, TokenGenerator};
 use crate::config::model::ServiceConfig;
-use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::{block_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};

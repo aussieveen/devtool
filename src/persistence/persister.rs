@@ -1,6 +1,6 @@
 use crate::error::model::PersistenceError;
 use crate::persistence::model::{Jira, Persistence};
-use crate::state::jira::Ticket;
+use crate::tools::jira::state::Ticket;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;

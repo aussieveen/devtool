@@ -1,5 +1,5 @@
+use super::state::{Commit, CommitRefStatus, ServiceStatus};
 use crate::config::model::ServiceStatusConfig;
-use crate::state::service_status::{Commit, CommitRefStatus, ServiceStatus};
 use crate::ui::styles::selection_highlight;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};

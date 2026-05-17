@@ -1,5 +1,5 @@
+use super::config_editor::{AddServiceForm, FormField, ServiceStatusConfigEditor};
 use crate::config::model::ServiceStatusConfig;
-use crate::state::service_status_config::{AddServiceForm, FormField, ServiceStatusConfigEditor};
 use crate::ui::styles::{edit_border_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Rect};

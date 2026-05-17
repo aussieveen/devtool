@@ -10,7 +10,7 @@ use crate::input::key_context::KeyContext::{
     ToolConfig, ToolConfigEditing, ToolIgnore,
 };
 use crate::input::key_event_map::KeyEventMap;
-use crate::state::token_generator::Focus;
+use crate::tools::token_generator::state::Focus;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 pub fn register_bindings(key_event_map: &mut KeyEventMap) {
@@ -672,7 +672,7 @@ mod tests {
         Config, Editing, Global, List, Logs, TokenGen as TokenGenCtx, Tool as ToolCtx, ToolConfig,
         ToolIgnore,
     };
-    use crate::state::token_generator::Focus;
+    use crate::tools::token_generator::state::Focus;
     use test_case::test_case;
 
     fn registered_map() -> KeyEventMap {

@@ -1,7 +1,5 @@
+use super::config_editor::{ActiveEdit, Auth0Field, ConfigFocus, ServiceField, TokenGeneratorConfigEditor};
 use crate::config::model::{Auth0Config, ServiceConfig};
-use crate::state::token_generator_config::{
-    ActiveEdit, Auth0Field, ConfigFocus, ServiceField, TokenGeneratorConfigEditor,
-};
 use crate::ui::styles::{block_style, edit_border_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
@@ -144,7 +142,7 @@ fn render_services_section(
 fn render_auth0_inline(
     frame: &mut Frame,
     area: Rect,
-    form: &crate::state::token_generator_config::Auth0Form,
+    form: &crate::tools::token_generator::config_editor::Auth0Form,
     focused: bool,
 ) {
     let block = Block::bordered()
@@ -204,7 +202,7 @@ fn render_auth0_inline(
 fn render_service_inline(
     frame: &mut Frame,
     area: Rect,
-    form: &crate::state::token_generator_config::ServiceForm,
+    form: &crate::tools::token_generator::config_editor::ServiceForm,
 ) {
     let title = if form.edit_index.is_some() {
         " Edit Service "
