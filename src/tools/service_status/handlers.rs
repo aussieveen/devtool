@@ -12,9 +12,10 @@ use crate::event::events::ServiceStatusEvent::{
 };
 use crate::event::events::{ServiceStatusConfigEvent, ServiceStatusEvent};
 use crate::state::log::{LogEntry, LogLevel, LogSource};
+use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
 
-const LOG_SOURCE: LogSource = LogSource::ServiceStatus;
+const LOG_SOURCE: LogSource = LogSource::Tool(Tool::ServiceStatus);
 
 impl ServiceStatusPlugin {
     pub(super) fn handle_tool_event(&mut self, event: ServiceStatusEvent, ctx: &mut PluginContext) {
@@ -50,15 +51,15 @@ impl ServiceStatusPlugin {
             Scan => {
                 let len = self.state.services.len();
                 let sender = ctx.sender.clone();
-                sender.send_app_event(AppLog(LogEntry::new(
+                sender.send(AppLog(LogEntry::new(
                     LogLevel::Info,
                     LOG_SOURCE,
                     format!("Scan started — {} services × 3 environments", len),
                 )));
                 for service_idx in 0..len {
-                    sender.send_service_status_event(ScanServiceEnv(service_idx, Staging));
-                    sender.send_service_status_event(ScanServiceEnv(service_idx, Preproduction));
-                    sender.send_service_status_event(ScanServiceEnv(service_idx, Production));
+                    sender.send(ScanServiceEnv(service_idx, Staging));
+                    sender.send(ScanServiceEnv(service_idx, Preproduction));
+                    sender.send(ScanServiceEnv(service_idx, Production));
                 }
             }
             ScanServiceEnv(service_idx, env) => {
@@ -77,14 +78,14 @@ impl ServiceStatusPlugin {
                     && let Some(svc_cfg) = ctx.config.servicestatus.get(service_idx)
                 {
                     let msg = status_activity_message(&new_status);
-                    ctx.sender.send_app_event(ActivityEvent(svc_cfg.name.clone(), msg));
+                    ctx.sender.send(ActivityEvent(svc_cfg.name.clone(), msg));
                 }
             }
             GetCommitRefErrored(error, service_idx, env) => {
                 self.state.set_commit_error(service_idx, &env, error.clone());
                 if let Some(svc_cfg) = ctx.config.servicestatus.get(service_idx) {
                     let env_label = env.to_string().to_lowercase();
-                    ctx.sender.send_app_event(AppLog(LogEntry::new(
+                    ctx.sender.send(AppLog(LogEntry::new(
                         LogLevel::Warning,
                         LOG_SOURCE,
                         format!("{}/{}: {}", svc_cfg.name, env_label, friendly_error(&error)),
@@ -201,8 +202,7 @@ impl ServiceStatusPlugin {
                     let new_len = ctx.config.servicestatus.len();
                     if new_len == 0 {
                         self.config_editor.table_state.select(None);
-                        ctx.config.enforce_feature_invariants();
-                        ctx.sender.send_app_event(RebuildToolList);
+                        ctx.sender.send(RebuildToolList);
                     } else {
                         let clamped = idx.min(new_len - 1);
                         self.config_editor.table_state.select(Some(clamped));

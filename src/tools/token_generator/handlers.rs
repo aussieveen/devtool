@@ -15,11 +15,12 @@ use crate::event::events::TokenGeneratorEvent::{
 use crate::event::events::{Event, TokenGeneratorConfigEvent, TokenGeneratorEvent};
 use crate::popup::model::Popup;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
+use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 
-const LOG_SOURCE: LogSource = LogSource::TokenGenerator;
+const LOG_SOURCE: LogSource = LogSource::Tool(Tool::TokenGenerator);
 
 impl TokenGeneratorPlugin {
     pub(super) fn handle_tool_event(&mut self, event: TokenGeneratorEvent, ctx: &mut PluginContext) {
@@ -58,7 +59,7 @@ impl TokenGeneratorPlugin {
                     .map(|c| c.env.to_string().to_lowercase())
                     .unwrap_or_default();
 
-                ctx.sender.send_app_event(AppLog(LogEntry::new(
+                ctx.sender.send(AppLog(LogEntry::new(
                     LogLevel::Info,
                     LOG_SOURCE,
                     format!("Requesting token: {}/{}", svc_name, env_name),
@@ -81,7 +82,7 @@ impl TokenGeneratorPlugin {
                     .map(|c| c.env.to_string().to_lowercase())
                     .unwrap_or_default();
 
-                ctx.sender.send_app_event(AppLog(LogEntry::new(
+                ctx.sender.send(AppLog(LogEntry::new(
                     LogLevel::Info,
                     LOG_SOURCE,
                     format!("Token generated: {}/{}", svc_name, env_name),
@@ -111,7 +112,7 @@ impl TokenGeneratorPlugin {
 
                 self.state.set_token_error(service_idx, env_idx);
 
-                ctx.sender.send_app_event(AppLog(
+                ctx.sender.send(AppLog(
                     LogEntry::new(
                         LogLevel::Error,
                         LOG_SOURCE,
@@ -243,8 +244,7 @@ impl TokenGeneratorPlugin {
                     let new_len = ctx.config.tokengenerator.services.len();
                     if new_len == 0 {
                         self.config_editor.table_state.select(None);
-                        ctx.config.enforce_feature_invariants();
-                        ctx.sender.send_app_event(RebuildToolList);
+                        ctx.sender.send(RebuildToolList);
                     } else {
                         self.config_editor.table_state.select(Some(idx.min(new_len - 1)));
                     }

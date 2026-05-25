@@ -26,18 +26,12 @@ enum Hint {
     Logs,
     // Actions
     Toggle,
-    Add,
     Edit,
     // Form
-    Save,
-    NextField,
-    NavigateFields,
     Cancel,
     Submit,
     // Popup
     Dismiss,
-    // One-off with custom text (key_text, desc_text)
-    Status(&'static str),
 }
 
 impl Hint {
@@ -51,21 +45,13 @@ impl Hint {
             Hint::Config => vec![Span::styled("[2]", k), Span::styled(" Config  ", d)],
             Hint::Logs => vec![Span::styled("[3]", k), Span::styled(" Logs  ", d)],
             Hint::Toggle => vec![Span::styled("[return]", k), Span::styled(" Toggle  ", d)],
-            Hint::Add => vec![Span::styled("[a]", k), Span::styled(" Add  ", d)],
             Hint::Edit => vec![Span::styled("[e]", k), Span::styled(" Edit  ", d)],
-            Hint::Save => vec![Span::styled("[return]", k), Span::styled(" Save  ", d)],
-            Hint::NextField => vec![Span::styled("[tab]", k), Span::styled(" Next field  ", d)],
-            Hint::NavigateFields => vec![
-                Span::styled("[↑↓]", k),
-                Span::styled(" Navigate fields  ", d),
-            ],
             Hint::Cancel => vec![Span::styled("[esc]", k), Span::styled(" Cancel  ", d)],
             Hint::Submit => vec![
                 Span::styled("[return]", k),
                 Span::styled(" Add ticket  ", d),
             ],
             Hint::Dismiss => vec![Span::styled("[any]", k), Span::styled(" Dismiss  ", d)],
-            Hint::Status(text) => vec![Span::styled(*text, key_desc_style())],
         }
     }
 }

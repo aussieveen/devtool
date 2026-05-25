@@ -27,7 +27,7 @@ use crate::utils::string_copy::copy_to_clipboard;
 use self::state::{Focus, Token, TokenGenerator};
 use self::config_editor::TokenGeneratorConfigEditor;
 
-const LOG_SOURCE: LogSource = LogSource::TokenGenerator;
+const LOG_SOURCE: LogSource = LogSource::Tool(Tool::TokenGenerator);
 
 pub struct TokenGeneratorPlugin {
     pub(super) state:          TokenGenerator,
@@ -167,7 +167,7 @@ impl Plugin for TokenGeneratorPlugin {
                 && let Some(value) = token.value()
                 && let Err(e) = copy_to_clipboard(value)
             {
-                ctx.sender.send_app_event(AppLog(LogEntry::new(
+                ctx.sender.send(AppLog(LogEntry::new(
                     LogLevel::Warning,
                     LOG_SOURCE,
                     format!("Copy to clipboard failed: {e}"),
@@ -181,6 +181,14 @@ impl Plugin for TokenGeneratorPlugin {
 
     fn has_open_form(&self) -> bool { self.config_editor.has_open_form() }
     fn close_form(&mut self) { self.config_editor.close_form(); }
+
+    fn normalize_config(&self, config: &mut Config) {
+        let a = &mut config.tokengenerator.auth0;
+        a.local = a.local.trim_end_matches('/').to_string();
+        a.staging = a.staging.trim_end_matches('/').to_string();
+        a.preproduction = a.preproduction.trim_end_matches('/').to_string();
+        a.production = a.production.trim_end_matches('/').to_string();
+    }
 
     fn tool_hints(&self) -> (ratatui::text::Line<'static>, ratatui::text::Line<'static>) {
         use crate::ui::styles::{key_desc_style, key_style};

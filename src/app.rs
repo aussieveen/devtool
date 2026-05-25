@@ -20,7 +20,9 @@ use crate::popup::model::Popup;
 pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::tools::context::PluginContext;
-use crate::tools::plugin::{create_plugins, Plugin};
+use crate::tools::plugin::{
+    create_plugins, enforce_feature_invariants, normalize, Plugin,
+};
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
@@ -46,7 +48,7 @@ pub struct App {
 
 impl App {
     /// Construct a new instance of [`App`].
-    pub fn new(config: Config, config_loader: ConfigFile) -> Self {
+    pub fn new(mut config: Config, config_loader: ConfigFile) -> Self {
         let event_handler = EventHandler::new();
         let event_sender = event_handler.sender();
         let plugins = create_plugins(
@@ -55,9 +57,12 @@ impl App {
             Arc::new(ImmediateJiraApi::new()),
             Arc::new(ImmediateHealthcheckApi::new()),
         );
+        normalize(&plugins, &mut config);
+        enforce_feature_invariants(&plugins, &mut config);
+        let state = AppState::new(&config, &plugins);
         Self {
             running: true,
-            state: AppState::new(&config),
+            state,
             event_handler,
             event_sender,
             config,
@@ -80,16 +85,13 @@ impl App {
             let mut interval = tokio::time::interval(Duration::from_mins(15));
             loop {
                 interval.tick().await; // This should go first.
-                async_sender.send_service_status_event(Scan);
-                async_sender.send_jira_event(ScanTickets);
+                async_sender.send(Scan);
+                async_sender.send(ScanTickets);
             }
         });
 
         // Register global/structural bindings, then each plugin's own bindings
         register_bindings(&mut self.key_event_map);
-        // Safety: register_bindings borrows key_event_map; plugins is not used there.
-        // We need a raw ptr dance here to avoid borrow-checker issues with self.
-        // Instead, collect and register in a separate step.
         for plugin in &self.plugins {
             plugin.register_bindings(&mut self.key_event_map);
         }
@@ -132,7 +134,7 @@ impl App {
             OpenLogs => {
                 self.state.focus = AppFocus::Logs;
                 if self.state.has_popup() {
-                    self.event_sender.send_app_event(DismissPopup);
+                    self.event_sender.send(DismissPopup);
                     self.state.log.select_logs()
                 } else {
                     if self.state.log.selected_item == crate::state::log::LogsItem::Activity {
@@ -184,7 +186,7 @@ impl App {
                 if let Some(index) = tool_list.list_state.selected()
                     && let Some(tool) = tool_list.items.get(index).cloned()
                 {
-                    self.event_sender.send_app_event(ListSelect(tool))
+                    self.event_sender.send(ListSelect(tool))
                 }
             }
             DismissPopup => self.state.popup = None,
@@ -199,7 +201,6 @@ impl App {
                 );
             }
             ToggleFeature => {
-                let has_jira_config = self.config.jira.is_some();
                 if let Some((tool, now_enabled)) = self.state.config_editor.toggle_selected() {
                     let has_min_config = self.plugins.iter()
                         .find(|p| p.id() == tool)
@@ -208,9 +209,9 @@ impl App {
                     if now_enabled && !has_min_config {
                         self.state.config_editor.toggle_selected();
                     } else {
-                        self.config.features = self.state.config_editor.to_features();
+                        self.config.features = self.state.config_editor.to_features(&self.plugins);
                         let _ = self.config_loader.write_config(&self.config);
-                        self.state.rebuild_tool_list(has_jira_config);
+                        self.state.rebuild_tool_list(&self.plugins, &self.config);
                     }
                 }
             }
@@ -222,9 +223,9 @@ impl App {
                 }
             }
             RebuildToolList => {
-                let has_jira_config = self.config.jira.is_some();
-                self.state.config_editor.sync_from_features(&self.config.features);
-                self.state.rebuild_tool_list(has_jira_config);
+                enforce_feature_invariants(&self.plugins, &mut self.config);
+                self.state.config_editor.sync_from_features(&self.plugins, &self.config.features);
+                self.state.rebuild_tool_list(&self.plugins, &self.config);
             }
             CloseToolConfig => {
                 if let AppFocus::ToolConfig(tool) = self.state.focus {
@@ -277,12 +278,12 @@ impl App {
     fn render(&mut self, frame: &mut Frame) {
         let areas = layout::main(frame.area(), self.state.effective_focus());
 
-        list::render(frame, areas.tools_list, &mut self.state);
-        config_list::render(frame, areas.config_list, &mut self.state);
+        list::render(frame, areas.tools_list, &mut self.state, &self.plugins);
+        config_list::render(frame, areas.config_list, &mut self.state, &self.plugins);
         logs_list::render(frame, areas.logs_list, &mut self.state);
 
         if matches!(self.state.focus, AppFocus::Logs) {
-            tools::logs::render(frame, areas.content, &self.state.log, true);
+            tools::logs::render(frame, areas.content, &self.state.log, true, &self.plugins);
         } else {
             self.render_content(frame, areas.content);
         }
@@ -371,7 +372,7 @@ impl App {
                 && let Some(action) = popup.actions.iter().find(|a| a.key == c)
             {
                 let event = action.event.clone();
-                self.event_sender.send_event(event);
+                self.event_sender.send(event);
                 true
             } else {
                 false
@@ -388,7 +389,7 @@ impl App {
         // also firing when a higher-priority context already handled the key.
         for context in self.context_stack() {
             if let Some(event) = self.key_event_map.resolve(context, key) {
-                self.event_sender.send_event(event.clone());
+                self.event_sender.send(event.clone());
                 break;
             }
         }

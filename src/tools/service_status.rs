@@ -25,7 +25,7 @@ use crate::utils::string_copy::copy_to_clipboard;
 use self::state::ServiceStatus;
 use self::config_editor::ServiceStatusConfigEditor;
 
-const LOG_SOURCE: LogSource = LogSource::ServiceStatus;
+const LOG_SOURCE: LogSource = LogSource::Tool(Tool::ServiceStatus);
 
 pub struct ServiceStatusPlugin {
     pub(super) state:           ServiceStatus,
@@ -141,47 +141,6 @@ impl Plugin for ServiceStatusPlugin {
         config_widget::render(frame, area, &mut self.config_editor, &config.servicestatus);
     }
 
-    fn handle_event(&mut self, event: &Event, ctx: &mut PluginContext) -> bool {
-        match event {
-            Event::ServiceStatus(e) => { self.handle_tool_event(e.clone(), ctx); true }
-            Event::ServiceStatusConfig(e) => { self.handle_config_event(e.clone(), ctx); true }
-            _ => false,
-        }
-    }
-
-    fn handle_generic_event(&mut self, event: &GenericEvent, ctx: &mut PluginContext) -> bool {
-        match event {
-            GenericEvent::CopyToClipboard => {
-                if let Some(link) = self.link_url(ctx.config)
-                    && let Err(e) = copy_to_clipboard(link.as_str())
-                {
-                    ctx.sender.send_app_event(AppLog(LogEntry::new(
-                        LogLevel::Warning,
-                        LOG_SOURCE,
-                        format!("Copy to clipboard failed: {e}"),
-                    )));
-                }
-                true
-            }
-            GenericEvent::OpenInBrowser => {
-                if let Some(link) = self.link_url(ctx.config)
-                    && let Err(e) = open_link_in_browser(link.as_str())
-                {
-                    ctx.sender.send_app_event(AppLog(LogEntry::new(
-                        LogLevel::Warning,
-                        LOG_SOURCE,
-                        format!("Open in browser failed: {e}"),
-                    )));
-                }
-                true
-            }
-            _ => false,
-        }
-    }
-
-    fn has_open_form(&self) -> bool { self.config_editor.has_open_form() }
-    fn close_form(&mut self)        { self.config_editor.close_form(); }
-
     fn tool_hints(&self) -> (ratatui::text::Line<'static>, ratatui::text::Line<'static>) {
         use crate::ui::styles::{key_desc_style, key_style};
         use ratatui::text::{Line, Span};
@@ -229,6 +188,56 @@ impl Plugin for ServiceStatusPlugin {
             Span::styled("[a]", k.clone()), Span::styled(" Add  ", d.clone()),
             Span::styled("[q]", k.clone()), Span::styled(" Quit", d.clone()),
         ]), line2)
+    }
+
+    fn handle_event(&mut self, event: &Event, ctx: &mut PluginContext) -> bool {
+        match event {
+            Event::ServiceStatus(e) => { self.handle_tool_event(e.clone(), ctx); true }
+            Event::ServiceStatusConfig(e) => { self.handle_config_event(e.clone(), ctx); true }
+            _ => false,
+        }
+    }
+    fn handle_generic_event(&mut self, event: &GenericEvent, ctx: &mut PluginContext) -> bool {
+        match event {
+            GenericEvent::CopyToClipboard => {
+                if let Some(link) = self.link_url(ctx.config)
+                    && let Err(e) = copy_to_clipboard(link.as_str())
+                {
+                    ctx.sender.send(AppLog(LogEntry::new(
+                        LogLevel::Warning,
+                        LOG_SOURCE,
+                        format!("Copy to clipboard failed: {e}"),
+                    )));
+                }
+                true
+            }
+            GenericEvent::OpenInBrowser => {
+                if let Some(link) = self.link_url(ctx.config)
+                    && let Err(e) = open_link_in_browser(link.as_str())
+                {
+                    ctx.sender.send(AppLog(LogEntry::new(
+                        LogLevel::Warning,
+                        LOG_SOURCE,
+                        format!("Open in browser failed: {e}"),
+                    )));
+                }
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn has_open_form(&self) -> bool { self.config_editor.has_open_form() }
+
+    fn close_form(&mut self)        { self.config_editor.close_form(); }
+
+    fn normalize_config(&self, config: &mut Config) {
+        for svc in &mut config.servicestatus {
+            svc.staging = svc.staging.trim_end_matches('/').to_string();
+            svc.preproduction = svc.preproduction.trim_end_matches('/').to_string();
+            svc.production = svc.production.trim_end_matches('/').to_string();
+            svc.repo = svc.repo.trim_end_matches('/').to_string();
+        }
     }
 }
 

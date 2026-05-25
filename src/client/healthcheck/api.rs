@@ -47,10 +47,10 @@ impl HealthcheckApi for ImmediateHealthcheckApi {
         tokio::spawn(async move {
             match commit_ref(client, service_idx, &env, config).await {
                 Ok(commit) => {
-                    sender.send_service_status_event(GetCommitRefOk(commit, service_idx, env));
+                    sender.send(GetCommitRefOk(commit, service_idx, env));
                 }
                 Err(err) => {
-                    sender.send_service_status_event(GetCommitRefErrored(
+                    sender.send(GetCommitRefErrored(
                         err.to_string(),
                         service_idx,
                         env,

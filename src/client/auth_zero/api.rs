@@ -45,10 +45,10 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
         tokio::spawn(async move {
             match token(client, service_idx, env_idx, config).await {
                 Ok(token) => {
-                    sender.send_token_generator_event(TokenGenerated(token, service_idx, env_idx));
+                    sender.send(TokenGenerated(token, service_idx, env_idx));
                 }
                 Err(err) => {
-                    sender.send_token_generator_event(TokenFailed(
+                    sender.send(TokenFailed(
                         err.to_string(),
                         service_idx,
                         env_idx,

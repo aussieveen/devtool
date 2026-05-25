@@ -7,6 +7,6 @@ pub(crate) struct Persistence {
 }
 
 #[derive(Deserialize, Serialize, Clone, Default)]
-pub(crate) struct Jira {
+pub struct Jira {
     pub tickets: Vec<Ticket>,
 }

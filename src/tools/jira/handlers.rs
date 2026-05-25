@@ -12,10 +12,11 @@ use crate::event::events::JiraEvent::{
 use crate::event::events::{Direction, JiraConfigEvent, JiraEvent};
 use crate::state::app::AppFocus;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
+use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
 use crate::utils::update_list_state;
 
-const LOG_SOURCE: LogSource = LogSource::Jira;
+const LOG_SOURCE: LogSource = LogSource::Tool(Tool::Jira);
 
 impl JiraPlugin {
     pub(super) fn handle_tool_event(&mut self, event: JiraEvent, ctx: &mut PluginContext) {
@@ -59,17 +60,17 @@ impl JiraPlugin {
                     let changes = self.state.update_ticket_with_changes(ticket_response);
                     self.state.tickets_pending_scan = self.state.tickets_pending_scan.saturating_sub(1);
                     if let Some((id, change_msg)) = changes {
-                        ctx.sender.send_app_event(ActivityEvent(id, change_msg));
+                        ctx.sender.send(ActivityEvent(id, change_msg));
                     }
                     if self.state.tickets_pending_scan == 0 {
-                        ctx.sender.send_jira_event(TicketListUpdate);
+                        ctx.sender.send(TicketListUpdate);
                     }
                 } else {
                     let ticket_id = ticket_response.key.clone();
                     self.state.add_ticket(ticket_response);
                     self.state.new_ticket_id.clear();
-                    ctx.sender.send_app_event(ActivityEvent(ticket_id, "Added to watchlist".to_string()));
-                    ctx.sender.send_jira_event(TicketListUpdate);
+                    ctx.sender.send(ActivityEvent(ticket_id, "Added to watchlist".to_string()));
+                    ctx.sender.send(TicketListUpdate);
                 }
             }
             RemoveTicket => {
@@ -77,7 +78,7 @@ impl JiraPlugin {
                     && let Some(ticket) = self.state.tickets.get(idx)
                 {
                     let id = ticket.id.clone();
-                    ctx.sender.send_app_event(ActivityEvent(id, "Removed from watchlist".to_string()));
+                    ctx.sender.send(ActivityEvent(id, "Removed from watchlist".to_string()));
                 }
                 self.state.remove_ticket();
                 if self.state.tickets.is_empty() {
@@ -92,15 +93,15 @@ impl JiraPlugin {
                         );
                     }
                 }
-                ctx.sender.send_jira_event(TicketListUpdate);
+                ctx.sender.send(TicketListUpdate);
             }
             TicketMove(direction) => {
                 self.state.swap_tickets(direction);
-                ctx.sender.send_jira_event(TicketListUpdate);
+                ctx.sender.send(TicketListUpdate);
             }
             TicketListUpdate => {
                 if let Err(e) = self.state.jira_file.write_jira(&self.state.tickets) {
-                    ctx.sender.send_app_event(AppLog(
+                    ctx.sender.send(AppLog(
                         LogEntry::new(
                             LogLevel::Error,
                             LOG_SOURCE,
@@ -113,7 +114,7 @@ impl JiraPlugin {
             ScanTickets => {
                 if self.state.tickets.is_empty() || self.state.tickets_pending_scan > 0 {
                     if self.state.tickets_pending_scan > 0 {
-                        ctx.sender.send_app_event(AppLog(LogEntry::new(
+                        ctx.sender.send(AppLog(LogEntry::new(
                             LogLevel::Warning,
                             LOG_SOURCE,
                             "Ticket scan skipped — previous scan still running",
@@ -123,7 +124,7 @@ impl JiraPlugin {
                 }
                 if let Some(config) = &ctx.config.jira {
                     let count = self.state.tickets.len();
-                    ctx.sender.send_app_event(AppLog(LogEntry::new(
+                    ctx.sender.send(AppLog(LogEntry::new(
                         LogLevel::Info,
                         LOG_SOURCE,
                         format!("Ticket scan started — {} tickets", count),
@@ -202,8 +203,7 @@ impl JiraPlugin {
                             token: form.token.value().trim().to_string(),
                         });
                     }
-                    ctx.config.enforce_feature_invariants();
-                    ctx.sender.send_app_event(RebuildToolList);
+                    ctx.sender.send(RebuildToolList);
                     let _ = ctx.config_loader.write_config(ctx.config);
                 }
             }

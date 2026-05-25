@@ -25,7 +25,7 @@ use crate::utils::browser::open_link_in_browser;
 use self::state::Jira;
 use self::config_editor::JiraConfigEditor;
 
-const LOG_SOURCE: LogSource = LogSource::Jira;
+const LOG_SOURCE: LogSource = LogSource::Tool(Tool::Jira);
 
 pub struct JiraPlugin {
     pub(super) state:         Jira,
@@ -166,7 +166,7 @@ impl Plugin for JiraPlugin {
                 config.url, self.state.tickets[jira_ticket_idx].id
             );
             if let Err(e) = open_link_in_browser(link.as_str()) {
-                ctx.sender.send_app_event(AppLog(LogEntry::new(
+                ctx.sender.send(AppLog(LogEntry::new(
                     LogLevel::Warning,
                     LOG_SOURCE,
                     format!("Open in browser failed: {e}"),
@@ -180,6 +180,12 @@ impl Plugin for JiraPlugin {
 
     fn has_open_form(&self) -> bool { self.config_editor.has_open_form() }
     fn close_form(&mut self)        { self.config_editor.close_form(); }
+
+    fn normalize_config(&self, config: &mut Config) {
+        if let Some(jira) = config.jira.as_mut() {
+            jira.url = jira.url.trim_end_matches('/').to_string();
+        }
+    }
 
     fn tool_hints(&self) -> (ratatui::text::Line<'static>, ratatui::text::Line<'static>) {
         use crate::ui::styles::{key_desc_style, key_style};

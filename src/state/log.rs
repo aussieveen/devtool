@@ -1,5 +1,6 @@
-use core::fmt;
 use chrono::{DateTime, Local, TimeDelta};
+
+use crate::state::tools::Tool;
 
 const MAX_ENTRIES: usize = 500;
 const EXPIRY_HOURS: i64 = 3;
@@ -7,23 +8,9 @@ const EXPIRY_HOURS: i64 = 3;
 // ── Log source constants ──────────────────────────────────────────────────────
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum LogSource{
+pub enum LogSource {
     App,
-    Jira,
-    ServiceStatus,
-    TokenGenerator
-}
-
-impl fmt::Display for LogSource {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Use `self.number` to refer to each positional data point.
-        write!(f, "{}", match self{
-            LogSource::App => "App",
-            LogSource::Jira => "Jira",
-            LogSource::ServiceStatus => "Service Status",
-            LogSource::TokenGenerator => "Token Generator"
-        })
-    }
+    Tool(Tool),
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────

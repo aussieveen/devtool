@@ -6,6 +6,7 @@ use crate::event::events::AppEvent::AppLog;
 use crate::event::events::JiraEvent::TicketRetrieved;
 use crate::event::sender::EventSender;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
+use crate::state::tools::Tool;
 use reqwest::Client;
 
 pub trait JiraApi: Send + Sync {
@@ -36,11 +37,11 @@ impl JiraApi for ImmediateJiraApi {
         tokio::spawn(async move {
             match ticket(client, &ticket_id, &jira_config).await {
                 Ok(ticket) => {
-                    sender.send_jira_event(TicketRetrieved(ticket));
+                    sender.send(TicketRetrieved(ticket));
                 }
                 Err(err) => {
-                    sender.send_app_event(AppLog(
-                        LogEntry::new(LogLevel::Error, LogSource::Jira, "Failed to get ticket")
+                    sender.send(AppLog(
+                        LogEntry::new(LogLevel::Error, LogSource::Tool(Tool::Jira), "Failed to get ticket")
                             .with_detail(err.to_string()),
                     ));
                 }

@@ -46,9 +46,45 @@ pub trait Plugin: Send {
     // ── Config editor form state (used by CloseToolConfig) ───────────────────
     fn has_open_form(&self) -> bool;
     fn close_form(&mut self);
+
+    // ── Config normalization (e.g. trim URLs) ────────────────────────────────
+    fn normalize_config(&self, _config: &mut Config) {}
+}
+
+pub fn normalize(plugins: &[Box<dyn Plugin>], config: &mut Config) {
+    for p in plugins {
+        p.normalize_config(config);
+    }
+}
+
+pub fn enforce_feature_invariants(plugins: &[Box<dyn Plugin>], config: &mut Config) {
+    for p in plugins {
+        if !p.has_min_config(config) {
+            p.apply_feature_flag(&mut config.features, false);
+        }
+    }
 }
 
 use crate::tools::{jira, service_status, token_generator};
+
+pub fn menu_entry_for(plugins: &[Box<dyn Plugin>], tool: Tool) -> &'static str {
+    plugins
+        .iter()
+        .find(|p| p.id() == tool)
+        .map(|p| p.menu_entry())
+        .unwrap_or("")
+}
+
+pub fn log_source_label(
+    plugins: &[Box<dyn Plugin>],
+    source: &crate::state::log::LogSource,
+) -> &'static str {
+    use crate::state::log::LogSource;
+    match source {
+        LogSource::App => "App",
+        LogSource::Tool(tool) => menu_entry_for(plugins, *tool),
+    }
+}
 
 pub fn create_plugins(
     config: &Config,

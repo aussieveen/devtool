@@ -22,7 +22,7 @@ impl ConfigFile {
 
     pub fn read_or_create_config(&self) -> Result<Config, ConfigError> {
         match fs::read_to_string(&self.file_path) {
-            Ok(content) => Ok(serde_yaml::from_str::<Config>(content.as_str())?.normalize()),
+            Ok(content) => Ok(serde_yaml::from_str::<Config>(content.as_str())?),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 let config = Config::default();
                 if let Some(parent) = self.file_path.parent() {
