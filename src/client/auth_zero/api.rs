@@ -48,11 +48,7 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
                     sender.send(TokenGenerated(token, service_idx, env_idx));
                 }
                 Err(err) => {
-                    sender.send(TokenFailed(
-                        err.to_string(),
-                        service_idx,
-                        env_idx,
-                    ));
+                    sender.send(TokenFailed(err.to_string(), service_idx, env_idx));
                 }
             }
         });

@@ -1,7 +1,3 @@
-use std::sync::Arc;
-use ratatui::Frame;
-use ratatui::prelude::Rect;
-use ratatui::text::Line;
 use crate::client::auth_zero::api::AuthZeroApi;
 use crate::client::healthcheck::api::HealthcheckApi;
 use crate::client::jira::api::JiraApi;
@@ -11,12 +7,16 @@ use crate::input::key_context::KeyContext;
 use crate::input::key_event_map::KeyEventMap;
 use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
+use ratatui::Frame;
+use ratatui::prelude::Rect;
+use ratatui::text::Line;
+use std::sync::Arc;
 
 pub trait Plugin: Send {
     // ── Identity ────────────────────────────────────────────────────────────
-    fn id(&self)           -> Tool;
-    fn title(&self)        -> &'static str;
-    fn menu_entry(&self)   -> &'static str;
+    fn id(&self) -> Tool;
+    fn title(&self) -> &'static str;
+    fn menu_entry(&self) -> &'static str;
     fn config_title(&self) -> &'static str;
 
     // ── Feature-flag integration ─────────────────────────────────────────────
@@ -93,8 +93,14 @@ pub fn create_plugins(
     healthcheck_api: Arc<dyn HealthcheckApi>,
 ) -> Vec<Box<dyn Plugin>> {
     vec![
-        Box::new(service_status::ServiceStatusPlugin::new(config, healthcheck_api)),
-        Box::new(token_generator::TokenGeneratorPlugin::new(config, auth_zero_api)),
+        Box::new(service_status::ServiceStatusPlugin::new(
+            config,
+            healthcheck_api,
+        )),
+        Box::new(token_generator::TokenGeneratorPlugin::new(
+            config,
+            auth_zero_api,
+        )),
         Box::new(jira::JiraPlugin::new(config, jira_api)),
         // ← new tool: one line here
     ]

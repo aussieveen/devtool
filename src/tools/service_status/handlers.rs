@@ -66,7 +66,8 @@ impl ServiceStatusPlugin {
                 self.state.set_commit_fetching(service_idx, &env);
                 let sender = ctx.sender.clone();
                 let config = ctx.config.servicestatus.clone();
-                self.healthcheck_api.commit_ref(service_idx, env, config.into(), sender);
+                self.healthcheck_api
+                    .commit_ref(service_idx, env, config.into(), sender);
             }
             GetCommitRefOk(commit, service_idx, env) => {
                 let old_status = self.state.services[service_idx].commit_ref_status();
@@ -82,7 +83,8 @@ impl ServiceStatusPlugin {
                 }
             }
             GetCommitRefErrored(error, service_idx, env) => {
-                self.state.set_commit_error(service_idx, &env, error.clone());
+                self.state
+                    .set_commit_error(service_idx, &env, error.clone());
                 if let Some(svc_cfg) = ctx.config.servicestatus.get(service_idx) {
                     let env_label = env.to_string().to_lowercase();
                     ctx.sender.send(AppLog(LogEntry::new(
@@ -95,7 +97,11 @@ impl ServiceStatusPlugin {
         }
     }
 
-    pub(super) fn handle_config_event(&mut self, event: ServiceStatusConfigEvent, ctx: &mut PluginContext) {
+    pub(super) fn handle_config_event(
+        &mut self,
+        event: ServiceStatusConfigEvent,
+        ctx: &mut PluginContext,
+    ) {
         match event {
             ConfigListMove(direction) => {
                 let len = ctx.config.servicestatus.len();

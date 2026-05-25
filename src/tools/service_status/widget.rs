@@ -41,37 +41,17 @@ pub fn render(
 
     let table_length = (state.services.len() + 1) as u16; // services + header row
 
-    // Count error lines for the selected service to size the error area dynamically.
-    let error_line_count = if let Some(idx) = state.table_state.selected() {
-        if let Some(service) = state.services.get(idx) {
-            [
-                &service.staging,
-                &service.preproduction,
-                &service.production,
-            ]
-            .iter()
-            .filter(|c| c.error().is_some())
-            .count() as u16
-        } else {
-            0
-        }
-    } else {
-        0
-    };
-
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(table_length),     // table
-            Constraint::Length(error_line_count), // request errors (0 when none)
-            Constraint::Min(0),                   // filler
-            Constraint::Length(2),                // color legend
+            Constraint::Length(table_length), // table
+            Constraint::Min(0),               // filler
+            Constraint::Length(2),            // color legend
         ])
         .split(area);
 
     let table_area = vertical[0];
-    let error_area = vertical[1];
-    let legend_area = vertical[3];
+    let legend_area = vertical[2];
 
     let headers = Row::new(vec!["Service", "Staging", "Preproduction", "Production"]);
     let rows: Vec<Row> = state
@@ -136,24 +116,6 @@ pub fn render(
     .header(headers);
 
     frame.render_stateful_widget(table, table_area, &mut state.table_state);
-
-    // ── Render errors
-    if let Some(service_idx) = state.table_state.selected() {
-        let mut lines: Vec<Line> = vec![];
-        let service = &state.services[service_idx];
-        let commits = vec![
-            (&service.staging, "Staging"),
-            (&service.preproduction, "Preproduction"),
-            (&service.production, "Production"),
-        ];
-        for commit in commits {
-            let (c, env) = commit;
-            if let Some(error) = c.error() {
-                lines.push(format!("{}: {}", env, error).into());
-            }
-        }
-        frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), error_area);
-    }
 
     let legend_text = Line::from(vec![
         Span::styled("▍ ", Style::default().bg(ALL_MATCH)),

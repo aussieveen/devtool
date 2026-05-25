@@ -58,7 +58,8 @@ impl JiraPlugin {
             TicketRetrieved(ticket_response) => {
                 if self.state.tickets_pending_scan > 0 {
                     let changes = self.state.update_ticket_with_changes(ticket_response);
-                    self.state.tickets_pending_scan = self.state.tickets_pending_scan.saturating_sub(1);
+                    self.state.tickets_pending_scan =
+                        self.state.tickets_pending_scan.saturating_sub(1);
                     if let Some((id, change_msg)) = changes {
                         ctx.sender.send(ActivityEvent(id, change_msg));
                     }
@@ -69,7 +70,8 @@ impl JiraPlugin {
                     let ticket_id = ticket_response.key.clone();
                     self.state.add_ticket(ticket_response);
                     self.state.new_ticket_id.clear();
-                    ctx.sender.send(ActivityEvent(ticket_id, "Added to watchlist".to_string()));
+                    ctx.sender
+                        .send(ActivityEvent(ticket_id, "Added to watchlist".to_string()));
                     ctx.sender.send(TicketListUpdate);
                 }
             }
@@ -78,7 +80,8 @@ impl JiraPlugin {
                     && let Some(ticket) = self.state.tickets.get(idx)
                 {
                     let id = ticket.id.clone();
-                    ctx.sender.send(ActivityEvent(id, "Removed from watchlist".to_string()));
+                    ctx.sender
+                        .send(ActivityEvent(id, "Removed from watchlist".to_string()));
                 }
                 self.state.remove_ticket();
                 if self.state.tickets.is_empty() {
@@ -138,7 +141,7 @@ impl JiraPlugin {
                         );
                     }
                 }
-            },
+            }
             JiraEvent::CancelNewTicket => {
                 self.state.adding_ticket = false;
                 self.state.new_ticket_id.clear();

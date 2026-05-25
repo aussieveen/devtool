@@ -10,9 +10,9 @@ mod input;
 mod persistence;
 pub mod popup;
 mod state;
+pub mod tools;
 mod ui;
 mod utils;
-pub mod tools;
 
 use crate::app::App;
 use crate::config::loader::ConfigFile;

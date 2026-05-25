@@ -20,9 +20,7 @@ use crate::popup::model::Popup;
 pub(crate) use crate::state::app::{AppFocus, Tool};
 use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::tools::context::PluginContext;
-use crate::tools::plugin::{
-    create_plugins, enforce_feature_invariants, normalize, Plugin,
-};
+use crate::tools::plugin::{Plugin, create_plugins, enforce_feature_invariants, normalize};
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 use crate::{state::app::AppState, ui::layout, ui::widgets::*};
@@ -202,7 +200,9 @@ impl App {
             }
             ToggleFeature => {
                 if let Some((tool, now_enabled)) = self.state.config_editor.toggle_selected() {
-                    let has_min_config = self.plugins.iter()
+                    let has_min_config = self
+                        .plugins
+                        .iter()
                         .find(|p| p.id() == tool)
                         .map(|p| p.has_min_config(&self.config))
                         .unwrap_or(false);
@@ -224,7 +224,9 @@ impl App {
             }
             RebuildToolList => {
                 enforce_feature_invariants(&self.plugins, &mut self.config);
-                self.state.config_editor.sync_from_features(&self.plugins, &self.config.features);
+                self.state
+                    .config_editor
+                    .sync_from_features(&self.plugins, &self.config.features);
                 self.state.rebuild_tool_list(&self.plugins, &self.config);
             }
             CloseToolConfig => {
@@ -297,29 +299,15 @@ impl App {
 
     fn render_content(&mut self, frame: &mut Frame, area: Rect) {
         use crate::ui::styles;
-        let border_style = styles::block_style(styles::tool_has_focus(self.state.effective_focus()));
+        let border_style =
+            styles::block_style(styles::tool_has_focus(self.state.effective_focus()));
 
         // Config preview mode (AppFocus::Config)
-        if self.state.effective_focus() == AppFocus::Config {
-            if let Some(idx) = self.state.config_editor.list_state.selected()
-                && let Some(item) = self.state.config_editor.items.get(idx)
-            {
-                let tool = item.tool;
-                if let Some(plugin) = self.plugins.iter_mut().find(|p| p.id() == tool) {
-                    let pane = Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(border_style)
-                        .title(plugin.config_title());
-                    let inner = pane.inner(area);
-                    frame.render_widget(pane, area);
-                    plugin.render_config(frame, inner, &self.config);
-                    return;
-                }
-            }
-        }
-
-        // ToolConfig mode
-        if let AppFocus::ToolConfig(tool) = self.state.effective_focus() {
+        if self.state.effective_focus() == AppFocus::Config
+            && let Some(idx) = self.state.config_editor.list_state.selected()
+            && let Some(item) = self.state.config_editor.items.get(idx)
+        {
+            let tool = item.tool;
             if let Some(plugin) = self.plugins.iter_mut().find(|p| p.id() == tool) {
                 let pane = Block::default()
                     .borders(Borders::ALL)
@@ -332,18 +320,37 @@ impl App {
             }
         }
 
+        // ToolConfig mode
+        if let AppFocus::ToolConfig(tool) = self.state.effective_focus()
+            && let Some(plugin) = self.plugins.iter_mut().find(|p| p.id() == tool)
+        {
+            let pane = Block::default()
+                .borders(Borders::ALL)
+                .border_style(border_style)
+                .title(plugin.config_title());
+            let inner = pane.inner(area);
+            frame.render_widget(pane, area);
+            plugin.render_config(frame, inner, &self.config);
+            return;
+        }
+
         // Normal tool view
         if self.state.tool_list.items.is_empty() {
             use ratatui::prelude::Alignment;
             use ratatui::style::{Color, Style};
             use ratatui::text::{Line, Span};
             use ratatui::widgets::Paragraph;
-            let pane = Block::default().borders(Borders::ALL).border_style(border_style);
+            let pane = Block::default()
+                .borders(Borders::ALL)
+                .border_style(border_style);
             let inner = pane.inner(area);
             frame.render_widget(pane, area);
             frame.render_widget(
                 Paragraph::new(Line::from(vec![
-                    Span::styled("No tools enabled — press ", Style::default().fg(Color::DarkGray)),
+                    Span::styled(
+                        "No tools enabled — press ",
+                        Style::default().fg(Color::DarkGray),
+                    ),
                     Span::styled("[2]", crate::ui::styles::key_style()),
                     Span::styled(" to configure.", Style::default().fg(Color::DarkGray)),
                 ]))
@@ -418,7 +425,11 @@ impl App {
                     stack.push(List);
                 }
                 AppFocus::Tool => {
-                    if let Some(plugin) = self.plugins.iter().find(|p| p.id() == self.state.current_tool) {
+                    if let Some(plugin) = self
+                        .plugins
+                        .iter()
+                        .find(|p| p.id() == self.state.current_tool)
+                    {
                         for ctx in plugin.key_contexts() {
                             stack.push(ctx);
                         }

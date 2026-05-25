@@ -101,7 +101,7 @@ mod tests {
     use crate::environment::Environment;
     use crate::popup::model::Popup;
     use crate::state::app::{AppState, Tool};
-    use crate::tools::plugin::{create_plugins, Plugin};
+    use crate::tools::plugin::{Plugin, create_plugins};
     use crate::ui::widgets::popup::Type;
     use std::sync::Arc;
 

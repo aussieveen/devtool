@@ -137,6 +137,12 @@ pub struct ServiceForm {
     pub edit_index: Option<usize>,
 }
 
+impl Default for ServiceForm {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServiceForm {
     pub fn new() -> Self {
         Self {
@@ -258,6 +264,12 @@ pub struct TokenGeneratorConfigEditor {
     pub form: Option<ActiveEdit>,
 }
 
+impl Default for TokenGeneratorConfigEditor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TokenGeneratorConfigEditor {
     pub fn new() -> Self {
         Self {
@@ -273,7 +285,10 @@ impl TokenGeneratorConfigEditor {
 
     /// Returns the zero-based service index when a service row is selected, or None.
     pub fn selected_service_idx(&self) -> Option<usize> {
-        self.table_state.selected().filter(|&i| i > 0).map(|i| i - 1)
+        self.table_state
+            .selected()
+            .filter(|&i| i > 0)
+            .map(|i| i - 1)
     }
 
     pub fn open_auth0_form(&mut self, config: &Auth0Config) {
@@ -281,7 +296,7 @@ impl TokenGeneratorConfigEditor {
     }
 
     pub fn open_add_service_form(&mut self) {
-        self.form = Some(ActiveEdit::Service(Box::new(ServiceForm::new())));
+        self.form = Some(ActiveEdit::Service(Box::default()));
     }
 
     pub fn open_edit_service_form(&mut self, idx: usize, svc: &ServiceConfig) {

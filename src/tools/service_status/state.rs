@@ -77,7 +77,7 @@ pub enum Commit {
 }
 
 impl Commit {
-    const COMMIT_SEGMENT_LENGTH:usize = 6;
+    const COMMIT_SEGMENT_LENGTH: usize = 6;
 
     pub fn commit_ref(&self) -> Option<&str> {
         match self {
@@ -165,8 +165,8 @@ impl Service {
 
 #[cfg(test)]
 mod tests {
-    use crate::environment::Environment;
     use super::{Commit, CommitRefStatus, Service, ServiceStatus};
+    use crate::environment::Environment;
     use test_case::test_case;
 
     #[test]

@@ -76,7 +76,7 @@ impl LogEntry {
     pub fn new(level: LogLevel, source: LogSource, title: impl Into<String>) -> Self {
         Self {
             level,
-            source: source.into(),
+            source,
             title: title.into(),
             detail: None,
         }

@@ -41,8 +41,12 @@ impl JiraApi for ImmediateJiraApi {
                 }
                 Err(err) => {
                     sender.send(AppLog(
-                        LogEntry::new(LogLevel::Error, LogSource::Tool(Tool::Jira), "Failed to get ticket")
-                            .with_detail(err.to_string()),
+                        LogEntry::new(
+                            LogLevel::Error,
+                            LogSource::Tool(Tool::Jira),
+                            "Failed to get ticket",
+                        )
+                        .with_detail(err.to_string()),
                     ));
                 }
             }

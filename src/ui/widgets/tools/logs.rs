@@ -1,5 +1,5 @@
 use crate::state::log::{LogLevel, LogsItem};
-use crate::tools::plugin::{log_source_label, Plugin};
+use crate::tools::plugin::{Plugin, log_source_label};
 use crate::ui::styles::block_style;
 use ratatui::Frame;
 use ratatui::layout::Rect;

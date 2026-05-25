@@ -5,8 +5,8 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Cell, Row, Table, Wrap};
 use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Block, Cell, Row, Table, Wrap};
 use tui_text_field::TextField;
 
 pub fn render(
@@ -39,8 +39,8 @@ fn render_unified_table(
     services: &[ServiceConfig],
 ) {
     let auth0_status = auth0_endpoint_status(auth0);
-    let header = Row::new(["Name", "Details", "Envs"])
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    let header =
+        Row::new(["Name", "Details", "Envs"]).style(Style::default().add_modifier(Modifier::BOLD));
 
     let auth0_row = Row::new([
         Cell::from("Auth0 Endpoints").style(Style::default().fg(Color::Cyan)),
@@ -61,14 +61,12 @@ fn render_unified_table(
 
     let mut all_rows = vec![auth0_row];
     if services.is_empty() {
-        all_rows.push(
-            Row::new([
-                Cell::from("(no services yet — press [a] to add one)")
-                    .style(Style::default().fg(Color::DarkGray)),
-                Cell::from(""),
-                Cell::from(""),
-            ]),
-        );
+        all_rows.push(Row::new([
+            Cell::from("(no services yet — press [a] to add one)")
+                .style(Style::default().fg(Color::DarkGray)),
+            Cell::from(""),
+            Cell::from(""),
+        ]));
     } else {
         all_rows.extend(service_rows);
     }

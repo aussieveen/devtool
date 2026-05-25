@@ -17,6 +17,12 @@ pub struct Jira {
     pub tickets_pending_scan: usize,
 }
 
+impl Default for Jira {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Jira {
     pub fn new() -> Jira {
         let jira_file = JiraFile::default();
@@ -164,10 +170,10 @@ impl Ticket {
 
 #[cfg(test)]
 mod tests {
+    use super::{Jira, Ticket};
     use crate::client::jira::models::{Assignee, Fields, Status, TicketResponse};
     use crate::event::events::Direction;
     use crate::persistence::persister::JiraFile;
-    use super::{Jira, Ticket};
     use std::path::PathBuf;
     use tempfile::TempDir;
     use test_case::test_case;

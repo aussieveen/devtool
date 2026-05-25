@@ -20,10 +20,9 @@ The **footer** is the key legend. It updates contextually based on what is focus
 
 ### Service Status
 
-- Configure each service with **staging**, **preproduction**, and **production** health check URLs, plus a repository URL — all via the `[2]` config panel.
-- Displays a colour-coded commit status grid showing deployed commits across all environments.
-- Generates a **compare URL** between preproduction and production when they diverge, ready to open in your browser or copy to clipboard.
-- Auto-scans every **15 minutes** to keep status current.
+Colour-coded commit status grid across staging, preproduction, and production. Auto-scans every 15 minutes. Generates a compare URL when environments diverge.
+
+→ [Usage & configuration guide](docs/service-status.md)
 
 ```
 ┌──────────────────────────┬──────────────────────────────────────────────────────────────┐
@@ -48,10 +47,9 @@ The **footer** is the key legend. It updates contextually based on what is focus
 
 ### M2M Auth0 Token Generator
 
-- Configure Auth0 endpoints and service credentials via the `[2]` config panel — edited inline, no popups.
-- Select a **service** and **environment** to generate a token on demand.
-- Token state is shown with status indicators: `[ ]` idle, `[…]` generating, `[✓]` ready, `[x]` error.
-- Copy the generated token to clipboard with a single keystroke.
+Generate M2M tokens on demand per service and environment. Tokens are copied to clipboard with a single keystroke.
+
+→ [Usage & configuration guide](docs/token-generator.md)
 
 ```
 ┌──────────────────────────┬──────────────────────────────────────────────────────────────┐
@@ -76,11 +74,9 @@ The **footer** is the key legend. It updates contextually based on what is focus
 
 ### Jira Tickets
 
-- Add tickets by **Jira ID** using an inline input (press `[a]`, type the ID, press `[enter]`).
-- Displays each ticket's ID, title, colour-coded status, and assignee.
-- Remove and reorder tickets to suit your workflow.
-- Ticket data is **persisted to disk** (`~/.devtool/persistence.yaml`) and restored on next launch.
-- Auto-refreshes every **15 minutes**.
+Track Jira tickets by ID — title, status, and assignee displayed inline. Persisted to disk across restarts. Auto-refreshes every 15 minutes.
+
+→ [Usage & configuration guide](docs/jira.md)
 
 ```
 ┌──────────────────────────┬──────────────────────────────────────────────────────────────┐
@@ -107,70 +103,16 @@ The **footer** is the key legend. It updates contextually based on what is focus
 
 Press `[3]` from anywhere to open the Logs panel. It has two sub-sections, switchable with `[↑↓]`:
 
-#### Activity Feed
-
-Human-readable events that summarise changes you may have missed while focused elsewhere. Entries appear only when something actually changes — not on every background scan.
-
-| Source | Example |
-|---|---|
-| Service Status | `api-gateway  Now in sync across all environments` |
-| Service Status | `auth-service  Environments are out of sync` |
-| Jira | `ABC-123  Added to watchlist` |
-| Jira | `ABC-456  Status changed: In Review → In Progress` |
-
-A `●` dot appears next to **Activity** in the sidebar whenever there are unread entries. It clears automatically when you switch to Activity.
-
-#### App Log
-
-Structured log entries following [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424) severity levels. Each entry shows a timestamp, colour-coded level label, source, and message — long messages wrap to fit the panel.
-
-| Level | Colour | Used for |
-|---|---|---|
-| `[ERROR]` | Red | Request failures, token errors, persist failures |
-| `[WARN]` | Yellow | Soft failures (clipboard, browser open, scan skipped) |
-| `[INFO]` | White | Successful operations (scan start, token generated) |
-| `[DEBUG]` | Dim | Verbose diagnostic entries |
-
-```
-┌──────────────────────────┬──────────────────────────────────────────────────────────────┐
-│ [1] Tools                │ App Log                                                      │
-│                          │                                                              │
-│   Service Status         │  14:03:21  [INFO]   app          App started — config loaded │
-│   Token Generator        │  14:03:36  [INFO]   healthcheck  Scan started — 3 services   │
-│   Jira Tickets           │                     × 3 environments                         │
-│                          │  14:03:36  [ERROR]  healthcheck  api-gateway/staging:        │
-│ [2] Config               │                     Request timed out — check VPN            │
-│   ☐ Service Status       │  14:03:37  [INFO]   jira         Ticket scan started —       │
-│   ☑ Jira Tickets         │                     2 tickets                                │
-│                          │  14:05:12  [INFO]   token-gen    Token generated:            │
-│ [3] Logs                 │                     payment-service/staging                  │
-│   Activity               │                                                              │
-│ ● App Log                │                                                              │
-└──────────────────────────┴──────────────────────────────────────────────────────────────┘
- ──────────────────────────────────────────────────────────────────────────────────────────
- [↑↓] Switch panel  [1] Tools  [2] Config  [q/esc] Quit
-```
-
-> **Retention:** All log data is in-memory only. Entries older than 3 hours are automatically pruned and everything is cleared on restart.
-
-#### Error popup
-
-When a blocking error occurs (e.g. a token request fails), a compact popup appears showing the error title and a reminder to check `[3]` Logs for the full detail. Press `[d]` to dismiss.
+- **Activity** — human-readable summaries of changes (new deployment, status change, ticket added). A `●` dot appears in the sidebar when there are unread entries.
+- **App Log** — structured log entries (timestamp, severity, source, message). Severity levels follow [RFC 5424](https://datatracker.ietf.org/doc/html/rfc5424): `[ERROR]`, `[WARN]`, `[INFO]`, `[DEBUG]`. All log data is in-memory only and cleared on restart.
 
 ### Configuration
 
-Each tool's settings are edited inline via the `[2]` config panel — no separate windows or prompts.
-
-- **Service Status** — add, edit, and remove services with name and environment URLs
-- **Token Generator** — configure Auth0 endpoints and per-service credentials
-- **Jira** — set your Jira URL, email, and API token (token is masked in display)
-
-Navigate to the config panel with `[2]`, select a tool with `[enter]` to enable it, or press `[→]` to open its settings. Press `[←]` to return.
+Each tool is configured inline via the `[2]` panel — no separate windows or prompts. Press `[2]` to open it, then `[→]` on a tool to enter its settings, or `[enter]` to toggle it on/off. Press `[←]` to return.
 
 ### Persistence
 
-- All tool data is retained while the TUI is running — navigating between tools does not reset their state.
-- Jira ticket selections are saved to `~/.devtool/persistence.yaml` and automatically restored on the next launch.
+Jira ticket selections are saved to `~/.devtool/persistence.yaml` and restored on the next launch. All other tool state is in-memory for the duration of the session.
 
 ## Installation
 ### Prebuilt Binaries (Recommended)
@@ -182,14 +124,8 @@ Prebuilt binaries are available for macOS and Linux.
 4. Move the dev-tool binary into a directory on your `PATH`, for example:
     ```bash
     sudo mv dev-tool /usr/local/bin
-   ```
-5. Create the configuration directory and copy the default configuration:
-    ```bash
-    mkdir -p ~/.devtool
-    cp config/config.yaml.dist ~/.devtool/config.yaml
     ```
-6. Open `~/.devtool/config.yaml` and configure it with your required values.
-7. Run `dev-tool` from the command line in order to bring up the TUI.
+5. Run `dev-tool` from the command line in order to bring up the TUI.
 ### Run From Source
 
 If you have Rust installed, you can also run the application directly from source.
@@ -200,16 +136,32 @@ cd devtool
 cargo run
 ```
 
-⚠️ The configuration file at `~/.devtool/config.yaml` is still required when running from source.
-
 ### Supported Platforms
 - macOS (Intel & Apple Silicon)
 - Linux (x86_64)
 
 ### Notes
+
 Ensure the binary is executable: `chmod +x dev-tool`
 
 Make sure `/usr/local/bin` (or your chosen directory) is included in your PATH.
+
+#### macOS: allowing the binary to run
+
+macOS blocks binaries downloaded from the internet until you explicitly allow them. After trying to run `dev-tool` for the first time, macOS will show a security alert.
+
+To allow it:
+
+1. Open **System Settings → Privacy & Security**
+2. Scroll down to the Security section
+3. Click **Open Anyway** next to the `dev-tool` entry
+4. Confirm by clicking **Open** in the prompt that follows
+
+Alternatively, remove the quarantine flag from the terminal before running:
+
+```bash
+xattr -d com.apple.quarantine dev-tool
+```
 
 ## License
 

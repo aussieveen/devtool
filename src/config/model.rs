@@ -49,7 +49,6 @@ impl Default for Config {
     }
 }
 
-
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct ServiceStatusConfig {
     pub name: String,

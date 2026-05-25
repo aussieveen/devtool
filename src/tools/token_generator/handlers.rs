@@ -21,7 +21,11 @@ use crate::utils::update_list_state;
 const LOG_SOURCE: LogSource = LogSource::Tool(Tool::TokenGenerator);
 
 impl TokenGeneratorPlugin {
-    pub(super) fn handle_tool_event(&mut self, event: TokenGeneratorEvent, ctx: &mut PluginContext) {
+    pub(super) fn handle_tool_event(
+        &mut self,
+        event: TokenGeneratorEvent,
+        ctx: &mut PluginContext,
+    ) {
         match event {
             EnvListMove(direction) => {
                 let (selected_service, _) = self.state.selected_service_env();
@@ -47,11 +51,17 @@ impl TokenGeneratorPlugin {
             }
             GenerateToken => {
                 let (service_idx, env_idx) = self.state.selected_service_env();
-                let svc_name = ctx.config.tokengenerator.services
+                let svc_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
                     .get(service_idx)
                     .map(|s| s.name.clone())
                     .unwrap_or_default();
-                let env_name = ctx.config.tokengenerator.services
+                let env_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
                     .get(service_idx)
                     .and_then(|s| s.credentials.get(env_idx))
                     .map(|c| c.env.to_string().to_lowercase())
@@ -67,14 +77,21 @@ impl TokenGeneratorPlugin {
 
                 let sender = ctx.sender.clone();
                 let config = ctx.config.tokengenerator.clone();
-                self.auth_zero_api.fetch_token(service_idx, env_idx, config, sender);
+                self.auth_zero_api
+                    .fetch_token(service_idx, env_idx, config, sender);
             }
             TokenGenerated(token, service_idx, env_idx) => {
-                let svc_name = ctx.config.tokengenerator.services
+                let svc_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
                     .get(service_idx)
                     .map(|s| s.name.clone())
                     .unwrap_or_default();
-                let env_name = ctx.config.tokengenerator.services
+                let env_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
                     .get(service_idx)
                     .and_then(|s| s.credentials.get(env_idx))
                     .map(|c| c.env.to_string().to_lowercase())
@@ -98,11 +115,17 @@ impl TokenGeneratorPlugin {
                 );
             }
             TokenFailed(error, service_idx, env_idx) => {
-                let svc_name = ctx.config.tokengenerator.services
+                let svc_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
                     .get(service_idx)
                     .map(|s| s.name.clone())
                     .unwrap_or_default();
-                let env_name = ctx.config.tokengenerator.services
+                let env_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
                     .get(service_idx)
                     .and_then(|s| s.credentials.get(env_idx))
                     .map(|c| c.env.to_string().to_lowercase())
@@ -122,7 +145,11 @@ impl TokenGeneratorPlugin {
         }
     }
 
-    pub(super) fn handle_config_event(&mut self, event: TokenGeneratorConfigEvent, ctx: &mut PluginContext) {
+    pub(super) fn handle_config_event(
+        &mut self,
+        event: TokenGeneratorConfigEvent,
+        ctx: &mut PluginContext,
+    ) {
         use super::config_editor::ActiveEdit;
         match event {
             ConfigListMove(direction) => {
@@ -136,7 +163,9 @@ impl TokenGeneratorPlugin {
                     }
                     crate::event::events::Direction::Down => {
                         let current = editor.table_state.selected().unwrap_or(0);
-                        editor.table_state.select(Some((current + 1).min(total - 1)));
+                        editor
+                            .table_state
+                            .select(Some((current + 1).min(total - 1)));
                     }
                 }
             }
@@ -194,10 +223,14 @@ impl TokenGeneratorPlugin {
                 if let Some(form) = self.config_editor.form.take() {
                     match form {
                         ActiveEdit::Auth0(p) => {
-                            ctx.config.tokengenerator.auth0.local = p.local.value().trim().to_string();
-                            ctx.config.tokengenerator.auth0.staging = p.staging.value().trim().to_string();
-                            ctx.config.tokengenerator.auth0.preproduction = p.preprod.value().trim().to_string();
-                            ctx.config.tokengenerator.auth0.production = p.prod.value().trim().to_string();
+                            ctx.config.tokengenerator.auth0.local =
+                                p.local.value().trim().to_string();
+                            ctx.config.tokengenerator.auth0.staging =
+                                p.staging.value().trim().to_string();
+                            ctx.config.tokengenerator.auth0.preproduction =
+                                p.preprod.value().trim().to_string();
+                            ctx.config.tokengenerator.auth0.production =
+                                p.prod.value().trim().to_string();
                             let _ = ctx.config_loader.write_config(ctx.config);
                         }
                         ActiveEdit::Service(p) if p.is_valid() => {
@@ -207,7 +240,9 @@ impl TokenGeneratorPlugin {
                                 credentials: p.to_credentials(),
                             };
                             if let Some(idx) = p.edit_index {
-                                if let Some(existing) = ctx.config.tokengenerator.services.get_mut(idx) {
+                                if let Some(existing) =
+                                    ctx.config.tokengenerator.services.get_mut(idx)
+                                {
                                     *existing = svc;
                                 }
                             } else {

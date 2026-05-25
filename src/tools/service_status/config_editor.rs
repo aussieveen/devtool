@@ -44,6 +44,12 @@ pub struct AddServiceForm {
     pub edit_index: Option<usize>,
 }
 
+impl Default for AddServiceForm {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AddServiceForm {
     pub fn new() -> Self {
         Self {
@@ -98,6 +104,12 @@ impl AddServiceForm {
 pub struct ServiceStatusConfigEditor {
     pub table_state: TableState,
     pub form: Option<AddServiceForm>,
+}
+
+impl Default for ServiceStatusConfigEditor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ServiceStatusConfigEditor {

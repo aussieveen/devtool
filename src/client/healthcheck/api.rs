@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use crate::client::healthcheck::healthcheck_client;
 use crate::config::model::ServiceStatusConfig;
 use crate::environment::Environment;
@@ -6,6 +5,7 @@ use crate::error::model::ClientError;
 use crate::event::events::ServiceStatusEvent::{GetCommitRefErrored, GetCommitRefOk};
 use crate::event::sender::EventSender;
 use reqwest::Client;
+use std::sync::Arc;
 
 pub trait HealthcheckApi: Send + Sync {
     fn commit_ref(
@@ -50,11 +50,7 @@ impl HealthcheckApi for ImmediateHealthcheckApi {
                     sender.send(GetCommitRefOk(commit, service_idx, env));
                 }
                 Err(err) => {
-                    sender.send(GetCommitRefErrored(
-                        err.to_string(),
-                        service_idx,
-                        env,
-                    ));
+                    sender.send(GetCommitRefErrored(err.to_string(), service_idx, env));
                 }
             }
         });

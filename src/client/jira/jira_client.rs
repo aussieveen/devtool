@@ -21,7 +21,11 @@ pub async fn get(
     match body {
         JiraTicketResponse(r) => Ok(r),
         JiraErrorResponse(e) => {
-            let msg = e.error_messages.first().cloned().unwrap_or("Unknown error".to_string());
+            let msg = e
+                .error_messages
+                .first()
+                .cloned()
+                .unwrap_or("Unknown error".to_string());
             Err(ClientError::Api(msg))
         }
     }

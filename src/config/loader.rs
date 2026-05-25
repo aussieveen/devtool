@@ -92,7 +92,10 @@ mod tests {
             config.config_for_env(&Environment::Preproduction),
             "preproduction"
         );
-        assert_eq!(config.config_for_env(&Environment::Production), "production");
+        assert_eq!(
+            config.config_for_env(&Environment::Production),
+            "production"
+        );
     }
 
     fn temp_loader_path(dir: &TempDir) -> PathBuf {
