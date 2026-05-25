@@ -383,6 +383,16 @@ impl App {
             }
             // Key didn't match a popup action — dismiss popup, then fall through
             // so the keypress still takes effect in the normal context stack.
+            for context in self.context_stack() {
+                if let Some(event) = self.key_event_map.resolve(context, key) {
+                    if matches!(event, Event::App(AppEvent::OpenLogs)) {
+                        self.state.log.select_logs();
+                    }
+                    self.event_sender.send(event);
+                    break;
+                }
+            }
+            return Ok(());
         }
         // First-match-wins: the most specific context in the stack takes priority.
         // This prevents lower-priority contexts (e.g. Global Quit on Esc) from

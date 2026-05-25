@@ -157,7 +157,7 @@ fn render_app_log(
                         format!("{:<8}  ", format!("[{}]", e.level.label().trim())),
                         level_style,
                     ),
-                    Span::styled(format!("{}  ", source), dim),
+                    Span::styled(format!("{:<width$}  ", source, width = source_width), dim),
                     Span::raw(title_chunks.next().unwrap_or_default()),
                 ]));
                 let indent = " ".repeat(prefix_len);
