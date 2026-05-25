@@ -1,4 +1,5 @@
 use crate::state::log::{LogLevel, LogsItem};
+use crate::tools::plugin::{Plugin, log_source_label};
 use crate::ui::styles::block_style;
 use ratatui::Frame;
 use ratatui::layout::Rect;
@@ -6,12 +7,18 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, List, ListItem, Padding};
 
-pub fn render(frame: &mut Frame, area: Rect, log: &crate::state::log::LogState, focused: bool) {
+pub fn render(
+    frame: &mut Frame,
+    area: Rect,
+    log: &crate::state::log::LogState,
+    focused: bool,
+    plugins: &[Box<dyn Plugin>],
+) {
     let border = block_style(focused);
 
     match log.selected_item {
         LogsItem::Activity => render_activity(frame, area, log, border),
-        LogsItem::AppLog => render_app_log(frame, area, log, border),
+        LogsItem::AppLog => render_app_log(frame, area, log, border, plugins),
     }
 }
 
@@ -108,7 +115,13 @@ fn render_activity(
     frame.render_widget(widget, area);
 }
 
-fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogState, border: Style) {
+fn render_app_log(
+    frame: &mut Frame,
+    area: Rect,
+    log: &crate::state::log::LogState,
+    border: Style,
+    plugins: &[Box<dyn Plugin>],
+) {
     let dim = Style::default().add_modifier(Modifier::DIM);
     let entries = log.visible_log();
     let avail = inner_width(area);
@@ -119,7 +132,7 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
     const SOURCE_MIN: usize = 8;
     let source_width = entries
         .iter()
-        .map(|e| e.source.len())
+        .map(|e| log_source_label(plugins, &e.source).len())
         .max()
         .unwrap_or(SOURCE_MIN)
         .max(SOURCE_MIN);
@@ -134,7 +147,7 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
             .map(|e| {
                 let ts = e.timestamp.format("%H:%M:%S").to_string();
                 let level_style = level_style(e.level);
-                let source = format!("{:<width$}", e.source, width = source_width);
+                let source = log_source_label(plugins, &e.source).to_string();
                 let mut title_chunks = wrap_message(&e.title, msg_width).into_iter();
 
                 let mut lines: Vec<Line> = Vec::with_capacity(1);
@@ -144,7 +157,7 @@ fn render_app_log(frame: &mut Frame, area: Rect, log: &crate::state::log::LogSta
                         format!("{:<8}  ", format!("[{}]", e.level.label().trim())),
                         level_style,
                     ),
-                    Span::styled(format!("{}  ", source), dim),
+                    Span::styled(format!("{:<width$}  ", source, width = source_width), dim),
                     Span::raw(title_chunks.next().unwrap_or_default()),
                 ]));
                 let indent = " ".repeat(prefix_len);

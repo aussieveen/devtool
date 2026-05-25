@@ -1,5 +1,5 @@
+use super::state::{Focus, Token, TokenGenerator};
 use crate::config::model::ServiceConfig;
-use crate::state::token_generator::{Focus, Token, TokenGenerator};
 use crate::ui::styles::{block_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -55,7 +55,7 @@ pub fn render(
 
     frame.render_stateful_widget(services, inner_horizontal[0], &mut state.service_list_state);
 
-    let (service_idx, _env_idx) = state.get_selected_service_env();
+    let (service_idx, _env_idx) = state.selected_service_env();
 
     let service_config = &service_configs[service_idx];
 

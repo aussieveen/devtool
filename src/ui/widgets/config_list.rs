@@ -1,4 +1,5 @@
 use crate::state::app::{AppFocus, AppState};
+use crate::tools::plugin::{Plugin, menu_entry_for};
 use crate::ui::styles::{block_style, panel_shortcut_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::Rect;
@@ -6,7 +7,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem};
 
-pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
+pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState, plugins: &[Box<dyn Plugin>]) {
     let is_focused = matches!(
         state.effective_focus(),
         AppFocus::Config | AppFocus::ToolConfig(_)
@@ -33,7 +34,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &mut AppState) {
 
     let items = state.config_editor.items.iter().map(|item| {
         let checkbox = if item.enabled { "[✓]" } else { "[ ]" };
-        let text = format!("{} {}", checkbox, item.tool.menu_entry());
+        let text = format!("{} {}", checkbox, menu_entry_for(plugins, item.tool));
         ListItem::new(text).style(item_style)
     });
 

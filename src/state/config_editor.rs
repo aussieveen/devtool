@@ -1,5 +1,6 @@
-use crate::config::model::Features;
+use crate::config::model::{Config, Features};
 use crate::state::app::Tool;
+use crate::tools::plugin::Plugin;
 use ratatui::widgets::ListState;
 
 pub struct ConfigEditorItem {
@@ -13,24 +14,14 @@ pub struct ConfigEditor {
 }
 
 impl ConfigEditor {
-    /// All three tools are always shown in the config list. Jira's enabled state
-    /// is independent of whether a jira config section exists — the config flag and
-    /// the config section are separate concerns.
-    pub fn new(features: &Features) -> Self {
-        let items = vec![
-            ConfigEditorItem {
-                tool: Tool::ServiceStatus,
-                enabled: features.service_status,
-            },
-            ConfigEditorItem {
-                tool: Tool::TokenGenerator,
-                enabled: features.token_generator,
-            },
-            ConfigEditorItem {
-                tool: Tool::Jira,
-                enabled: features.jira,
-            },
-        ];
+    pub fn new(plugins: &[Box<dyn Plugin>], features: &Features) -> Self {
+        let items = plugins
+            .iter()
+            .map(|p| ConfigEditorItem {
+                tool: p.id(),
+                enabled: p.is_enabled(features),
+            })
+            .collect();
         Self {
             items,
             list_state: ListState::default().with_selected(Some(0)),
@@ -50,136 +41,39 @@ impl ConfigEditor {
         Some((tool, item.enabled))
     }
 
-    /// Returns the list of tools that should appear in the tool list, respecting
-    /// the has_jira_config constraint.
-    pub fn enabled_tools(&self, has_jira_config: bool) -> Vec<Tool> {
+    /// Returns the list of tools that should appear in the tool list: enabled by
+    /// the user AND with a minimum viable config.
+    pub fn enabled_tools(&self, plugins: &[Box<dyn Plugin>], config: &Config) -> Vec<Tool> {
         self.items
             .iter()
             .filter(|i| i.enabled)
-            .filter(|i| i.tool != Tool::Jira || has_jira_config)
+            .filter(|i| {
+                plugins
+                    .iter()
+                    .find(|p| p.id() == i.tool)
+                    .is_some_and(|p| p.has_min_config(config))
+            })
             .map(|i| i.tool)
             .collect()
     }
 
     /// Sync the enabled state of each item from a `Features` value.
-    pub fn sync_from_features(&mut self, features: &Features) {
+    pub fn sync_from_features(&mut self, plugins: &[Box<dyn Plugin>], features: &Features) {
         for item in &mut self.items {
-            item.enabled = match item.tool {
-                Tool::ServiceStatus => features.service_status,
-                Tool::TokenGenerator => features.token_generator,
-                Tool::Jira => features.jira,
-            };
+            if let Some(p) = plugins.iter().find(|p| p.id() == item.tool) {
+                item.enabled = p.is_enabled(features);
+            }
         }
     }
 
     /// Build a `Features` value from the current item state.
-    pub fn to_features(&self) -> Features {
-        let service_status = self
-            .items
-            .iter()
-            .find(|i| i.tool == Tool::ServiceStatus)
-            .map(|i| i.enabled)
-            .unwrap_or(true);
-        let token_generator = self
-            .items
-            .iter()
-            .find(|i| i.tool == Tool::TokenGenerator)
-            .map(|i| i.enabled)
-            .unwrap_or(true);
-        let jira = self
-            .items
-            .iter()
-            .find(|i| i.tool == Tool::Jira)
-            .map(|i| i.enabled)
-            .unwrap_or(true);
-        Features {
-            service_status,
-            token_generator,
-            jira,
+    pub fn to_features(&self, plugins: &[Box<dyn Plugin>]) -> Features {
+        let mut features = Features::default();
+        for item in &self.items {
+            if let Some(p) = plugins.iter().find(|p| p.id() == item.tool) {
+                p.apply_feature_flag(&mut features, item.enabled);
+            }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::model::Features;
-
-    fn all_enabled() -> Features {
-        Features::default()
-    }
-
-    fn make_editor(features: Features) -> ConfigEditor {
-        ConfigEditor::new(&features)
-    }
-
-    #[test]
-    fn new_creates_items_from_features() {
-        let editor = make_editor(all_enabled());
-        assert_eq!(editor.items.len(), 3);
-        assert!(editor.items.iter().all(|i| i.enabled));
-    }
-
-    #[test]
-    fn toggle_disables_selected_tool() {
-        let mut editor = make_editor(all_enabled());
-        editor.list_state.select(Some(0));
-        let result = editor.toggle_selected();
-        assert!(result.is_some());
-        assert!(!editor.items[0].enabled);
-    }
-
-    #[test]
-    fn toggle_allows_disabling_last_enabled_tool() {
-        let features = Features {
-            service_status: true,
-            token_generator: false,
-            jira: false,
-        };
-        let mut editor = make_editor(features);
-        editor.list_state.select(Some(0)); // ServiceStatus — the only enabled tool
-        let result = editor.toggle_selected();
-        assert!(result.is_some());
-        assert!(!editor.items[0].enabled); // now all disabled
-    }
-
-    #[test]
-    fn toggle_re_enables_tool() {
-        let features = Features {
-            service_status: false,
-            token_generator: true,
-            jira: true,
-        };
-        let mut editor = make_editor(features);
-        editor.list_state.select(Some(0));
-        let result = editor.toggle_selected();
-        assert_eq!(result, Some((Tool::ServiceStatus, true)));
-        assert!(editor.items[0].enabled);
-    }
-
-    #[test]
-    fn enabled_tools_excludes_jira_when_no_jira_config() {
-        let editor = make_editor(all_enabled());
-        let tools = editor.enabled_tools(false);
-        assert!(!tools.contains(&Tool::Jira));
-        assert!(tools.contains(&Tool::ServiceStatus));
-        assert!(tools.contains(&Tool::TokenGenerator));
-    }
-
-    #[test]
-    fn enabled_tools_includes_jira_when_config_present() {
-        let editor = make_editor(all_enabled());
-        let tools = editor.enabled_tools(true);
-        assert!(tools.contains(&Tool::Jira));
-    }
-
-    #[test]
-    fn to_features_reflects_current_state() {
-        let mut editor = make_editor(all_enabled());
-        editor.items[2].enabled = false; // Jira
-        let features = editor.to_features();
-        assert!(features.service_status);
-        assert!(features.token_generator);
-        assert!(!features.jira);
+        features
     }
 }

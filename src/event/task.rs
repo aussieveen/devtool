@@ -9,12 +9,12 @@ const TICK_FPS: f64 = 30.0;
 /// A thread that handles reading crossterm event and emitting tick event on a regular schedule.
 pub struct EventTask {
     /// Event sender channel.
-    sender: mpsc::UnboundedSender<Event>,
+    sender: mpsc::Sender<Event>,
 }
 
 impl EventTask {
     /// Constructs a new instance of [`EventTask`].
-    pub(crate) fn new(sender: mpsc::UnboundedSender<Event>) -> Self {
+    pub(crate) fn new(sender: mpsc::Sender<Event>) -> Self {
         Self { sender }
     }
 
@@ -45,8 +45,8 @@ impl EventTask {
 
     /// Sends an event to the receiver.
     fn send(&self, event: Event) {
-        // Ignores the result because shutting down the app drops the receiver, which causes the send
-        // operation to fail. This is expected behavior and should not panic.
-        let _ = self.sender.send(event);
+        // try_send is synchronous — drops the event if the channel is full or closed.
+        // Dropping a tick or crossterm event under backpressure is acceptable for a TUI.
+        let _ = self.sender.try_send(event);
     }
 }

@@ -1,15 +1,16 @@
 use chrono::{DateTime, Local, TimeDelta};
 
+use crate::state::tools::Tool;
+
 const MAX_ENTRIES: usize = 500;
 const EXPIRY_HOURS: i64 = 3;
 
 // ── Log source constants ──────────────────────────────────────────────────────
 
-pub mod log_source {
-    pub const APP: &str = "App";
-    pub const JIRA: &str = "Jira";
-    pub const SERVICE_STATUS: &str = "Service Status";
-    pub const TOKEN_GENERATOR: &str = "Token Generator";
+#[derive(Clone, Debug, PartialEq)]
+pub enum LogSource {
+    App,
+    Tool(Tool),
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ impl LogLevel {
 pub struct AppLogEntry {
     pub timestamp: DateTime<Local>,
     pub level: LogLevel,
-    pub source: String,
+    pub source: LogSource,
     pub title: String,
     pub detail: Option<String>,
 }
@@ -66,16 +67,16 @@ pub struct AppLogEntry {
 #[derive(Clone, Debug, PartialEq)]
 pub struct LogEntry {
     pub level: LogLevel,
-    pub source: String,
+    pub source: LogSource,
     pub title: String,
     pub detail: Option<String>,
 }
 
 impl LogEntry {
-    pub fn new(level: LogLevel, source: impl Into<String>, title: impl Into<String>) -> Self {
+    pub fn new(level: LogLevel, source: LogSource, title: impl Into<String>) -> Self {
         Self {
             level,
-            source: source.into(),
+            source,
             title: title.into(),
             detail: None,
         }

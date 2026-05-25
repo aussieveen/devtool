@@ -84,6 +84,12 @@ pub struct JiraConfigEditor {
     pub form: Option<JiraConfigForm>,
 }
 
+impl Default for JiraConfigEditor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JiraConfigEditor {
     pub fn new() -> Self {
         Self { form: None }

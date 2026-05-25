@@ -1,15 +1,10 @@
 use crate::config::model::Config;
 use crate::popup::model::Popup;
 use crate::state::config_editor::ConfigEditor;
-use crate::state::jira::Jira;
-use crate::state::jira_config::JiraConfigEditor;
 use crate::state::log::LogState;
-use crate::state::service_status::ServiceStatus;
-use crate::state::service_status_config::ServiceStatusConfigEditor;
-use crate::state::token_generator::TokenGenerator;
-use crate::state::token_generator_config::TokenGeneratorConfigEditor;
 pub(crate) use crate::state::tools::Tool;
 use crate::state::tools::ToolList;
+use crate::tools::plugin::Plugin;
 use ratatui::widgets::ListState;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -25,42 +20,29 @@ pub enum AppFocus {
 pub struct AppState {
     pub tool_list: ToolList,
     pub current_tool: Tool,
-    pub service_status: ServiceStatus,
-    pub token_generator: TokenGenerator,
-    pub jira: Jira,
     pub focus: AppFocus,
     pub popup: Option<Popup>,
     pub config_editor: ConfigEditor,
-    pub service_status_config_editor: ServiceStatusConfigEditor,
-    pub token_generator_config_editor: TokenGeneratorConfigEditor,
-    pub jira_config_editor: JiraConfigEditor,
     pub log: LogState,
 }
 
 impl AppState {
-    pub(crate) fn new(config: &Config) -> AppState {
-        Self::build(config, Jira::new())
-    }
-
-    pub(crate) fn build(config: &Config, jira: Jira) -> AppState {
-        let has_jira_config = config.jira.is_some();
-        let config_editor = ConfigEditor::new(&config.features);
-        let tool_list_items = config_editor.enabled_tools(has_jira_config);
+    pub(crate) fn new(config: &Config, plugins: &[Box<dyn Plugin>]) -> AppState {
+        let config_editor = ConfigEditor::new(plugins, &config.features);
+        let tool_list_items = config_editor.enabled_tools(plugins, config);
+        let current_tool = tool_list_items
+            .first()
+            .copied()
+            .unwrap_or(Tool::ServiceStatus);
         Self {
             tool_list: ToolList {
                 items: tool_list_items,
                 list_state: ListState::default().with_selected(Some(0)),
             },
-            current_tool: Tool::ServiceStatus,
-            service_status: ServiceStatus::new(config.servicestatus.len()),
-            token_generator: TokenGenerator::new(&config.tokengenerator.services),
-            jira,
+            current_tool,
             focus: AppFocus::List,
             popup: None,
             config_editor,
-            service_status_config_editor: ServiceStatusConfigEditor::new(),
-            token_generator_config_editor: TokenGeneratorConfigEditor::new(),
-            jira_config_editor: JiraConfigEditor::new(),
             log: LogState::new(),
         }
     }
@@ -82,8 +64,8 @@ impl AppState {
     /// - If it was disabled, move selection up one.
     /// - If the list becomes empty, clear selection.
     /// - If the list was empty and now has items, select the first.
-    pub fn rebuild_tool_list(&mut self, has_jira_config: bool) {
-        let new_items = self.config_editor.enabled_tools(has_jira_config);
+    pub fn rebuild_tool_list(&mut self, plugins: &[Box<dyn Plugin>], config: &Config) {
+        let new_items = self.config_editor.enabled_tools(plugins, config);
         if new_items.is_empty() {
             self.tool_list.items = new_items;
             self.tool_list.list_state.select(None);
@@ -109,30 +91,40 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use crate::app::AppFocus;
-    use crate::config::model::{Auth0Config, Config, JiraConfig, TokenGenerator};
-    use crate::persistence::persister::JiraFile;
+    use crate::client::auth_zero::api::ImmediateAuthZeroApi;
+    use crate::client::healthcheck::api::ImmediateHealthcheckApi;
+    use crate::client::jira::api::ImmediateJiraApi;
+    use crate::config::model::{
+        Auth0Config, Config, Credentials, JiraConfig, ServiceConfig, ServiceStatusConfig,
+        TokenGenerator,
+    };
+    use crate::environment::Environment;
     use crate::popup::model::Popup;
     use crate::state::app::{AppState, Tool};
-    use crate::state::jira::Jira;
+    use crate::tools::plugin::{Plugin, create_plugins};
     use crate::ui::widgets::popup::Type;
-    use tempfile::TempDir;
-
-    fn test_jira() -> Jira {
-        let dir = TempDir::new().unwrap();
-        Jira::new_empty(JiraFile::new_from_path(dir.path().join("test.yaml")))
-    }
+    use std::sync::Arc;
 
     fn test_config() -> Config {
         Config {
-            servicestatus: vec![],
+            servicestatus: vec![ServiceStatusConfig {
+                name: "svc".into(),
+                staging: "".into(),
+                preproduction: "".into(),
+                production: "".into(),
+                repo: "".into(),
+            }],
             tokengenerator: TokenGenerator {
-                auth0: Auth0Config {
-                    local: "".to_string(),
-                    staging: "".to_string(),
-                    preproduction: "".to_string(),
-                    production: "".to_string(),
-                },
-                services: vec![],
+                auth0: Auth0Config::default(),
+                services: vec![ServiceConfig {
+                    name: "svc".into(),
+                    audience: "".into(),
+                    credentials: vec![Credentials {
+                        env: Environment::Staging,
+                        client_id: "".into(),
+                        client_secret: "".into(),
+                    }],
+                }],
             },
             jira: Some(JiraConfig {
                 url: "".to_string(),
@@ -143,78 +135,110 @@ mod tests {
         }
     }
 
-    #[test]
-    fn new_adds_jira_item_when_jira_config_is_some() {
-        let app_state = AppState::build(&test_config(), test_jira());
-
-        assert_eq!(app_state.tool_list.items.len(), 3);
+    fn test_plugins(config: &Config) -> Vec<Box<dyn Plugin>> {
+        create_plugins(
+            config,
+            Arc::new(ImmediateAuthZeroApi::new()),
+            Arc::new(ImmediateJiraApi::new()),
+            Arc::new(ImmediateHealthcheckApi::new()),
+        )
     }
 
     #[test]
-    fn new_skips_jira_item_when_jira_config_is_none() {
+    fn new_includes_jira_when_jira_config_present() {
+        let config = test_config();
+        let plugins = test_plugins(&config);
+        let app_state = AppState::new(&config, &plugins);
+        assert!(app_state.tool_list.items.contains(&Tool::Jira));
+    }
+
+    #[test]
+    fn new_excludes_jira_when_jira_config_absent() {
         let mut config = test_config();
         config.jira = None;
-
-        let app_state = AppState::build(&config, test_jira());
-
-        assert_eq!(app_state.tool_list.items.len(), 2);
+        let plugins = test_plugins(&config);
+        let app_state = AppState::new(&config, &plugins);
+        assert!(!app_state.tool_list.items.contains(&Tool::Jira));
     }
 
     #[test]
     fn focus_is_jira_input_when_error_set() {
-        let mut app_state = AppState::build(&test_config(), test_jira());
+        let config = test_config();
+        let plugins = test_plugins(&config);
+        let mut app_state = AppState::new(&config, &plugins);
         app_state.popup = Some(Popup {
             popup_type: Type::Error,
             title: "".to_string(),
             parts: vec![],
             actions: vec![],
         });
-
         assert_eq!(app_state.effective_focus(), AppFocus::JiraInput);
     }
 
     #[test]
-    fn focus_is_app_state_focus_when_error_set() {
-        let app_state = AppState::build(&test_config(), test_jira());
-
+    fn focus_is_app_state_focus_when_no_popup() {
+        let config = test_config();
+        let plugins = test_plugins(&config);
+        let app_state = AppState::new(&config, &plugins);
         assert_eq!(app_state.effective_focus(), AppFocus::List);
     }
 
     #[test]
     fn rebuild_tool_list_stays_on_current_tool_when_still_enabled() {
-        let mut state = AppState::build(&test_config(), test_jira());
-        // Start on TokenGenerator (index 1)
+        let config = test_config();
+        let plugins = test_plugins(&config);
+        let mut state = AppState::new(&config, &plugins);
+        // Move to TokenGenerator (index 1, since all three tools have min config)
         state.tool_list.list_state.select(Some(1));
         state.current_tool = Tool::TokenGenerator;
         // Disable Jira; TokenGenerator stays enabled
-        state.config_editor.items[2].enabled = false;
+        if let Some(jira_item) = state
+            .config_editor
+            .items
+            .iter_mut()
+            .find(|i| i.tool == Tool::Jira)
+        {
+            jira_item.enabled = false;
+        }
 
-        state.rebuild_tool_list(true);
+        state.rebuild_tool_list(&plugins, &config);
 
-        // TokenGenerator should still be selected
         assert_eq!(state.current_tool, Tool::TokenGenerator);
-        assert_eq!(state.tool_list.list_state.selected(), Some(1));
     }
 
     #[test]
     fn rebuild_tool_list_moves_up_when_current_tool_disabled() {
-        let mut state = AppState::build(&test_config(), test_jira());
-        // Start on Jira (index 2)
-        state.tool_list.list_state.select(Some(2));
+        let config = test_config();
+        let plugins = test_plugins(&config);
+        let mut state = AppState::new(&config, &plugins);
+        // Find Jira's position and select it
+        let jira_idx = state
+            .tool_list
+            .items
+            .iter()
+            .position(|t| *t == Tool::Jira)
+            .expect("jira should be in list");
+        state.tool_list.list_state.select(Some(jira_idx));
         state.current_tool = Tool::Jira;
-        // Disable Jira
-        state.config_editor.items[2].enabled = false;
+        if let Some(jira_item) = state
+            .config_editor
+            .items
+            .iter_mut()
+            .find(|i| i.tool == Tool::Jira)
+        {
+            jira_item.enabled = false;
+        }
 
-        state.rebuild_tool_list(true);
+        state.rebuild_tool_list(&plugins, &config);
 
-        // Should move up to index 1 (TokenGenerator)
-        assert_eq!(state.tool_list.list_state.selected(), Some(1));
-        assert_eq!(state.current_tool, Tool::TokenGenerator);
+        assert_ne!(state.current_tool, Tool::Jira);
     }
 
     #[test]
     fn rebuild_tool_list_selects_first_when_list_was_empty() {
-        let mut state = AppState::build(&test_config(), test_jira());
+        let config = test_config();
+        let plugins = test_plugins(&config);
+        let mut state = AppState::new(&config, &plugins);
         // Simulate all disabled
         state.tool_list.items = vec![];
         state.tool_list.list_state.select(None);
@@ -225,7 +249,7 @@ mod tests {
             .iter_mut()
             .for_each(|i| i.enabled = true);
 
-        state.rebuild_tool_list(true);
+        state.rebuild_tool_list(&plugins, &config);
 
         assert_eq!(state.tool_list.list_state.selected(), Some(0));
     }

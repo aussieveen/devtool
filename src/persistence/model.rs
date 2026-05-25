@@ -1,4 +1,4 @@
-use crate::state::jira::Ticket;
+use crate::tools::jira::state::Ticket;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -7,6 +7,6 @@ pub(crate) struct Persistence {
 }
 
 #[derive(Deserialize, Serialize, Clone, Default)]
-pub(crate) struct Jira {
+pub struct Jira {
     pub tickets: Vec<Ticket>,
 }

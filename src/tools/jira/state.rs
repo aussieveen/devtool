@@ -17,6 +17,12 @@ pub struct Jira {
     pub tickets_pending_scan: usize,
 }
 
+impl Default for Jira {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Jira {
     pub fn new() -> Jira {
         let jira_file = JiraFile::default();
@@ -71,11 +77,9 @@ impl Jira {
     #[allow(dead_code)] // called in tests
     pub fn update_ticket(&mut self, ticket_response: TicketResponse) {
         let ticket = self.ticket_response_to_ticket(ticket_response);
-        // Exact match - No need to update
         if self.tickets.contains(&ticket) {
             return;
         }
-
         if let Some(t) = self.tickets.iter_mut().find(|t| t.id == ticket.id) {
             *t = ticket;
         }
@@ -88,7 +92,6 @@ impl Jira {
         ticket_response: TicketResponse,
     ) -> Option<(String, String)> {
         let new_ticket = self.ticket_response_to_ticket(ticket_response);
-        // Exact match — nothing changed
         if self.tickets.contains(&new_ticket) {
             return None;
         }
@@ -167,10 +170,10 @@ impl Ticket {
 
 #[cfg(test)]
 mod tests {
+    use super::{Jira, Ticket};
     use crate::client::jira::models::{Assignee, Fields, Status, TicketResponse};
     use crate::event::events::Direction;
     use crate::persistence::persister::JiraFile;
-    use crate::state::jira::{Jira, Ticket};
     use std::path::PathBuf;
     use tempfile::TempDir;
     use test_case::test_case;

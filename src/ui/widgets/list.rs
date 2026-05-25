@@ -1,3 +1,4 @@
+use crate::tools::plugin::{Plugin, menu_entry_for};
 use crate::{state::app::AppState, ui::styles};
 // ui/tools
 use ratatui::{
@@ -7,7 +8,12 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem},
 };
 
-pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppState) {
+pub fn render(
+    frame: &mut Frame,
+    area: ratatui::layout::Rect,
+    state: &mut AppState,
+    plugins: &[Box<dyn Plugin>],
+) {
     let is_focused = styles::list_has_focus(state.effective_focus());
     let style = styles::block_style(is_focused);
     let shortcut = styles::panel_shortcut_style();
@@ -34,7 +40,7 @@ pub fn render(frame: &mut Frame, area: ratatui::layout::Rect, state: &mut AppSta
             .tool_list
             .items
             .iter()
-            .map(|i| ListItem::new(i.menu_entry()).style(item_style)),
+            .map(|i| ListItem::new(menu_entry_for(plugins, *i)).style(item_style)),
     )
     .highlight_style(highlight)
     .block(

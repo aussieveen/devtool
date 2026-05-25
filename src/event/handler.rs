@@ -6,12 +6,12 @@ use tokio::sync::mpsc;
 
 pub struct EventHandler {
     sender: EventSender,
-    receiver: mpsc::UnboundedReceiver<Event>,
+    receiver: mpsc::Receiver<Event>,
 }
 
 impl EventHandler {
     pub fn new() -> Self {
-        let (tx, rx) = mpsc::unbounded_channel();
+        let (tx, rx) = mpsc::channel(1024);
 
         let sender = EventSender { sender: tx.clone() };
 

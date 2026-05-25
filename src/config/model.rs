@@ -6,7 +6,7 @@ fn default_true() -> bool {
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
-pub(crate) struct Config {
+pub struct Config {
     pub servicestatus: Vec<ServiceStatusConfig>,
     pub tokengenerator: TokenGenerator,
     pub jira: Option<JiraConfig>,
@@ -49,54 +49,8 @@ impl Default for Config {
     }
 }
 
-impl Config {
-    pub fn normalize(mut self) -> Self {
-        self.normalize_urls();
-        self.enforce_feature_invariants();
-        self
-    }
-
-    fn normalize_urls(&mut self) {
-        for service in &mut self.servicestatus {
-            service.staging = Self::strip_trailing_slash(&service.staging);
-            service.preproduction = Self::strip_trailing_slash(&service.preproduction);
-            service.production = Self::strip_trailing_slash(&service.production);
-            service.repo = Self::strip_trailing_slash(&service.repo);
-        }
-
-        self.tokengenerator.auth0.local =
-            Self::strip_trailing_slash(&self.tokengenerator.auth0.local);
-        self.tokengenerator.auth0.staging =
-            Self::strip_trailing_slash(&self.tokengenerator.auth0.staging);
-        self.tokengenerator.auth0.preproduction =
-            Self::strip_trailing_slash(&self.tokengenerator.auth0.preproduction);
-        self.tokengenerator.auth0.production =
-            Self::strip_trailing_slash(&self.tokengenerator.auth0.production);
-
-        if let Some(ref mut jira) = self.jira {
-            jira.url = Self::strip_trailing_slash(&jira.url);
-        }
-    }
-
-    pub fn enforce_feature_invariants(&mut self) {
-        if self.servicestatus.is_empty() {
-            self.features.service_status = false;
-        }
-        if self.tokengenerator.services.is_empty() {
-            self.features.token_generator = false;
-        }
-        if self.jira.is_none() {
-            self.features.jira = false;
-        }
-    }
-
-    fn strip_trailing_slash(s: &str) -> String {
-        s.trim_end_matches('/').to_string()
-    }
-}
-
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
-pub(crate) struct ServiceStatusConfig {
+pub struct ServiceStatusConfig {
     pub name: String,
     pub staging: String,
     pub preproduction: String,
@@ -105,7 +59,7 @@ pub(crate) struct ServiceStatusConfig {
 }
 
 impl ServiceStatusConfig {
-    pub fn get_from_env(&self, env: &Environment) -> &str {
+    pub fn config_for_env(&self, env: &Environment) -> &str {
         match env {
             Environment::Local => &self.staging,
             Environment::Staging => &self.staging,
@@ -116,7 +70,7 @@ impl ServiceStatusConfig {
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq, Default)]
-pub(crate) struct TokenGenerator {
+pub struct TokenGenerator {
     pub auth0: Auth0Config,
     pub services: Vec<ServiceConfig>,
 }
@@ -130,7 +84,7 @@ pub struct Auth0Config {
 }
 
 impl Auth0Config {
-    pub fn get_from_env(&self, env: &Environment) -> &str {
+    pub fn config_for_env(&self, env: &Environment) -> &str {
         match env {
             Environment::Local => &self.local,
             Environment::Staging => &self.staging,

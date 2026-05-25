@@ -1,4 +1,4 @@
-use crate::state::jira::Jira;
+use super::state::Jira;
 use crate::ui::styles::{edit_border_style, selection_highlight};
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};

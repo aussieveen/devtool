@@ -5,13 +5,14 @@ use crate::error::model::ClientError;
 use crate::event::events::ServiceStatusEvent::{GetCommitRefErrored, GetCommitRefOk};
 use crate::event::sender::EventSender;
 use reqwest::Client;
+use std::sync::Arc;
 
-pub trait HealthcheckApi {
-    fn get_commit_ref(
+pub trait HealthcheckApi: Send + Sync {
+    fn commit_ref(
         &self,
         service_idx: usize,
         env: Environment,
-        config: Vec<ServiceStatusConfig>,
+        config: Arc<[ServiceStatusConfig]>,
         sender: EventSender,
     );
 }
@@ -35,39 +36,35 @@ impl Default for ImmediateHealthcheckApi {
 }
 
 impl HealthcheckApi for ImmediateHealthcheckApi {
-    fn get_commit_ref(
+    fn commit_ref(
         &self,
         service_idx: usize,
         env: Environment,
-        config: Vec<ServiceStatusConfig>,
+        config: Arc<[ServiceStatusConfig]>,
         sender: EventSender,
     ) {
         let client = self.client.clone();
         tokio::spawn(async move {
-            match get_commit_ref(client, service_idx, &env, config).await {
+            match commit_ref(client, service_idx, &env, config).await {
                 Ok(commit) => {
-                    sender.send_service_status_event(GetCommitRefOk(commit, service_idx, env));
+                    sender.send(GetCommitRefOk(commit, service_idx, env));
                 }
                 Err(err) => {
-                    sender.send_service_status_event(GetCommitRefErrored(
-                        err.to_string(),
-                        service_idx,
-                        env,
-                    ));
+                    sender.send(GetCommitRefErrored(err.to_string(), service_idx, env));
                 }
             }
         });
     }
 }
 
-async fn get_commit_ref(
+async fn commit_ref(
     client: Client,
     service_idx: usize,
     env: &Environment,
-    config: Vec<ServiceStatusConfig>,
+    config: Arc<[ServiceStatusConfig]>,
 ) -> Result<String, ClientError> {
     let healthcheck_response =
-        healthcheck_client::get(client, config[service_idx].get_from_env(env)).await?;
+        healthcheck_client::get(client, config[service_idx].config_for_env(env)).await?;
 
     Ok(parse_version(healthcheck_response.version))
 }

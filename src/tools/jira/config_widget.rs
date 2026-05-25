@@ -1,5 +1,5 @@
+use super::config_editor::{JiraConfigEditor, JiraField};
 use crate::config::model::JiraConfig;
-use crate::state::jira_config::{JiraConfigEditor, JiraField};
 use crate::ui::styles::edit_border_style;
 use ratatui::Frame;
 use ratatui::layout::Rect;
@@ -63,7 +63,7 @@ fn display_line(label: &str, value: &str) -> Line<'static> {
 fn render_inline_edit(
     frame: &mut Frame,
     area: Rect,
-    form: &crate::state::jira_config::JiraConfigForm,
+    form: &crate::tools::jira::config_editor::JiraConfigForm,
 ) {
     let block = Block::bordered()
         .title(" Edit Jira Config ")

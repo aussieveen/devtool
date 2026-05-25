@@ -137,6 +137,12 @@ pub struct ServiceForm {
     pub edit_index: Option<usize>,
 }
 
+impl Default for ServiceForm {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServiceForm {
     pub fn new() -> Self {
         Self {
@@ -243,15 +249,8 @@ impl ServiceForm {
     }
 }
 
-// ── Config focus ──────────────────────────────────────────────────────────────
+// ── Config editor ──────────────────────────────────────────────────────────────
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum ConfigFocus {
-    Auth0,
-    Services,
-}
-
-// ── Editor ────────────────────────────────────────────────────────────────────
 #[derive(Clone)]
 pub enum ActiveEdit {
     Auth0(Auth0Form),
@@ -260,18 +259,36 @@ pub enum ActiveEdit {
 
 #[derive(Clone)]
 pub struct TokenGeneratorConfigEditor {
+    /// Unified list: index 0 = Auth0 Endpoints, indices 1+ = services.
     pub table_state: TableState,
     pub form: Option<ActiveEdit>,
-    pub config_focus: ConfigFocus,
+}
+
+impl Default for TokenGeneratorConfigEditor {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TokenGeneratorConfigEditor {
     pub fn new() -> Self {
         Self {
-            table_state: TableState::default(),
+            table_state: TableState::default().with_selected(Some(0)),
             form: None,
-            config_focus: ConfigFocus::Auth0,
         }
+    }
+
+    /// Returns true when the Auth0 Endpoints row (index 0) is selected.
+    pub fn is_auth0_selected(&self) -> bool {
+        self.table_state.selected() == Some(0)
+    }
+
+    /// Returns the zero-based service index when a service row is selected, or None.
+    pub fn selected_service_idx(&self) -> Option<usize> {
+        self.table_state
+            .selected()
+            .filter(|&i| i > 0)
+            .map(|i| i - 1)
     }
 
     pub fn open_auth0_form(&mut self, config: &Auth0Config) {
@@ -279,7 +296,7 @@ impl TokenGeneratorConfigEditor {
     }
 
     pub fn open_add_service_form(&mut self) {
-        self.form = Some(ActiveEdit::Service(Box::new(ServiceForm::new())));
+        self.form = Some(ActiveEdit::Service(Box::default()));
     }
 
     pub fn open_edit_service_form(&mut self, idx: usize, svc: &ServiceConfig) {
