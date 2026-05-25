@@ -4,6 +4,55 @@ A terminal UI built with [Ratatui] for day-to-day developer workflows — checki
 
 [Ratatui]: https://ratatui.rs
 
+## Installation
+### Prebuilt Binaries (Recommended)
+
+Prebuilt binaries are available for macOS and Linux.
+1. Go to the [latest release](https://github.com/aussieveen/devtool/releases/latest) of this repository.
+2. Download the archive corresponding to your operating system.
+3. Extract the archive.
+4. Move the dev-tool binary into a directory on your `PATH`, for example:
+    ```bash
+    sudo mv dev-tool /usr/local/bin
+    ```
+5. Run `dev-tool` from the command line in order to bring up the TUI.
+### Run From Source
+
+If you have Rust installed, you can also run the application directly from source.
+
+```bash
+git clone git@github.com:aussieveen/devtool.git
+cd devtool
+cargo run
+```
+
+### Supported Platforms
+- macOS (Intel & Apple Silicon)
+- Linux (x86_64)
+
+### Notes
+
+Ensure the binary is executable: `chmod +x dev-tool`
+
+Make sure `/usr/local/bin` (or your chosen directory) is included in your PATH.
+
+#### macOS: allowing the binary to run
+
+macOS blocks binaries downloaded from the internet until you explicitly allow them. After trying to run `dev-tool` for the first time, macOS will show a security alert.
+
+To allow it:
+
+1. Open **System Settings → Privacy & Security**
+2. Scroll down to the Security section
+3. Click **Open Anyway** next to the `dev-tool` entry
+4. Confirm by clicking **Open** in the prompt that follows
+
+Alternatively, remove the quarantine flag from the terminal before running:
+
+```bash
+xattr -d com.apple.quarantine dev-tool
+```
+
 ## Navigation
 
 The UI has three panels, switchable at any time with `[1]`, `[2]`, and `[3]`:
@@ -113,55 +162,6 @@ Each tool is configured inline via the `[2]` panel — no separate windows or pr
 ### Persistence
 
 Jira ticket selections are saved to `~/.devtool/persistence.yaml` and restored on the next launch. All other tool state is in-memory for the duration of the session.
-
-## Installation
-### Prebuilt Binaries (Recommended)
-
-Prebuilt binaries are available for macOS and Linux.
-1. Go to the [latest release](https://github.com/aussieveen/devtool/releases/latest) of this repository.
-2. Download the archive corresponding to your operating system.
-3. Extract the archive.
-4. Move the dev-tool binary into a directory on your `PATH`, for example:
-    ```bash
-    sudo mv dev-tool /usr/local/bin
-    ```
-5. Run `dev-tool` from the command line in order to bring up the TUI.
-### Run From Source
-
-If you have Rust installed, you can also run the application directly from source.
-
-```bash
-git clone git@github.com:aussieveen/devtool.git
-cd devtool
-cargo run
-```
-
-### Supported Platforms
-- macOS (Intel & Apple Silicon)
-- Linux (x86_64)
-
-### Notes
-
-Ensure the binary is executable: `chmod +x dev-tool`
-
-Make sure `/usr/local/bin` (or your chosen directory) is included in your PATH.
-
-#### macOS: allowing the binary to run
-
-macOS blocks binaries downloaded from the internet until you explicitly allow them. After trying to run `dev-tool` for the first time, macOS will show a security alert.
-
-To allow it:
-
-1. Open **System Settings → Privacy & Security**
-2. Scroll down to the Security section
-3. Click **Open Anyway** next to the `dev-tool` entry
-4. Confirm by clicking **Open** in the prompt that follows
-
-Alternatively, remove the quarantine flag from the terminal before running:
-
-```bash
-xattr -d com.apple.quarantine dev-tool
-```
 
 ## License
 
