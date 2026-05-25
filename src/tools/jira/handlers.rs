@@ -138,6 +138,11 @@ impl JiraPlugin {
                         );
                     }
                 }
+            },
+            JiraEvent::CancelNewTicket => {
+                self.state.adding_ticket = false;
+                self.state.new_ticket_id.clear();
+                *ctx.focus = AppFocus::Tool;
             }
         }
     }

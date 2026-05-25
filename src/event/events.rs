@@ -112,7 +112,6 @@ pub enum TokenGeneratorConfigEvent {
     FormDelete,
     SubmitConfig,
     RemoveService,
-    SwitchFocus,
     ConfigEdit,
 }
 

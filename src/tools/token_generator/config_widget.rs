@@ -1,11 +1,12 @@
-use super::config_editor::{ActiveEdit, Auth0Field, ConfigFocus, ServiceField, TokenGeneratorConfigEditor};
+use super::config_editor::{ActiveEdit, Auth0Field, ServiceField, TokenGeneratorConfigEditor};
 use crate::config::model::{Auth0Config, ServiceConfig};
-use crate::ui::styles::{block_style, edit_border_style, selection_highlight};
+use crate::ui::styles::{edit_border_style, selection_highlight};
 use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Cell, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{Block, Cell, Row, Table, Wrap};
+use ratatui::widgets::Paragraph;
 use tui_text_field::TextField;
 
 pub fn render(
@@ -15,126 +16,93 @@ pub fn render(
     auth0: &Auth0Config,
     services: &[ServiceConfig],
 ) {
-    let auth0_editing = matches!(&state.form, Some(ActiveEdit::Auth0(_)));
-
-    // Auth0 section height: 7 for display (4 lines + 1 blank + 2 borders),
-    // 11 for inline edit (4 fields + 4 separators + 1 hint + 2 borders).
-    let auth0_height = if auth0_editing { 11 } else { 7 };
-
-    let vertical = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(auth0_height), Constraint::Min(0)])
-        .split(area);
-
-    let auth0_area = vertical[0];
-    let services_area = vertical[1];
-
-    if let Some(ActiveEdit::Auth0(p)) = &state.form {
-        let p = p.clone();
-        render_auth0_inline(
-            frame,
-            auth0_area,
-            &p,
-            state.config_focus == ConfigFocus::Auth0,
-        );
-        render_services_section(frame, services_area, state, services);
-    } else if let Some(ActiveEdit::Service(p)) = &state.form {
-        let p = p.clone();
-        render_auth0_section(frame, auth0_area, auth0, false);
-        render_service_inline(frame, services_area, &p);
-    } else {
-        render_auth0_section(
-            frame,
-            auth0_area,
-            auth0,
-            state.config_focus == ConfigFocus::Auth0,
-        );
-        render_services_section(frame, services_area, state, services);
+    match &state.form {
+        Some(ActiveEdit::Auth0(p)) => {
+            let p = p.clone();
+            render_auth0_inline(frame, area, &p);
+        }
+        Some(ActiveEdit::Service(p)) => {
+            let p = p.clone();
+            render_service_inline(frame, area, &p);
+        }
+        None => render_unified_table(frame, area, state, auth0, services),
     }
 }
 
-fn render_auth0_section(frame: &mut Frame, area: Rect, auth0: &Auth0Config, focused: bool) {
-    let block = Block::bordered()
-        .title(" Auth0 Endpoints ")
-        .border_style(block_style(focused));
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
+// ── Unified table (browse mode) ───────────────────────────────────────────────
 
-    let lines = vec![
-        auth0_display_line("Local      ", &auth0.local),
-        auth0_display_line("Staging    ", &auth0.staging),
-        auth0_display_line("Preprod    ", &auth0.preproduction),
-        auth0_display_line("Production ", &auth0.production),
-    ];
-    frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
-}
-
-fn auth0_display_line(label: &str, value: &str) -> Line<'static> {
-    Line::from(vec![
-        Span::styled(format!("{label}: "), Style::default().fg(Color::Gray)),
-        Span::styled(
-            if value.is_empty() {
-                "(not set)".to_string()
-            } else {
-                value.to_string()
-            },
-            if value.is_empty() {
-                Style::default().fg(Color::DarkGray)
-            } else {
-                Style::default().fg(Color::White)
-            },
-        ),
-    ])
-}
-
-fn render_services_section(
+fn render_unified_table(
     frame: &mut Frame,
     area: Rect,
     state: &mut TokenGeneratorConfigEditor,
+    auth0: &Auth0Config,
     services: &[ServiceConfig],
 ) {
-    let services_focused = state.config_focus == ConfigFocus::Services;
-    let block = Block::bordered()
-        .title(" Services ")
-        .border_style(block_style(services_focused));
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
+    let auth0_status = auth0_endpoint_status(auth0);
+    let header = Row::new(["Name", "Details", "Envs"])
+        .style(Style::default().add_modifier(Modifier::BOLD));
 
-    if services.is_empty() {
-        frame.render_widget(
-            Paragraph::new(Line::from("No services yet — press [a] to add one."))
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(Color::DarkGray)),
-            inner,
-        );
-        return;
-    }
+    let auth0_row = Row::new([
+        Cell::from("Auth0 Endpoints").style(Style::default().fg(Color::Cyan)),
+        Cell::from(auth0_status).style(Style::default().fg(Color::DarkGray)),
+        Cell::from("—"),
+    ]);
 
-    let header = Row::new(["Name", "Audience", "Envs"]);
-    let rows: Vec<Row> = services
+    let service_rows: Vec<Row> = services
         .iter()
         .map(|s| {
             Row::new([
                 Cell::from(s.name.clone()),
-                Cell::from(truncate(&s.audience, 30)),
+                Cell::from(truncate(&s.audience, 40)),
                 Cell::from(s.credentials.len().to_string()),
             ])
         })
         .collect();
 
+    let mut all_rows = vec![auth0_row];
+    if services.is_empty() {
+        all_rows.push(
+            Row::new([
+                Cell::from("(no services yet — press [a] to add one)")
+                    .style(Style::default().fg(Color::DarkGray)),
+                Cell::from(""),
+                Cell::from(""),
+            ]),
+        );
+    } else {
+        all_rows.extend(service_rows);
+    }
+
     let table = Table::new(
-        rows,
+        all_rows,
         [
-            Constraint::Percentage(30),
-            Constraint::Percentage(60),
+            Constraint::Percentage(25),
+            Constraint::Percentage(65),
             Constraint::Percentage(10),
         ],
     )
     .header(header)
     .row_highlight_style(selection_highlight())
-    .block(Block::default());
+    .block(Block::bordered());
 
-    frame.render_stateful_widget(table, inner, &mut state.table_state);
+    frame.render_stateful_widget(table, area, &mut state.table_state);
+}
+
+fn auth0_endpoint_status(auth0: &Auth0Config) -> String {
+    let configured = [
+        &auth0.local,
+        &auth0.staging,
+        &auth0.preproduction,
+        &auth0.production,
+    ]
+    .iter()
+    .filter(|s| !s.is_empty())
+    .count();
+    match configured {
+        0 => "(not set)".to_string(),
+        4 => "all endpoints configured".to_string(),
+        n => format!("{n}/4 endpoints configured"),
+    }
 }
 
 // ── Auth0 inline edit ─────────────────────────────────────────────────────────
@@ -143,15 +111,10 @@ fn render_auth0_inline(
     frame: &mut Frame,
     area: Rect,
     form: &crate::tools::token_generator::config_editor::Auth0Form,
-    focused: bool,
 ) {
     let block = Block::bordered()
         .title(" Auth0 Endpoints ")
-        .border_style(if focused {
-            edit_border_style()
-        } else {
-            block_style(false)
-        });
+        .border_style(edit_border_style());
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
@@ -184,17 +147,15 @@ fn render_auth0_inline(
 
     frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
 
-    if focused {
-        // Format is "  {label}: {value}" where label is 11 chars → prefix = 15 chars.
-        let row: u16 = match form.active_field {
-            Auth0Field::Local => 0,
-            Auth0Field::Staging => 2,
-            Auth0Field::Preprod => 4,
-            Auth0Field::Prod => 6,
-        };
-        let char_offset = char_offset_to_cursor(form.active_field());
-        frame.set_cursor_position((inner.x + 15 + char_offset, inner.y + row));
-    }
+    // Format is "  {label}: {value}" where label is 11 chars → prefix = 15 chars.
+    let row: u16 = match form.active_field {
+        Auth0Field::Local => 0,
+        Auth0Field::Staging => 2,
+        Auth0Field::Preprod => 4,
+        Auth0Field::Prod => 6,
+    };
+    let char_offset = char_offset_to_cursor(form.active_field());
+    frame.set_cursor_position((inner.x + 15 + char_offset, inner.y + row));
 }
 
 // ── Service inline edit ───────────────────────────────────────────────────────

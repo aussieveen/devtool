@@ -1,5 +1,4 @@
 use super::TokenGeneratorPlugin;
-use super::config_editor::ConfigFocus;
 use super::state::TokenGenerator;
 use crate::event::events::AppEvent::AppLog;
 use crate::event::events::AppEvent::RebuildToolList;
@@ -7,7 +6,6 @@ use crate::event::events::GenericEvent::CopyToClipboard;
 use crate::event::events::TokenGeneratorConfigEvent::{
     ConfigEdit, ConfigListMove, FormBackspace, FormDelete, FormEnd, FormHome, FormLeft,
     FormNextField, FormPrevField, FormRight, OpenAddService, RemoveService, SubmitConfig,
-    SwitchFocus,
 };
 use crate::event::events::TokenGeneratorEvent::{
     EnvListMove, GenerateToken, ServiceListMove, SetFocus, TokenFailed, TokenGenerated,
@@ -128,30 +126,17 @@ impl TokenGeneratorPlugin {
         use super::config_editor::ActiveEdit;
         match event {
             ConfigListMove(direction) => {
-                let len = ctx.config.tokengenerator.services.len();
+                // Unified list: index 0 = Auth0, indices 1+ = services.
+                let total = 1 + ctx.config.tokengenerator.services.len();
                 let editor = &mut self.config_editor;
                 match direction {
                     crate::event::events::Direction::Up => {
-                        if editor.config_focus == ConfigFocus::Services {
-                            match editor.table_state.selected() {
-                                None | Some(0) => {
-                                    editor.config_focus = ConfigFocus::Auth0;
-                                    editor.table_state.select(None);
-                                }
-                                _ => editor.table_state.select_previous(),
-                            }
-                        }
+                        let current = editor.table_state.selected().unwrap_or(0);
+                        editor.table_state.select(Some(current.saturating_sub(1)));
                     }
                     crate::event::events::Direction::Down => {
-                        if editor.config_focus == ConfigFocus::Auth0 {
-                            if len > 0 {
-                                editor.config_focus = ConfigFocus::Services;
-                                editor.table_state.select(Some(0));
-                            }
-                        } else if len > 0 {
-                            let next = editor.table_state.selected().map(|i| i + 1).unwrap_or(0);
-                            editor.table_state.select(Some(next.min(len - 1)));
-                        }
+                        let current = editor.table_state.selected().unwrap_or(0);
+                        editor.table_state.select(Some((current + 1).min(total - 1)));
                     }
                 }
             }
@@ -236,47 +221,33 @@ impl TokenGeneratorPlugin {
                 }
             }
             RemoveService => {
-                if let Some(idx) = self.config_editor.table_state.selected()
-                    && idx < ctx.config.tokengenerator.services.len()
+                if let Some(svc_idx) = self.config_editor.selected_service_idx()
+                    && svc_idx < ctx.config.tokengenerator.services.len()
                 {
-                    ctx.config.tokengenerator.services.remove(idx);
+                    ctx.config.tokengenerator.services.remove(svc_idx);
                     self.state = TokenGenerator::new(&ctx.config.tokengenerator.services);
                     let new_len = ctx.config.tokengenerator.services.len();
-                    if new_len == 0 {
-                        self.config_editor.table_state.select(None);
+                    // After removal, stay on the same list position (clamped), falling back to Auth0 row.
+                    let new_list_idx = if new_len == 0 {
                         ctx.sender.send(RebuildToolList);
+                        0 // back to Auth0 row
                     } else {
-                        self.config_editor.table_state.select(Some(idx.min(new_len - 1)));
-                    }
+                        // Keep list index pointing at same position (1 + svc_idx, clamped).
+                        (1 + svc_idx).min(new_len) // new_len = 1-based last service index
+                    };
+                    self.config_editor.table_state.select(Some(new_list_idx));
                     let _ = ctx.config_loader.write_config(ctx.config);
                 }
             }
             ConfigEdit => {
-                match self.config_editor.config_focus {
-                    ConfigFocus::Auth0 => {
-                        let auth0 = ctx.config.tokengenerator.auth0.clone();
-                        self.config_editor.open_auth0_form(&auth0);
-                    }
-                    ConfigFocus::Services => {
-                        if let Some(idx) = self.config_editor.table_state.selected()
-                            && let Some(svc) = ctx.config.tokengenerator.services.get(idx)
-                        {
-                            let svc = svc.clone();
-                            self.config_editor.open_edit_service_form(idx, &svc);
-                        }
-                    }
-                }
-            }
-            SwitchFocus => {
-                let editor = &mut self.config_editor;
-                editor.config_focus = match editor.config_focus {
-                    ConfigFocus::Auth0 => ConfigFocus::Services,
-                    ConfigFocus::Services => ConfigFocus::Auth0,
-                };
-                if editor.config_focus == ConfigFocus::Auth0 {
-                    editor.table_state.select(None);
-                } else if !ctx.config.tokengenerator.services.is_empty() {
-                    editor.table_state.select(Some(0));
+                if self.config_editor.is_auth0_selected() {
+                    let auth0 = ctx.config.tokengenerator.auth0.clone();
+                    self.config_editor.open_auth0_form(&auth0);
+                } else if let Some(svc_idx) = self.config_editor.selected_service_idx()
+                    && let Some(svc) = ctx.config.tokengenerator.services.get(svc_idx)
+                {
+                    let svc = svc.clone();
+                    self.config_editor.open_edit_service_form(svc_idx, &svc);
                 }
             }
         }

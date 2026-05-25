@@ -125,6 +125,8 @@ impl Plugin for JiraPlugin {
             Event::Jira(JiraEvent::TicketIdDelete));
         map.add_static(Editing(Tool::Jira), KeyCode::Enter, KeyModifiers::NONE,
             Event::Jira(JiraEvent::SubmitTicketId));
+        map.add_static(Editing(Tool::Jira), KeyCode::Esc, KeyModifiers::NONE,
+                       Event::Jira(JiraEvent::CancelNewTicket));
         map.add_dynamic(Editing(Tool::Jira), add_ticket_id_char);
     }
 

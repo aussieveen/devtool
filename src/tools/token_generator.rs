@@ -92,10 +92,6 @@ impl Plugin for TokenGeneratorPlugin {
             Event::TokenGeneratorConfig(TokenGeneratorConfigEvent::ConfigEdit));
         map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Char('x'), KeyModifiers::NONE,
             Event::TokenGeneratorConfig(TokenGeneratorConfigEvent::RemoveService));
-        map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Tab, KeyModifiers::NONE,
-            Event::TokenGeneratorConfig(TokenGeneratorConfigEvent::SwitchFocus));
-        map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::BackTab, KeyModifiers::SHIFT,
-            Event::TokenGeneratorConfig(TokenGeneratorConfigEvent::SwitchFocus));
         map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Left, KeyModifiers::NONE,
             Event::App(crate::event::events::AppEvent::CloseToolConfig));
         map.add_static(ToolConfig(Tool::TokenGenerator), KeyCode::Esc, KeyModifiers::NONE,
@@ -209,7 +205,6 @@ impl Plugin for TokenGeneratorPlugin {
     }
 
     fn config_hints(&self) -> (ratatui::text::Line<'static>, ratatui::text::Line<'static>) {
-        use crate::tools::token_generator::config_editor::ConfigFocus;
         use crate::ui::styles::{key_desc_style, key_style};
         use ratatui::text::{Line, Span};
         if self.config_editor.has_open_form() {
@@ -224,28 +219,28 @@ impl Plugin for TokenGeneratorPlugin {
             );
         }
         let k = key_style(); let d = key_desc_style();
-        match self.config_editor.config_focus {
-            ConfigFocus::Auth0 => (
+        if self.config_editor.is_auth0_selected() {
+            (
                 Line::from(vec![
-                    Span::styled("[a]", k.clone()), Span::styled(" Add  ", d.clone()),
-                    Span::styled("[e]", k.clone()), Span::styled(" Edit  ", d.clone()),
+                    Span::styled("[↑↓]", k.clone()), Span::styled(" Navigate  ", d.clone()),
+                    Span::styled("[e]", k.clone()), Span::styled(" Edit auth0 endpoints  ", d.clone()),
+                    Span::styled("[a]", k.clone()), Span::styled(" Add service  ", d.clone()),
                     Span::styled("[q]", k.clone()), Span::styled(" Quit", d.clone()),
                 ]),
                 Line::from(""),
-            ),
-            ConfigFocus::Services => {
-                let line2 = if self.config_editor.table_state.selected().is_some() {
-                    Line::from(vec![
-                        Span::styled("[e]", k.clone()), Span::styled(" Edit  ", d.clone()),
-                        Span::styled("[x]", k.clone()), Span::styled(" Remove  ", d.clone()),
-                    ])
-                } else { Line::from("") };
-                (Line::from(vec![
-                    Span::styled("[↑↓←→]", k.clone()), Span::styled(" Navigate  ", d.clone()),
-                    Span::styled("[a]", k.clone()), Span::styled(" Add  ", d.clone()),
+            )
+        } else {
+            (
+                Line::from(vec![
+                    Span::styled("[↑↓]", k.clone()), Span::styled(" Navigate  ", d.clone()),
+                    Span::styled("[a]", k.clone()), Span::styled(" Add service  ", d.clone()),
                     Span::styled("[q]", k.clone()), Span::styled(" Quit", d.clone()),
-                ]), line2)
-            }
+                ]),
+                Line::from(vec![
+                    Span::styled("[e]", k.clone()), Span::styled(" Edit service  ", d.clone()),
+                    Span::styled("[x]", k.clone()), Span::styled(" Remove  ", d.clone()),
+                ]),
+            )
         }
     }
 }
