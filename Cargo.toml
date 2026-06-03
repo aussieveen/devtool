@@ -20,7 +20,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 dirs = "6.0.0"
 strum = "0.28.0"
 strum_macros = "0.28.0"
-log = "0.4.30"
+log = "0.4.31"
 serde_json = "1"
 thiserror = "2.0.18"
 chrono = { version = "0.4", features = ["serde"] }
