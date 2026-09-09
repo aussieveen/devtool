@@ -8,15 +8,15 @@ use crate::event::events::TokenGeneratorConfigEvent::{
     FormNextField, FormPrevField, FormRight, OpenAddService, RemoveService, SubmitConfig,
 };
 use crate::event::events::TokenGeneratorEvent::{
-    AudienceListMove, EnvListMove, FocusLeft, FocusRight, GenerateToken, ServiceListMove,
-    SetFocus, TokenFailed, TokenGenerated,
+    AudienceListMove, EnvListMove, FocusLeft, FocusRight, GenerateToken, ServiceListMove, SetFocus,
+    TokenFailed, TokenGenerated,
 };
-use crate::tools::token_generator::state::Focus;
 use crate::event::events::{Event, TokenGeneratorConfigEvent, TokenGeneratorEvent};
 use crate::popup::model::Popup;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
+use crate::tools::token_generator::state::Focus;
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 
@@ -201,7 +201,8 @@ impl TokenGeneratorPlugin {
                     .map(|c| c.env.to_string().to_lowercase())
                     .unwrap_or_default();
 
-                self.state.set_token_error(service_idx, audience_idx, env_idx);
+                self.state
+                    .set_token_error(service_idx, audience_idx, env_idx);
 
                 ctx.sender.send(AppLog(
                     LogEntry::new(

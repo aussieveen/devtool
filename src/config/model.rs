@@ -143,14 +143,20 @@ mod tests {
     fn service_config_migrates_legacy_singular_audience_field() {
         let yaml = "name: svc\naudience: im-content-resolution-api\ncredentials: []";
         let service: ServiceConfig = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(service.audiences, vec!["im-content-resolution-api".to_string()]);
+        assert_eq!(
+            service.audiences,
+            vec!["im-content-resolution-api".to_string()]
+        );
     }
 
     #[test]
     fn service_config_reads_new_audiences_list_field() {
         let yaml = "name: svc\naudiences:\n  - one\n  - two\ncredentials: []";
         let service: ServiceConfig = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(service.audiences, vec!["one".to_string(), "two".to_string()]);
+        assert_eq!(
+            service.audiences,
+            vec!["one".to_string(), "two".to_string()]
+        );
     }
 
     #[test]

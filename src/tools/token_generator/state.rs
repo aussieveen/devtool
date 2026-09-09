@@ -34,7 +34,11 @@ impl TokenGenerator {
     }
 
     pub fn selected_service_audience_env(&self) -> (usize, usize, usize) {
-        (self.selected_service(), self.selected_audience(), self.selected_env())
+        (
+            self.selected_service(),
+            self.selected_audience(),
+            self.selected_env(),
+        )
     }
 
     fn selected_service(&self) -> usize {
@@ -120,7 +124,9 @@ mod tests {
         let env_idx = 1;
         let mut token_generator = get_default_token_generator();
         token_generator.service_list_state.select(Some(service_idx));
-        token_generator.audience_list_state.select(Some(audience_idx));
+        token_generator
+            .audience_list_state
+            .select(Some(audience_idx));
         token_generator.env_list_state.select(Some(env_idx));
         assert_eq!(
             token_generator.selected_service_audience_env(),
@@ -134,10 +140,7 @@ mod tests {
         token_generator.service_list_state.select(None);
         token_generator.audience_list_state.select(None);
         token_generator.env_list_state.select(None);
-        assert_eq!(
-            token_generator.selected_service_audience_env(),
-            (0, 0, 0)
-        )
+        assert_eq!(token_generator.selected_service_audience_env(), (0, 0, 0))
     }
 
     #[test]
