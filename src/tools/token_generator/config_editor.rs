@@ -175,7 +175,7 @@ impl ServiceForm {
         let (prod_id, prod_secret) = creds(Environment::Production);
         Self {
             name: TextField::new(svc.name.clone()),
-            audience: TextField::new(svc.audience.clone()),
+            audience: TextField::new(svc.audiences.join(", ")),
             local_id: TextField::new(local_id),
             local_secret: TextField::new(local_secret),
             staging_id: TextField::new(staging_id),
@@ -221,6 +221,24 @@ impl ServiceForm {
 
     pub fn is_valid(&self) -> bool {
         !self.name.value().trim().is_empty()
+    }
+
+    /// Splits the comma-separated Audience field into individual audience values.
+    /// Falls back to a single empty entry when nothing was entered, preserving the
+    /// previous single-audience-field behaviour instead of producing an empty list.
+    pub fn to_audiences(&self) -> Vec<String> {
+        let audiences: Vec<String> = self
+            .audience
+            .value()
+            .split(',')
+            .map(|a| a.trim().to_string())
+            .filter(|a| !a.is_empty())
+            .collect();
+        if audiences.is_empty() {
+            vec![String::new()]
+        } else {
+            audiences
+        }
     }
 
     /// Build the credentials vec, omitting environments where both fields are empty.
@@ -363,10 +381,26 @@ mod tests {
     }
 
     #[test]
+    fn service_form_to_audiences_splits_and_trims_comma_separated_values() {
+        let mut form = ServiceForm::new();
+        form.audience = TextField::new(" one , two ,three".to_string());
+        assert_eq!(
+            form.to_audiences(),
+            vec!["one".to_string(), "two".to_string(), "three".to_string()]
+        );
+    }
+
+    #[test]
+    fn service_form_to_audiences_falls_back_to_single_empty_entry() {
+        let form = ServiceForm::new();
+        assert_eq!(form.to_audiences(), vec![String::new()]);
+    }
+
+    #[test]
     fn service_form_from_existing_populates_fields() {
         let svc = ServiceConfig {
             name: "my-svc".to_string(),
-            audience: "https://api".to_string(),
+            audiences: vec!["https://api".to_string()],
             credentials: vec![Credentials {
                 env: Environment::Staging,
                 client_id: "cid".to_string(),

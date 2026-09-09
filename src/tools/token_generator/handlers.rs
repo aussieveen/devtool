@@ -8,13 +8,15 @@ use crate::event::events::TokenGeneratorConfigEvent::{
     FormNextField, FormPrevField, FormRight, OpenAddService, RemoveService, SubmitConfig,
 };
 use crate::event::events::TokenGeneratorEvent::{
-    EnvListMove, GenerateToken, ServiceListMove, SetFocus, TokenFailed, TokenGenerated,
+    AudienceListMove, EnvListMove, FocusLeft, FocusRight, GenerateToken, ServiceListMove, SetFocus,
+    TokenFailed, TokenGenerated,
 };
 use crate::event::events::{Event, TokenGeneratorConfigEvent, TokenGeneratorEvent};
 use crate::popup::model::Popup;
 use crate::state::log::{LogEntry, LogLevel, LogSource};
 use crate::state::tools::Tool;
 use crate::tools::context::PluginContext;
+use crate::tools::token_generator::state::Focus;
 use crate::ui::widgets::popup::{Part, Type};
 use crate::utils::update_list_state;
 
@@ -28,7 +30,7 @@ impl TokenGeneratorPlugin {
     ) {
         match event {
             EnvListMove(direction) => {
-                let (selected_service, _) = self.state.selected_service_env();
+                let (selected_service, _, _) = self.state.selected_service_audience_env();
                 let env_count = ctx.config.tokengenerator.services[selected_service]
                     .credentials
                     .len();
@@ -38,25 +40,70 @@ impl TokenGeneratorPlugin {
                     env_count,
                 );
             }
+            AudienceListMove(direction) => {
+                let (selected_service, _, _) = self.state.selected_service_audience_env();
+                let audience_count = ctx.config.tokengenerator.services[selected_service]
+                    .audiences
+                    .len();
+                update_list_state::update_list(
+                    &mut self.state.audience_list_state,
+                    direction,
+                    audience_count,
+                );
+            }
             ServiceListMove(direction) => {
                 update_list_state::update_list(
                     &mut self.state.service_list_state,
                     direction,
                     ctx.config.tokengenerator.services.len(),
                 );
+                self.state.audience_list_state.select_first();
                 self.state.env_list_state.select_first();
             }
             SetFocus(focus) => {
                 self.state.focus = focus;
             }
+            FocusRight => {
+                let (selected_service, _, _) = self.state.selected_service_audience_env();
+                let has_audiences = ctx.config.tokengenerator.services[selected_service]
+                    .audiences
+                    .len()
+                    > 1;
+                self.state.focus = match self.state.focus {
+                    Focus::Service if has_audiences => Focus::Audience,
+                    Focus::Service | Focus::Audience => Focus::Env,
+                    Focus::Env => Focus::Env,
+                };
+            }
+            FocusLeft => {
+                let (selected_service, _, _) = self.state.selected_service_audience_env();
+                let has_audiences = ctx.config.tokengenerator.services[selected_service]
+                    .audiences
+                    .len()
+                    > 1;
+                self.state.focus = match self.state.focus {
+                    Focus::Env if has_audiences => Focus::Audience,
+                    Focus::Env | Focus::Audience => Focus::Service,
+                    Focus::Service => Focus::Service,
+                };
+            }
             GenerateToken => {
-                let (service_idx, env_idx) = self.state.selected_service_env();
+                let (service_idx, audience_idx, env_idx) =
+                    self.state.selected_service_audience_env();
                 let svc_name = ctx
                     .config
                     .tokengenerator
                     .services
                     .get(service_idx)
                     .map(|s| s.name.clone())
+                    .unwrap_or_default();
+                let audience_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
+                    .get(service_idx)
+                    .and_then(|s| s.audiences.get(audience_idx))
+                    .cloned()
                     .unwrap_or_default();
                 let env_name = ctx
                     .config
@@ -70,7 +117,10 @@ impl TokenGeneratorPlugin {
                 ctx.sender.send(AppLog(LogEntry::new(
                     LogLevel::Info,
                     LOG_SOURCE,
-                    format!("Requesting token: {}/{}", svc_name, env_name),
+                    format!(
+                        "Requesting token: {}/{}/{}",
+                        svc_name, audience_name, env_name
+                    ),
                 )));
 
                 self.state.start_token_request();
@@ -78,15 +128,23 @@ impl TokenGeneratorPlugin {
                 let sender = ctx.sender.clone();
                 let config = ctx.config.tokengenerator.clone();
                 self.auth_zero_api
-                    .fetch_token(service_idx, env_idx, config, sender);
+                    .fetch_token(service_idx, audience_idx, env_idx, config, sender);
             }
-            TokenGenerated(token, service_idx, env_idx) => {
+            TokenGenerated(token, service_idx, audience_idx, env_idx) => {
                 let svc_name = ctx
                     .config
                     .tokengenerator
                     .services
                     .get(service_idx)
                     .map(|s| s.name.clone())
+                    .unwrap_or_default();
+                let audience_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
+                    .get(service_idx)
+                    .and_then(|s| s.audiences.get(audience_idx))
+                    .cloned()
                     .unwrap_or_default();
                 let env_name = ctx
                     .config
@@ -100,10 +158,14 @@ impl TokenGeneratorPlugin {
                 ctx.sender.send(AppLog(LogEntry::new(
                     LogLevel::Info,
                     LOG_SOURCE,
-                    format!("Token generated: {}/{}", svc_name, env_name),
+                    format!(
+                        "Token generated: {}/{}/{}",
+                        svc_name, audience_name, env_name
+                    ),
                 )));
 
-                self.state.set_token_ready(service_idx, env_idx, token);
+                self.state
+                    .set_token_ready(service_idx, audience_idx, env_idx, token);
 
                 *ctx.popup = Some(
                     Popup::new(
@@ -114,13 +176,21 @@ impl TokenGeneratorPlugin {
                     .with_action('c', "copy", Event::Generic(CopyToClipboard)),
                 );
             }
-            TokenFailed(error, service_idx, env_idx) => {
+            TokenFailed(error, service_idx, audience_idx, env_idx) => {
                 let svc_name = ctx
                     .config
                     .tokengenerator
                     .services
                     .get(service_idx)
                     .map(|s| s.name.clone())
+                    .unwrap_or_default();
+                let audience_name = ctx
+                    .config
+                    .tokengenerator
+                    .services
+                    .get(service_idx)
+                    .and_then(|s| s.audiences.get(audience_idx))
+                    .cloned()
                     .unwrap_or_default();
                 let env_name = ctx
                     .config
@@ -131,13 +201,17 @@ impl TokenGeneratorPlugin {
                     .map(|c| c.env.to_string().to_lowercase())
                     .unwrap_or_default();
 
-                self.state.set_token_error(service_idx, env_idx);
+                self.state
+                    .set_token_error(service_idx, audience_idx, env_idx);
 
                 ctx.sender.send(AppLog(
                     LogEntry::new(
                         LogLevel::Error,
                         LOG_SOURCE,
-                        format!("Token request failed — {}/{}", svc_name, env_name),
+                        format!(
+                            "Token request failed — {}/{}/{}",
+                            svc_name, audience_name, env_name
+                        ),
                     )
                     .with_detail(error),
                 ));
@@ -236,7 +310,7 @@ impl TokenGeneratorPlugin {
                         ActiveEdit::Service(p) if p.is_valid() => {
                             let svc = crate::config::model::ServiceConfig {
                                 name: p.name.value().trim().to_string(),
-                                audience: p.audience.value().trim().to_string(),
+                                audiences: p.to_audiences(),
                                 credentials: p.to_credentials(),
                             };
                             if let Some(idx) = p.edit_index {

@@ -118,7 +118,7 @@ mod tests {
                 auth0: Auth0Config::default(),
                 services: vec![ServiceConfig {
                     name: "svc".into(),
-                    audience: "".into(),
+                    audiences: vec!["".into()],
                     credentials: vec![Credentials {
                         env: Environment::Staging,
                         client_id: "".into(),

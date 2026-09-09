@@ -97,8 +97,28 @@ impl Auth0Config {
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct ServiceConfig {
     pub name: String,
-    pub audience: String,
+    #[serde(alias = "audience", deserialize_with = "deserialize_audiences")]
+    pub audiences: Vec<String>,
     pub credentials: Vec<Credentials>,
+}
+
+/// Accepts either the legacy single `audience: String` field or the new
+/// `audiences: Vec<String>` list, so existing config files keep loading.
+fn deserialize_audiences<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum OneOrMany {
+        One(String),
+        Many(Vec<String>),
+    }
+
+    match OneOrMany::deserialize(deserializer)? {
+        OneOrMany::One(audience) => Ok(vec![audience]),
+        OneOrMany::Many(audiences) => Ok(audiences),
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
@@ -113,4 +133,41 @@ pub struct JiraConfig {
     pub url: String,
     pub email: String,
     pub token: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn service_config_migrates_legacy_singular_audience_field() {
+        let yaml = "name: svc\naudience: im-content-resolution-api\ncredentials: []";
+        let service: ServiceConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            service.audiences,
+            vec!["im-content-resolution-api".to_string()]
+        );
+    }
+
+    #[test]
+    fn service_config_reads_new_audiences_list_field() {
+        let yaml = "name: svc\naudiences:\n  - one\n  - two\ncredentials: []";
+        let service: ServiceConfig = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            service.audiences,
+            vec!["one".to_string(), "two".to_string()]
+        );
+    }
+
+    #[test]
+    fn service_config_serializes_using_new_audiences_key() {
+        let service = ServiceConfig {
+            name: "svc".to_string(),
+            audiences: vec!["one".to_string(), "two".to_string()],
+            credentials: vec![],
+        };
+        let yaml = serde_yaml::to_string(&service).unwrap();
+        assert!(yaml.contains("audiences:"));
+        assert!(!yaml.contains("audience:"));
+    }
 }

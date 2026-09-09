@@ -90,11 +90,18 @@ pub enum ServiceStatusConfigEvent {
 #[derive(Clone, Debug, PartialEq)]
 pub enum TokenGeneratorEvent {
     ServiceListMove(Direction),
+    AudienceListMove(Direction),
     EnvListMove(Direction),
     SetFocus(Focus),
+    /// Moves focus rightwards from the current focus, skipping the Audience
+    /// column when the selected service has only one audience.
+    FocusRight,
+    /// Moves focus leftwards from the current focus, skipping the Audience
+    /// column when the selected service has only one audience.
+    FocusLeft,
     GenerateToken,
-    TokenGenerated(String, usize, usize),
-    TokenFailed(String, usize, usize),
+    TokenGenerated(String, usize, usize, usize),
+    TokenFailed(String, usize, usize, usize),
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -89,6 +89,22 @@ impl Plugin for TokenGeneratorPlugin {
             )),
         );
         map.add_static(
+            TokenGenCtx(Focus::Audience),
+            KeyCode::Down,
+            KeyModifiers::NONE,
+            Event::TokenGenerator(TokenGeneratorEvent::AudienceListMove(
+                crate::event::events::Direction::Down,
+            )),
+        );
+        map.add_static(
+            TokenGenCtx(Focus::Audience),
+            KeyCode::Up,
+            KeyModifiers::NONE,
+            Event::TokenGenerator(TokenGeneratorEvent::AudienceListMove(
+                crate::event::events::Direction::Up,
+            )),
+        );
+        map.add_static(
             TokenGenCtx(Focus::Env),
             KeyCode::Down,
             KeyModifiers::NONE,
@@ -104,11 +120,20 @@ impl Plugin for TokenGeneratorPlugin {
                 crate::event::events::Direction::Up,
             )),
         );
+        // Right/Left are resolved dynamically (see handle_tool_event) so the
+        // Audience column can be skipped when the selected service has only one
+        // audience — the target focus depends on config state, not just the key.
         map.add_static(
-            ToolCtx(Tool::TokenGenerator),
+            TokenGenCtx(Focus::Service),
             KeyCode::Right,
             KeyModifiers::NONE,
-            Event::TokenGenerator(TokenGeneratorEvent::SetFocus(Focus::Env)),
+            Event::TokenGenerator(TokenGeneratorEvent::FocusRight),
+        );
+        map.add_static(
+            TokenGenCtx(Focus::Audience),
+            KeyCode::Right,
+            KeyModifiers::NONE,
+            Event::TokenGenerator(TokenGeneratorEvent::FocusRight),
         );
         map.add_static(
             TokenGenCtx(Focus::Service),
@@ -117,10 +142,16 @@ impl Plugin for TokenGeneratorPlugin {
             Event::Generic(GenericEvent::SetFocus(AppFocus::List)),
         );
         map.add_static(
-            TokenGenCtx(Focus::Env),
+            TokenGenCtx(Focus::Audience),
             KeyCode::Left,
             KeyModifiers::NONE,
             Event::TokenGenerator(TokenGeneratorEvent::SetFocus(Focus::Service)),
+        );
+        map.add_static(
+            TokenGenCtx(Focus::Env),
+            KeyCode::Left,
+            KeyModifiers::NONE,
+            Event::TokenGenerator(TokenGeneratorEvent::FocusLeft),
         );
         map.add_static(
             ToolCtx(Tool::TokenGenerator),
@@ -306,7 +337,7 @@ impl Plugin for TokenGeneratorPlugin {
 
     fn handle_generic_event(&mut self, event: &GenericEvent, ctx: &mut PluginContext) -> bool {
         if *event == CopyToClipboard {
-            let token = self.state.token_for_selected_service_env();
+            let token = self.state.token_for_selected_service_audience_env();
             if matches!(token, Token::Ready(_))
                 && let Some(value) = token.value()
                 && let Err(e) = copy_to_clipboard(value)
@@ -343,7 +374,7 @@ impl Plugin for TokenGeneratorPlugin {
         use ratatui::text::{Line, Span};
         let k = key_style();
         let d = key_desc_style();
-        let line2 = match self.state.token_for_selected_service_env() {
+        let line2 = match self.state.token_for_selected_service_audience_env() {
             Token::Idle => Line::from(""),
             Token::Requesting => {
                 Line::from(vec![Span::styled("Generating token…", key_desc_style())])
