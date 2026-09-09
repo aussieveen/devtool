@@ -53,7 +53,7 @@ fn render_unified_table(
         .map(|s| {
             Row::new([
                 Cell::from(s.name.clone()),
-                Cell::from(truncate(&s.audience, 40)),
+                Cell::from(truncate(&s.audiences.join(", "), 40)),
                 Cell::from(s.credentials.len().to_string()),
             ])
         })

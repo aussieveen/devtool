@@ -32,12 +32,25 @@ pub fn render(
     const ERROR_COLOR: Color = Color::Red;
     const REQUESTING_COLOR: Color = Color::Yellow;
 
-    let inner_horizontal = Layout::default()
+    let (service_idx, _audience_idx, _env_idx) = state.selected_service_audience_env();
+    let service_config = &service_configs[service_idx];
+    let show_audiences = service_config.audiences.len() > 1;
+
+    let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .constraints(if show_audiences {
+            vec![
+                Constraint::Percentage(34),
+                Constraint::Percentage(33),
+                Constraint::Percentage(33),
+            ]
+        } else {
+            vec![Constraint::Percentage(50), Constraint::Percentage(50)]
+        })
         .split(area);
 
     let service_focused = matches!(state.focus, Focus::Service);
+    let audience_focused = matches!(state.focus, Focus::Audience);
     let env_focused = matches!(state.focus, Focus::Env);
 
     let services = List::new(
@@ -53,15 +66,34 @@ pub fn render(
             .border_style(block_style(service_focused)),
     );
 
-    frame.render_stateful_widget(services, inner_horizontal[0], &mut state.service_list_state);
+    frame.render_stateful_widget(services, columns[0], &mut state.service_list_state);
 
-    let (service_idx, _env_idx) = state.selected_service_env();
+    let env_area = if show_audiences {
+        let audiences = List::new(
+            service_config
+                .audiences
+                .iter()
+                .map(|a| ListItem::new(a.clone())),
+        )
+        .highlight_style(selection_highlight())
+        .block(
+            Block::new()
+                .borders(Borders::ALL)
+                .title(" Audiences ")
+                .border_style(block_style(audience_focused)),
+        );
 
-    let service_config = &service_configs[service_idx];
+        frame.render_stateful_widget(audiences, columns[1], &mut state.audience_list_state);
+        columns[2]
+    } else {
+        columns[1]
+    };
+
+    let audience_idx = state.audience_list_state.selected().unwrap_or_default();
 
     let environments = List::new(service_config.credentials.iter().enumerate().map(
         |(env_idx, c)| {
-            let token = &state.tokens[service_idx][env_idx];
+            let token = &state.tokens[service_idx][audience_idx][env_idx];
             let (prefix, prefix_style) = match token {
                 Token::Ready(_) => ("[✓]", Style::default().fg(READY_COLOR)),
                 Token::Error => ("[x]", Style::default().fg(ERROR_COLOR)),
@@ -82,5 +114,5 @@ pub fn render(
             .border_style(block_style(env_focused)),
     );
 
-    frame.render_stateful_widget(environments, inner_horizontal[1], &mut state.env_list_state);
+    frame.render_stateful_widget(environments, env_area, &mut state.env_list_state);
 }

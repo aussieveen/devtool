@@ -4,12 +4,15 @@ use ratatui::widgets::ListState;
 #[derive(Eq, Hash, PartialEq, Copy, Clone, Debug)]
 pub enum Focus {
     Service,
+    Audience,
     Env,
 }
 
 pub(crate) struct TokenGenerator {
-    pub tokens: Vec<Vec<Token>>,
+    /// Indexed [service][audience][env].
+    pub tokens: Vec<Vec<Vec<Token>>>,
     pub env_list_state: ListState,
+    pub audience_list_state: ListState,
     pub service_list_state: ListState,
     pub focus: Focus,
 }
@@ -18,23 +21,28 @@ impl TokenGenerator {
     pub(crate) fn new(services: &[ServiceConfig]) -> TokenGenerator {
         let tokens = services
             .iter()
-            .map(|s| vec![Token::Idle; s.credentials.len()])
+            .map(|s| vec![vec![Token::Idle; s.credentials.len()]; s.audiences.len()])
             .collect();
 
         Self {
             tokens,
             env_list_state: ListState::default().with_selected(Some(0)),
+            audience_list_state: ListState::default().with_selected(Some(0)),
             service_list_state: ListState::default().with_selected(Some(0)),
             focus: Focus::Service,
         }
     }
 
-    pub fn selected_service_env(&self) -> (usize, usize) {
-        (self.selected_service(), self.selected_env())
+    pub fn selected_service_audience_env(&self) -> (usize, usize, usize) {
+        (self.selected_service(), self.selected_audience(), self.selected_env())
     }
 
     fn selected_service(&self) -> usize {
         self.service_list_state.selected().unwrap_or_default()
+    }
+
+    fn selected_audience(&self) -> usize {
+        self.audience_list_state.selected().unwrap_or_default()
     }
 
     fn selected_env(&self) -> usize {
@@ -42,25 +50,31 @@ impl TokenGenerator {
     }
 
     /***
-    This function gets the selected service env indexes as it is run as part of a
+    This function gets the selected service/audience/env indexes as it is run as part of a
     synchronous call. The others are all run as part of an asynchronous call meaning
     the values need to be those that were set when the calls started
     */
     pub fn start_token_request(&mut self) {
-        let (service_idx, env_idx) = self.selected_service_env();
-        self.tokens[service_idx][env_idx] = Token::Requesting;
+        let (service_idx, audience_idx, env_idx) = self.selected_service_audience_env();
+        self.tokens[service_idx][audience_idx][env_idx] = Token::Requesting;
     }
 
-    pub fn set_token_ready(&mut self, service_idx: usize, env_idx: usize, token: String) {
-        self.tokens[service_idx][env_idx] = Token::Ready(token);
+    pub fn set_token_ready(
+        &mut self,
+        service_idx: usize,
+        audience_idx: usize,
+        env_idx: usize,
+        token: String,
+    ) {
+        self.tokens[service_idx][audience_idx][env_idx] = Token::Ready(token);
     }
 
-    pub fn set_token_error(&mut self, service_idx: usize, env_idx: usize) {
-        self.tokens[service_idx][env_idx] = Token::Error;
+    pub fn set_token_error(&mut self, service_idx: usize, audience_idx: usize, env_idx: usize) {
+        self.tokens[service_idx][audience_idx][env_idx] = Token::Error;
     }
 
-    pub fn token_for_selected_service_env(&self) -> &Token {
-        &self.tokens[self.selected_service()][self.selected_env()]
+    pub fn token_for_selected_service_audience_env(&self) -> &Token {
+        &self.tokens[self.selected_service()][self.selected_audience()][self.selected_env()]
     }
 }
 
@@ -87,42 +101,54 @@ mod tests {
 
     fn get_default_token_generator() -> TokenGenerator {
         TokenGenerator {
-            tokens: vec![vec![Token::Idle; 4], vec![Token::Idle; 2]],
+            // Service 0: 2 audiences x 4 envs. Service 1: 1 audience x 2 envs.
+            tokens: vec![
+                vec![vec![Token::Idle; 4], vec![Token::Idle; 4]],
+                vec![vec![Token::Idle; 2]],
+            ],
             env_list_state: Default::default(),
+            audience_list_state: Default::default(),
             service_list_state: Default::default(),
             focus: Focus::Service,
         }
     }
 
     #[test]
-    fn get_selected_service_env_returns_selected() {
-        let service_idx = 1;
+    fn get_selected_service_audience_env_returns_selected() {
+        let service_idx = 0;
+        let audience_idx = 1;
         let env_idx = 1;
         let mut token_generator = get_default_token_generator();
         token_generator.service_list_state.select(Some(service_idx));
+        token_generator.audience_list_state.select(Some(audience_idx));
         token_generator.env_list_state.select(Some(env_idx));
         assert_eq!(
-            token_generator.selected_service_env(),
-            (service_idx, env_idx)
+            token_generator.selected_service_audience_env(),
+            (service_idx, audience_idx, env_idx)
         )
     }
 
     #[test]
-    fn get_selected_service_env_returns_default() {
+    fn get_selected_service_audience_env_returns_default() {
         let mut token_generator = get_default_token_generator();
         token_generator.service_list_state.select(None);
+        token_generator.audience_list_state.select(None);
         token_generator.env_list_state.select(None);
-        assert_eq!(token_generator.selected_service_env(), (0, 0))
+        assert_eq!(
+            token_generator.selected_service_audience_env(),
+            (0, 0, 0)
+        )
     }
 
     #[test]
     fn start_token_request_sets_token_to_requesting() {
         let mut token_generator = get_default_token_generator();
-        token_generator.service_list_state.select(Some(1));
+        token_generator.service_list_state.select(Some(0));
+        token_generator.audience_list_state.select(Some(1));
         token_generator.env_list_state.select(Some(1));
         token_generator.start_token_request();
         assert_eq!(
-            token_generator.token_for_selected_service_env(),
+            token_generator.token_for_selected_service_audience_env(),
             &Token::Requesting
         );
     }
@@ -130,13 +156,14 @@ mod tests {
     #[test]
     fn set_token_ready_sets_token_to_ready() {
         let service_idx = 0;
+        let audience_idx = 1;
         let env_idx = 1;
         let token_string = String::from("token");
         let mut token_generator = get_default_token_generator();
-        token_generator.set_token_ready(service_idx, env_idx, token_string.clone());
+        token_generator.set_token_ready(service_idx, audience_idx, env_idx, token_string.clone());
 
         assert_eq!(
-            token_generator.tokens[service_idx][env_idx],
+            token_generator.tokens[service_idx][audience_idx][env_idx],
             Token::Ready(token_string)
         );
     }
@@ -144,27 +171,32 @@ mod tests {
     #[test]
     fn set_token_error_sets_token_to_error() {
         let service_idx = 0;
+        let audience_idx = 1;
         let env_idx = 1;
         let mut token_generator = get_default_token_generator();
-        token_generator.set_token_error(service_idx, env_idx);
+        token_generator.set_token_error(service_idx, audience_idx, env_idx);
 
-        assert_eq!(token_generator.tokens[service_idx][env_idx], Token::Error);
+        assert_eq!(
+            token_generator.tokens[service_idx][audience_idx][env_idx],
+            Token::Error
+        );
     }
 
     #[test]
-    fn get_token_for_selected_service_env_returns_token() {
+    fn get_token_for_selected_service_audience_env_returns_token() {
         let mut token_generator = get_default_token_generator();
         assert_eq!(
-            token_generator.token_for_selected_service_env(),
+            token_generator.token_for_selected_service_audience_env(),
             &Token::Idle
         );
 
         let token_string = String::from("token");
-        token_generator.set_token_ready(1, 1, token_string.clone());
-        token_generator.service_list_state.select(Some(1));
+        token_generator.set_token_ready(0, 1, 1, token_string.clone());
+        token_generator.service_list_state.select(Some(0));
+        token_generator.audience_list_state.select(Some(1));
         token_generator.env_list_state.select(Some(1));
         assert_eq!(
-            token_generator.token_for_selected_service_env(),
+            token_generator.token_for_selected_service_audience_env(),
             &Token::Ready(token_string)
         )
     }

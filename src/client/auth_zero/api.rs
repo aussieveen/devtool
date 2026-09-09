@@ -9,6 +9,7 @@ pub trait AuthZeroApi: Send + Sync {
     fn fetch_token(
         &self,
         service_idx: usize,
+        audience_idx: usize,
         env_idx: usize,
         config: TokenGenerator,
         sender: EventSender,
@@ -37,18 +38,24 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
     fn fetch_token(
         &self,
         service_idx: usize,
+        audience_idx: usize,
         env_idx: usize,
         config: TokenGenerator,
         sender: EventSender,
     ) {
         let client = self.client.clone();
         tokio::spawn(async move {
-            match token(client, service_idx, env_idx, config).await {
+            match token(client, service_idx, audience_idx, env_idx, config).await {
                 Ok(token) => {
-                    sender.send(TokenGenerated(token, service_idx, env_idx));
+                    sender.send(TokenGenerated(token, service_idx, audience_idx, env_idx));
                 }
                 Err(err) => {
-                    sender.send(TokenFailed(err.to_string(), service_idx, env_idx));
+                    sender.send(TokenFailed(
+                        err.to_string(),
+                        service_idx,
+                        audience_idx,
+                        env_idx,
+                    ));
                 }
             }
         });
@@ -58,18 +65,20 @@ impl AuthZeroApi for ImmediateAuthZeroApi {
 async fn token(
     client: Client,
     service_idx: usize,
+    audience_idx: usize,
     env_idx: usize,
     config: TokenGenerator,
 ) -> Result<String, ClientError> {
     let service = &config.services[service_idx];
     let credentials = &service.credentials[env_idx];
+    let audience = &service.audiences[audience_idx];
 
     Ok(auth_zero_client::token(
         client,
         config.auth0.config_for_env(&credentials.env),
         &credentials.client_id,
         &credentials.client_secret,
-        &service.audience,
+        audience,
     )
     .await?
     .access_token)
